@@ -58,9 +58,9 @@ The delivery goal:
 | **Accounts and devices** | Authentication, revocable sessions and account recovery under the selected registration policy | S2 | Implemented |
 | **Campaign membership** | Invitations, owner/player/read-only roles and authorization on every item | S3 | Implemented |
 | **Selective sharing** | Private owner copies, explicit member access, selected sheet sections and managed images | S4 | Server implemented; client extensions pending |
-| **Continuous saving** | Local autosave, automatic online replication, durable pending changes and visible save status | S5 | Planned |
-| **Conflict handling** | Both versions remain visible when concurrent edits need your decision | S5 | Planned |
-| **Revocation** | Remove member access and clear shared copies on their next synchronization | S6 | Planned |
+| **Continuous saving** | Local autosave, automatic online replication, durable pending changes and visible save status | S5 | Implemented (server and desktop client); Windows tested |
+| **Conflict handling** | Both versions remain visible when concurrent edits need your decision | S5 | Implemented (server and desktop client); Windows tested |
+| **Revocation** | Remove member access and clear shared copies on their next synchronization | S6 | Implemented (server and desktop client); Windows tested |
 | **Backup and recovery** | Consistent server backups, integrity checks and documented restoration | S7 | Planned |
 | **Desktop integration** | Tested synchronization with the original Chronexus app | S8 | Planned |
 | **Android access** | Same account and shared content, with read-only access first | S9 / app M27 | Planned |
@@ -142,7 +142,7 @@ and campaign AI activation will remain separate actions. See
 
 [ROADMAP.md](ROADMAP.md) defines S0–S11, dependencies and acceptance criteria.
 [docs/STATUS.md](docs/STATUS.md) records what exists, checks actually performed
-and the next step: **S5 continuous local/server saving**. Production
+and the next step: **S7 security qualification and operational recovery**. Production
 hosting and full campaign acceptance remain open.
 
 ## Development and contributing

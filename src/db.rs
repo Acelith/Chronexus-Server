@@ -29,7 +29,7 @@ fn inspect_identity(conn: &Connection) -> std::result::Result<u32, String> {
     let application_id: i64 = conn
         .pragma_query_value(None, "application_id", |r| r.get(0))
         .map_err(|_| "Cannot read database identity.")?;
-    if version > 5 {
+    if version > 6 {
         return Err("Database schema is newer than this server; use a compatible binary.".into());
     }
     if application_id != SERVER_ID && !(application_id == 0 && version < 3) {
@@ -154,6 +154,12 @@ impl Database {
             tx.execute_batch(include_str!("../migrations/005_sync_log.sql"))
                 .map_err(|_| "Sync log migration failed; transaction rolled back.")?;
             tx.pragma_update(None, "user_version", 5)
+                .map_err(|_| "Cannot record schema version.")?;
+        }
+        if version < 6 {
+            tx.execute_batch(include_str!("../migrations/006_lifecycle.sql"))
+                .map_err(|_| "Lifecycle migration failed; transaction rolled back.")?;
+            tx.pragma_update(None, "user_version", 6)
                 .map_err(|_| "Cannot record schema version.")?;
         }
         tx.commit().map_err(|_| "Cannot commit schema migration.")?;

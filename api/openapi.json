@@ -272,6 +272,35 @@
         ],
         "type": "object"
       },
+      "DeleteAccount": {
+        "additionalProperties": false,
+        "properties": {
+          "deleteOwnedCampaigns": {
+            "description": "Required when you own a campaign that other members still use: it is deleted too.",
+            "type": "boolean"
+          },
+          "password": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "password"
+        ],
+        "type": "object"
+      },
+      "DeleteCampaign": {
+        "additionalProperties": false,
+        "properties": {
+          "confirmName": {
+            "description": "The exact campaign name: an explicit confirmation of a destructive action.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "confirmName"
+        ],
+        "type": "object"
+      },
       "DeviceSession": {
         "properties": {
           "createdAt": {
@@ -327,6 +356,36 @@
         "required": [
           "version",
           "blocks"
+        ],
+        "type": "object"
+      },
+      "EraseOwnContent": {
+        "additionalProperties": false,
+        "properties": {
+          "confirm": {
+            "description": "Must be true: the server copy of everything you synchronized here is deleted.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "confirm"
+        ],
+        "type": "object"
+      },
+      "Erased": {
+        "properties": {
+          "attachments": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "items": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "attachments"
         ],
         "type": "object"
       },
@@ -1116,6 +1175,64 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/api/v1/auth/account/deletion": {
+      "post": {
+        "operationId": "delete_account",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeleteAccount"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": ""
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": ""
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "lifecycle"
+        ]
+      }
+    },
     "/api/v1/auth/login": {
       "post": {
         "operationId": "login",
@@ -2308,6 +2425,74 @@
         ]
       }
     },
+    "/api/v1/campaigns/{campaignId}/deletion": {
+      "post": {
+        "operationId": "delete_campaign",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "campaignId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeleteCampaign"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": ""
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": ""
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "lifecycle"
+        ]
+      }
+    },
     "/api/v1/campaigns/{campaignId}/events": {
       "get": {
         "operationId": "events",
@@ -2872,6 +3057,81 @@
         ],
         "tags": [
           "campaigns"
+        ]
+      }
+    },
+    "/api/v1/campaigns/{campaignId}/own-content/deletion": {
+      "post": {
+        "operationId": "erase_own",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "campaignId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EraseOwnContent"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erased"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": ""
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": ""
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "lifecycle"
         ]
       }
     },

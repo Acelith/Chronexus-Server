@@ -33,6 +33,34 @@ async fn run() -> Result<(), String> {
             // Only this operator-invoked command reveals the secret; serve never logs it.
             println!("{code}");
         }
+        "revoke-sessions" if args.len() == 1 => {
+            // After restoring an older backup: every session ends, everyone signs in again.
+            let path = PathBuf::from(
+                std::env::var("CHRONEXUS_DATABASE")
+                    .unwrap_or_else(|_| "data/chronexus.sqlite3".into()),
+            );
+            let db = Database::open(&path)?;
+            let ended = db.revoke_all_sessions().map_err(|e| e.1.to_string())?;
+            println!("{ended} sessions revoked.");
+        }
+        "compact" if args.len() <= 2 => {
+            // Drops tombstones older than the given number of days (default 180).
+            let days = args
+                .get(1)
+                .map(|d| {
+                    d.parse::<i64>()
+                        .map_err(|_| "Usage: chronexus-server compact [DAYS]")
+                })
+                .transpose()?
+                .unwrap_or(180);
+            let path = PathBuf::from(
+                std::env::var("CHRONEXUS_DATABASE")
+                    .unwrap_or_else(|_| "data/chronexus.sqlite3".into()),
+            );
+            let db = Database::open(&path)?;
+            let removed = db.purge_tombstones(days).map_err(|e| e.1.to_string())?;
+            println!("{removed} tombstones removed.");
+        }
         "healthcheck" if args.len() == 1 => {
             use tokio::io::{AsyncReadExt, AsyncWriteExt};
             let listen: SocketAddr = std::env::var("CHRONEXUS_LISTEN")
@@ -70,7 +98,7 @@ async fn run() -> Result<(), String> {
         }
         _ => {
             return Err(
-                "Usage: chronexus-server [serve|invite|recover USERNAME|openapi|healthcheck]"
+                "Usage: chronexus-server [serve|invite|recover USERNAME|revoke-sessions|compact [DAYS]|openapi|healthcheck]"
                     .into(),
             );
         }

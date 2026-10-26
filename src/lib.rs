@@ -8,6 +8,7 @@ mod content_routes;
 pub mod db;
 pub mod error;
 mod events;
+pub mod lifecycle;
 pub mod payload;
 pub mod routes;
 

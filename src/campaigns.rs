@@ -109,7 +109,13 @@ fn role(value: &str) -> Result<()> {
 }
 pub(crate) fn member(conn: &Connection, campaign: &str, account: &str) -> Result<String> {
     identifier(campaign)?;
-    conn.query_row("SELECT m.role FROM members m JOIN accounts a ON a.id=m.account_id WHERE m.campaign_id=?1 AND m.account_id=?2 AND a.disabled=0 AND m.active=1",params![campaign,account],|row|row.get(0)).optional()?.ok_or_else(forbidden)
+    let row:Option<(String,bool,Option<i64>)>=conn.query_row("SELECT m.role,m.active,c.deleted_at FROM members m JOIN accounts a ON a.id=m.account_id JOIN campaigns c ON c.id=m.campaign_id WHERE m.campaign_id=?1 AND m.account_id=?2 AND a.disabled=0",params![campaign,account],|row|Ok((row.get(0)?,row.get(1)?,row.get(2)?))).optional()?;
+    // Former members of a deleted campaign learn that it is gone; everyone else sees a refusal.
+    match row {
+        Some((role, true, None)) => Ok(role),
+        Some((_, _, Some(_))) => Err(crate::lifecycle::campaign_gone()),
+        _ => Err(forbidden()),
+    }
 }
 pub(crate) fn owner(conn: &Connection, campaign: &str, account: &str) -> Result<()> {
     if member(conn, campaign, account)? == "owner" {
@@ -134,7 +140,7 @@ fn membership_quota(conn: &Connection, account: &str) -> Result<()> {
     }
 }
 pub(crate) fn available_invite(conn: &Connection, hash: &str) -> Result<bool> {
-    Ok(conn.query_row("SELECT EXISTS(SELECT 1 FROM campaign_invites i JOIN campaigns c ON c.id=i.campaign_id JOIN accounts a ON a.id=i.created_by JOIN members m ON m.campaign_id=c.id AND m.account_id=a.id WHERE i.code_hash=?1 AND i.used_at IS NULL AND i.revoked_at IS NULL AND i.expires_at>?2 AND c.owner_id=i.created_by AND m.role='owner' AND m.active=1 AND a.disabled=0)",params![hash,now()],|r|r.get(0))?)
+    Ok(conn.query_row("SELECT EXISTS(SELECT 1 FROM campaign_invites i JOIN campaigns c ON c.id=i.campaign_id JOIN accounts a ON a.id=i.created_by JOIN members m ON m.campaign_id=c.id AND m.account_id=a.id WHERE i.code_hash=?1 AND i.used_at IS NULL AND i.revoked_at IS NULL AND i.expires_at>?2 AND c.deleted_at IS NULL AND c.owner_id=i.created_by AND m.role='owner' AND m.active=1 AND a.disabled=0)",params![hash,now()],|r|r.get(0))?)
 }
 pub(crate) fn accept_invite(
     conn: &Connection,

@@ -59,7 +59,7 @@ not a production deployment or a completed application M25.
 | S3 | Campaign invitations and authorization | S2 | Implemented; original desktop membership calls verified |
 | S4 | Explicit selective sharing and managed attachments | S3 | Server implemented; new app selection/preview UI pending |
 | S5 | Continuous local and server saving with visible conflicts | S4 | Server contract implemented (receipts, incremental sync, notifications); desktop queue pending |
-| S6 | Revocation, deletion and recovery | S5 | Planned |
+| S6 | Revocation, deletion and recovery | S5 | Implemented (server and desktop client); Windows tested |
 | S7 | Security qualification and operational recovery | S6 | Planned |
 | S8 | Desktop integration and first server release | S7 and full desktop M24 acceptance | Planned |
 | S9 | Android contract qualification | S8 and application M27 | Planned |
@@ -257,6 +257,10 @@ server after reconnection. Test the actual desktop integration. The two live cop
 are replicas: deletion can propagate, so independent versioned backups remain required.
 
 ## S6 Revocation and deletion
+
+Implemented in schema 006 (26 October 2026): see [docs/API.md](docs/API.md) for what each
+action removes and the limits that remain. Server acceptance is in `tests/lifecycle.rs`; the
+desktop clears received copies when its access is lost (application repository).
 
 - Stop access immediately on the server when sharing or membership is revoked.
   Remove revoked member access and member projections; retain the owner’s private

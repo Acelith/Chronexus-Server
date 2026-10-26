@@ -166,3 +166,25 @@ new dependencies, deployment, publication or complete S5 acceptance in this slic
 - Schema 005 is additive and backfills one log row per existing content row. Prior server
   binaries refuse the newer archive. No desktop change in this slice; the legacy four-kind
   client keeps its behavior.
+
+## S6 lifecycle: what deletion keeps (26 October 2026)
+
+- **Separate, explicit actions.** Revocation (unshare, member removal) keeps the author's
+  private original; erasing one's own server copy, deleting a campaign and deleting an
+  account are three different confirmed actions, because the desktop treats the server copy
+  as a replica (S5) and must never lose it through a sharing change.
+- **A deleted campaign leaves a stub, not content.** Its id, deletion time and inactive
+  membership rows remain so former members are told ("deleted", 404) instead of seeing a
+  generic refusal; outsiders cannot tell it ever existed (403). All payloads, uploads, log
+  rows, receipts and invitations are deleted in one transaction.
+- **A deleted account becomes an anonymous stub.** Content-free history (tombstones, log rows,
+  membership revisions) references account ids, so the row stays with the username and display
+  name replaced and the account disabled; sessions end immediately.
+- **No ownership transfer in v1.** The last owner cannot leave; an account that owns a
+  campaign other members use must delete it explicitly. Keeps authorization simple and avoids
+  silently handing a campaign over.
+- **Receipts survive content erasure** so a retried operation is acknowledged, not re-applied.
+- **Tombstone retention is operator-run** (`compact`) and fail-closed: it raises the cursor
+  floor, so purging can only force a relisting, never a resurrection.
+- **Restores are the operator's responsibility.** A backup contains only what existed when it
+  was made; `revoke-sessions` removes the one thing that must not silently come back.

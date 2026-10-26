@@ -1,6 +1,6 @@
 # Chronexus Server status
 
-Updated: 26 October 2026. Source 0.1.0, server schema 005. Not published.
+Updated: 26 October 2026. Source 0.1.0, server schema 006. Not published.
 
 ## Implemented server milestones S1 through S4
 
@@ -28,7 +28,18 @@ Updated: 26 October 2026. Source 0.1.0, server schema 005. Not published.
   binary image MIME types. Server archive identity is checked before journal changes
   or migrations, preserving schemas 001/002 and refusing foreign/desktop archives.
 
-## S5 server contract implemented (desktop queue pending)
+## S6 lifecycle implemented (schema 006)
+
+- Campaign deletion (owner, exact name), erasing one's own server copy, account deletion
+  (password, explicit flag for shared owned campaigns, anonymous stub), former members told
+  "deleted" (404), operator `revoke-sessions` and `compact [DAYS]`. Revocation, rejoin, stale
+  writes, purged tombstones with stale cursors and a restored backup are covered by 6 new tests
+  in `tests/lifecycle.rs`; all 62 integration tests, rustfmt, Clippy `-D warnings` and the
+  contract drift check pass on Windows x64 (Rust 1.99.1). Not run: Docker/Linux/macOS.
+- Limits (see docs/API.md): exported or offline copies cannot be recalled; backups keep
+  deleted data until the operator drops them; no ownership transfer.
+
+## S5 implemented (server contract; desktop client in the application repository)
 
 - Schema 005: payload-free change log, `/sync` incremental reads of the caller's current
   authorized state with tombstones, bounded pages (500 log rows / 6 MiB), cursor floor with
@@ -43,8 +54,14 @@ Updated: 26 October 2026. Source 0.1.0, server schema 005. Not published.
   keyed delete/unshare/legacy retries, ID age window and receipt compaction, stream
   scoping/limits); rustfmt, Clippy `-D warnings` and contract generation/drift checks pass.
   Not run: Docker/Linux/macOS, minimum Rust, original-desktop harness, real network latency.
-- Not done: membership-removal push hint, desktop durable queue, conflict UI, latency
-  measurement under real conditions, S6 revocation lifecycle.
+- Desktop integration (application repository, commit 7bf720e): the real desktop client ran
+  against this server's debug build over loopback HTTP. Two computers of one account stayed
+  aligned with autosave-to-other-computer latency of median ~160 ms (max 488 ms) over 8 edits
+  with a 60 s poll, so notification-driven; a server kill and restart on the same database was
+  recovered automatically; a stored operation was replayed once; conflicts, sharing,
+  withdrawal, 120-item paging and member isolation were verified.
+- Not done: a membership-removal push hint (polling covers it, the stream closes at its next
+  keepalive check), production TLS/DNS, Linux/macOS, long soak.
 
 ## Earlier S4 checks and evidence
 
@@ -81,23 +98,17 @@ Docker/Compose:
 
 ## Next step and explicit limits
 
-Next: **S5 desktop integration** (durable outbound queue, states, conflicts, latency) on the contract above; earlier plan: extend retry-safe operations to
-uploads/deletes/withdrawals, add the authorized private incremental feed and bounded
-notification channel, then integrate the durable desktop outbound queue, automatic
-reconnection and visible conflicts. Define safe receipt compaction and measure
-end-to-end latency. The content-save receipt slice does not complete S5.
-The original app supports explicit sharing of four legacy kinds; new private
-replica/image/selected-sheet selection and scope preview UI remains pending.
-S4 backend completion is not a claim of full desktop S4 acceptance or a completed
-application M25 release. S6/S7 still own comprehensive deletion/recovery, retention
-and production backup qualification. AI and web remain S10/S11.
+Next: **S7 security qualification and operational recovery** (authorization matrix, installation
+guide, backup/restore with integrity checks, failed-upgrade recovery, CI, Linux amd64), then **S8**
+(first release after full M24 acceptance). Open decisions: production hosting and the server
+code license.
 
-The current application records M23 implemented, M24 client implemented, M25 server
-and M27 Android. Application files, schema 019, identifiers and personal data were
-not modified. Real hosting/operator policy and the server code license remain open
-before production distribution. No production deployment, publication or release.
+The application repository now holds the S5 desktop client (schema 020, commit 7bf720e) and
+the S6 access-loss handling; its legacy storage identifiers and personal data were not
+touched. Real hosting/operator policy and the server code license remain open before
+production distribution. No production deployment, publication or release.
 
-Skills applied in the S5 contract slice: `rust-best-practices` (ownership, error and test
+Skills applied in the S5/S6 slices: `rust-best-practices` (ownership, error and test
 patterns, Clippy discipline) and `sqlite-expert` (short atomic transactions, indexed
 lookups, FULL durability kept). The earlier S4 delivery
 recorded `pages:write-page`; the current environment additionally provides Rust and

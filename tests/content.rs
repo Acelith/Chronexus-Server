@@ -1432,7 +1432,7 @@ fn content_schema_upgrade_adds_receipts_and_log_without_modifying_originals() {
     db.with(|conn| {
         assert_eq!(
             conn.pragma_query_value(None, "user_version", |r| r.get::<_, i64>(0))?,
-            5
+            6
         );
         assert_eq!(
             conn.query_row("SELECT state FROM content_log WHERE id='item'", [], |r| {

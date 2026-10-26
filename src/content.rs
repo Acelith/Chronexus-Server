@@ -269,7 +269,7 @@ fn withdraw(conn: &Connection, campaign: &str, kind: &str, id: &str) -> Result<i
     log_change(conn, campaign, kind, id, &author, "withdrawn")?;
     Ok(revision)
 }
-fn withdraw_dependents(conn: &Connection, campaign: &str, page: &str) -> Result<()> {
+pub(crate) fn withdraw_dependents(conn: &Connection, campaign: &str, page: &str) -> Result<()> {
     let mut q=conn.prepare("SELECT c.kind,c.id FROM content c JOIN content_dependencies d ON d.campaign_id=c.campaign_id AND d.kind=c.kind AND d.item_id=c.id WHERE c.campaign_id=?1 AND d.page_id=?2 AND c.visibility='members' AND c.deleted=0")?;
     let rows = q
         .query_map(params![campaign, page], |r| {

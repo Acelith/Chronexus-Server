@@ -127,3 +127,19 @@ than copying an active SQLite file alone.
 
 See [DEVELOPMENT.md](DEVELOPMENT.md), [API.md](API.md) and [STATUS.md](STATUS.md).
 No registry image or server release has been published by this change.
+
+## Operator commands for lifecycle and recovery (S6)
+
+Run with the same database environment as `invite` and `recover`:
+
+```sh
+docker compose exec -T server chronexus-server revoke-sessions
+docker compose exec -T server chronexus-server compact 180
+```
+
+`revoke-sessions` ends every session: run it after restoring an older backup, which would
+otherwise bring back sessions that were revoked later. `compact DAYS` drops tombstones older
+than the given days (default 180); devices that were offline longer must list the campaign
+again. Deleting a campaign or an account is done by the user through the API (see
+[API.md](API.md)); the operator's backups keep deleted data until the operator's own retention
+removes it.

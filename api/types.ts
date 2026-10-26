@@ -69,6 +69,15 @@ export type Current = {
   "revision": number;
 };
 
+export type DeleteAccount = {
+  "deleteOwnedCampaigns"?: boolean;
+  "password": string;
+};
+
+export type DeleteCampaign = {
+  "confirmName": string;
+};
+
 export type DeviceSession = {
   "createdAt": string;
   "current": boolean;
@@ -82,6 +91,15 @@ export type Document = {
   "blocks": Array<Block>;
   "importedFrom"?: string | null;
   "version": number;
+};
+
+export type EraseOwnContent = {
+  "confirm": boolean;
+};
+
+export type Erased = {
+  "attachments": number;
+  "items": number;
 };
 
 export type ErrorBody = {

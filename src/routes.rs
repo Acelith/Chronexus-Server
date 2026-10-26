@@ -35,6 +35,7 @@ pub fn router(state: AppState) -> Router {
     Router::new()
         .merge(crate::campaign_routes::router())
         .merge(crate::content_routes::router(state.clone()))
+        .merge(crate::lifecycle::router())
         .route("/api/v1/meta", get(meta))
         .route("/api/v1/openapi.json", get(openapi))
         .route("/health/live", get(live))
@@ -207,6 +208,7 @@ async fn meta() -> Json<Meta> {
             "idempotent-mutations",
             "incremental-sync",
             "change-notifications",
+            "deletion",
         ],
     })
 }
@@ -334,6 +336,7 @@ pub fn contract() -> utoipa::openapi::OpenApi {
     let mut api = Contract::openapi();
     api.merge(crate::campaign_routes::CampaignContract::openapi());
     api.merge(crate::content_routes::ContentContract::openapi());
+    api.merge(crate::lifecycle::LifecycleContract::openapi());
     api.components.as_mut().unwrap().add_security_scheme(
         "bearer",
         SecurityScheme::Http(HttpBuilder::new().scheme(HttpAuthScheme::Bearer).build()),

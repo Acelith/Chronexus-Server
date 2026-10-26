@@ -220,3 +220,38 @@ the stream within about 25 seconds). Limits: 3 streams per account, 64 total (42
 beyond that). Clients must keep a polling fallback: poll `/sync` about every 30 seconds
 while offline-push is unavailable, and always poll once after every (re)connection.
 Membership removal does not yet push a hint; polling covers it until S6.
+
+## S6 revocation, deletion and recovery boundaries
+
+Schema 006, capability `deletion`.
+
+**What each action removes**
+
+| Action | Effect on the server |
+| --- | --- |
+| Unshare an item, or remove a member (S4) | Projections become tombstones for the other members; the author's **private original stays**. Removal is immediate: the old session can neither read nor write. Rejoining by a new invitation never republishes anything; a stale offline write conflicts (409). |
+| `POST /campaigns/{id}/own-content/deletion` `{confirm:true}` | Any member: every item they synchronized to this campaign becomes a tombstone (for members who saw it) and their uploads are deleted. Other members' content and the membership stay. Idempotency receipts are kept, so a lost-response retry is acknowledged and never brings the item back. Returns `{items, attachments}`. |
+| `POST /campaigns/{id}/deletion` `{confirmName}` | Owner only, exact campaign name required (400 otherwise). Removes every payload, upload, change-log row, receipt and invitation. The campaign id, deletion time and inactive membership rows stay. Former members (and the owner) then get **404 "This campaign was deleted."** on every campaign call; outsiders still get 403. |
+| `POST /auth/account/deletion` `{password, deleteOwnedCampaigns}` | The account holder, password checked (5 attempts per 15 minutes). Owning a campaign other members use returns 409 unless `deleteOwnedCampaigns` is true (there is no ownership transfer: the last owner cannot leave; delete the campaign or invite a replacement and delete the account later). Memberships end, authored content is erased as above, sessions are revoked, and the account becomes an anonymous stub (`deleted-…`, "Deleted account", disabled) that content-free history still references. The user name becomes available again. |
+
+**Operator commands** (same database environment as `invite`):
+
+```sh
+chronexus-server revoke-sessions   # ends every session; run after restoring an older backup
+chronexus-server compact [DAYS]    # drops tombstones older than DAYS (default 180)
+```
+
+`compact` raises each affected campaign's cursor floor, so a client that missed the
+deletion must list the campaign again; an old offline write against a purged item is
+refused (404) and cannot recreate it. Keep tombstones at least as long as the longest
+time a device may stay offline.
+
+**Limits that no server action can remove**
+
+- A member's own exported or cached copies, and any device that has not reconnected yet,
+  keep what they already received; revocation reaches them at their next synchronization
+  (the desktop client clears received copies then and keeps its own originals).
+- Server backups keep deleted data until the operator's retention drops them. A restored
+  backup brings back the memberships, sessions and content it contained; the operator
+  should run `revoke-sessions` and re-apply deletions the backup predates (S7 documents the
+  restore procedure). Revocations recorded after the backup are not in it.

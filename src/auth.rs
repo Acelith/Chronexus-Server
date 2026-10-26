@@ -99,7 +99,7 @@ pub fn password_hash(password: &str) -> Result<String> {
         .map(|hash| hash.to_string())
         .map_err(|_| ApiError::internal())
 }
-fn verify(password: &str, hash: &str) -> bool {
+pub(crate) fn verify(password: &str, hash: &str) -> bool {
     PasswordHash::new(hash).is_ok_and(|hash| {
         Argon2::default()
             .verify_password(password.as_bytes(), &hash)
