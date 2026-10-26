@@ -57,6 +57,51 @@ fn file_sha256(path: &Path) -> Result<(u64, String), String> {
     }
     Ok((size, format!("{:x}", hasher.finalize())))
 }
+/// Every table, index and trigger with its SQL, as SQLite stores it after migrations.
+fn structure(conn: &Connection) -> Result<Vec<(String, String, String)>, String> {
+    let mut query = conn
+        .prepare(
+            "SELECT type,name,coalesce(sql,'') FROM sqlite_master              WHERE name NOT LIKE 'sqlite_%' ORDER BY type,name",
+        )
+        .map_err(|_| "Cannot read the database structure.")?;
+    query
+        .query_map([], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)))
+        .and_then(|rows| rows.collect())
+        .map_err(|_| "Cannot read the database structure.".into())
+}
+fn remove_with_companions(path: &Path) {
+    for suffix in ["", "-wal", "-shm"] {
+        let mut file = path.as_os_str().to_os_string();
+        file.push(suffix);
+        let _ = fs::remove_file(PathBuf::from(file));
+    }
+}
+/// The structure a database of the latest schema must have, built by running every
+/// migration on an empty file next to `near`.
+fn reference_structure(near: &Path) -> Result<Vec<(String, String, String)>, String> {
+    let path = near.join(format!(
+        ".reference-{}-{}.tmp",
+        std::process::id(),
+        crate::auth::now()
+    ));
+    let result = Database::open(&path).and_then(|db| {
+        let conn = db.0.lock().map_err(|_| "Database lock poisoned.")?;
+        structure(&conn)
+    });
+    remove_with_companions(&path);
+    result
+}
+/// Refuses a database whose tables, indexes or triggers differ from what the latest
+/// migrations create, so an integrity-valid but incomplete file is never activated.
+fn check_structure(conn: &Connection, near: &Path) -> Result<(), String> {
+    if structure(conn)? != reference_structure(near)? {
+        return Err(
+            "The backup does not have the complete structure of its schema; nothing was changed."
+                .into(),
+        );
+    }
+    Ok(())
+}
 fn count(conn: &Connection, table: &str) -> Result<i64, String> {
     conn.query_row(&format!("SELECT count(*) FROM {table}"), [], |r| r.get(0))
         .map_err(|_| format!("The backup is missing the {table} table."))
@@ -104,6 +149,10 @@ pub fn verify(path: &Path) -> Result<Report, String> {
         .map_err(|_| "Foreign key check failed to run.")?;
     if broken.is_some() {
         return Err("The backup has inconsistent references.".into());
+    }
+    // Older schemas are checked after migration, on the restore staging copy.
+    if schema == LATEST_SCHEMA {
+        check_structure(&conn, &std::env::temp_dir())?;
     }
     // Every upload is verified against the checksum it was stored with.
     let mut query = conn
@@ -169,9 +218,11 @@ pub fn create(database: &Path, destination: &Path) -> Result<Report, String> {
     }
 }
 
-/// Replaces the database with a verified backup. The server must be stopped. The current
-/// database (if any) is kept next to it as `.pre-restore`, nothing is overwritten, the
-/// replacement is atomic, and every session ends so revoked access cannot return.
+/// Replaces the database with a verified backup. The server must be stopped. All the
+/// work happens on a staging copy: it is migrated, every session in it is ended so revoked
+/// access cannot return, and its complete structure and integrity are checked. Only then
+/// does it replace the database, which is kept next to it as `.pre-restore`. If any step
+/// fails, the active database is left (or put back) as it was.
 pub fn restore(database: &Path, backup: &Path) -> Result<(Report, u64, Option<PathBuf>), String> {
     let report = verify(backup)?;
     let database = safe_path(database)?;
@@ -181,47 +232,95 @@ pub fn restore(database: &Path, backup: &Path) -> Result<(Report, u64, Option<Pa
         .to_path_buf();
     fs::create_dir_all(&parent).map_err(|_| "Cannot create the data directory.")?;
     let staging = parent.join(format!(".restore-{}.tmp", std::process::id()));
-    let _ = fs::remove_file(&staging);
-    fs::copy(backup, &staging).map_err(|_| "Cannot copy the backup into place.")?;
-    let (_, copied) = file_sha256(&staging)?;
-    if copied != report.sha256 {
-        let _ = fs::remove_file(&staging);
-        return Err("The copy does not match the backup; nothing was changed.".into());
+    remove_with_companions(&staging);
+    let prepared = (|| {
+        fs::copy(backup, &staging).map_err(|_| "Cannot copy the backup into place.")?;
+        let (_, copied) = file_sha256(&staging)?;
+        if copied != report.sha256 {
+            return Err("The copy does not match the backup; nothing was changed.".to_string());
+        }
+        let ended = {
+            // Opening applies newer migrations to the copy only.
+            let opened = Database::open(&staging)?;
+            let ended = opened.revoke_all_sessions().map_err(|e| e.1.to_string())?;
+            let conn = opened.0.lock().map_err(|_| "Database lock poisoned.")?;
+            check_structure(&conn, &parent)?;
+            // Leave a single self-contained file: no journal travels with the swap.
+            conn.execute_batch("PRAGMA wal_checkpoint(TRUNCATE); PRAGMA journal_mode=DELETE;")
+                .map_err(|_| "Cannot finalize the restored database.")?;
+            ended
+        };
+        verify(&staging)?;
+        // Opened for writing: flushing a read-only handle is not allowed on Windows.
+        fs::OpenOptions::new()
+            .write(true)
+            .open(&staging)
+            .and_then(|f| f.sync_all())
+            .map_err(|_| "Cannot flush the restored file.")?;
+        Ok(ended)
+    })();
+    // The migration of the staging copy may leave its own pre-upgrade copy: drop it, the
+    // backup file itself is the original.
+    for entry in fs::read_dir(&parent).into_iter().flatten().flatten() {
+        let name = entry.file_name().to_string_lossy().into_owned();
+        if name.starts_with(&format!(".restore-{}.tmp.pre-upgrade", std::process::id())) {
+            let _ = fs::remove_file(entry.path());
+        }
     }
-    // Opened for writing: flushing a read-only handle is not allowed on Windows.
-    fs::OpenOptions::new()
-        .write(true)
-        .open(&staging)
-        .and_then(|f| f.sync_all())
-        .map_err(|_| "Cannot flush the restored file.")?;
+    let ended = match prepared {
+        Ok(ended) => ended,
+        Err(error) => {
+            remove_with_companions(&staging);
+            return Err(error);
+        }
+    };
+    let stamp = crate::auth::now();
+    let saved = database.with_extension(format!("sqlite3.pre-restore-{stamp}"));
     let mut kept = None;
     if database.exists() {
-        let stamp = crate::auth::now();
-        let saved = database.with_extension(format!("sqlite3.pre-restore-{stamp}"));
-        fs::rename(&database, &saved).map_err(|_| "Cannot keep the current database.")?;
-        kept = Some(saved);
+        fs::rename(&database, &saved).map_err(|_| {
+            remove_with_companions(&staging);
+            "Cannot keep the current database; nothing was changed."
+        })?;
+        kept = Some(saved.clone());
     }
+    // A journal of the replaced database must never be applied to the new file. It moves
+    // along with the kept database so that copy stays self-consistent.
+    let mut moved = vec![];
     for suffix in ["-wal", "-shm"] {
         let mut companion = database.as_os_str().to_os_string();
         companion.push(suffix);
         let companion = PathBuf::from(companion);
         if companion.exists() {
-            // A journal of the replaced database must never be applied to the new file. It
-            // moves along with the kept database so that copy stays self-consistent.
-            let mut moved = kept
-                .clone()
-                .unwrap_or_else(|| {
-                    database.with_extension(format!("sqlite3.pre-restore-{}", crate::auth::now()))
-                })
-                .into_os_string();
-            moved.push(suffix);
-            let _ = fs::rename(&companion, moved);
+            let mut target = saved.clone().into_os_string();
+            target.push(suffix);
+            let target = PathBuf::from(target);
+            if fs::rename(&companion, &target).is_err() {
+                undo(&database, kept.as_deref(), &moved);
+                remove_with_companions(&staging);
+                return Err(
+                    "Cannot move the current database journal; nothing was changed.".into(),
+                );
+            }
+            moved.push((companion, target));
         }
     }
-    fs::rename(&staging, &database).map_err(|_| "Cannot activate the restored database.")?;
-    // Opening applies any newer migrations (with their own pre-upgrade copy) and then every
-    // session of the restored data is ended.
-    let opened = Database::open(&database)?;
-    let ended = opened.revoke_all_sessions().map_err(|e| e.1.to_string())?;
+    if fs::rename(&staging, &database).is_err() {
+        undo(&database, kept.as_deref(), &moved);
+        remove_with_companions(&staging);
+        return Err(
+            "Cannot activate the restored database; the previous one is active again.".into(),
+        );
+    }
     Ok((report, ended, kept))
+}
+
+/// Puts the previous database and its journal back after a failed activation.
+fn undo(database: &Path, kept: Option<&Path>, moved: &[(PathBuf, PathBuf)]) {
+    for (original, target) in moved {
+        let _ = fs::rename(target, original);
+    }
+    if let Some(kept) = kept {
+        let _ = fs::rename(kept, database);
+    }
 }

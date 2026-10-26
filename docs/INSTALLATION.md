@@ -197,12 +197,14 @@ docker compose run --rm --no-deps server chronexus-server restore /var/lib/chron
 docker compose up -d server
 ```
 
-`restore` verifies the file first, copies it beside the database, checks the copy, keeps the
-current database as `.pre-restore-<time>` (with its journal), replaces it atomically, applies any
-newer migrations and **revokes every session**: a backup also contains sessions that were revoked
-later and data users deleted later, so everyone signs in again and deletions made since the backup
-must be repeated by their owners. A refused or failed restore changes nothing. Practise a restore on
-a scratch instance before you need it.
+`restore` verifies the file first (including the complete table structure), then works on a copy
+beside the database: it applies any newer migrations, **revokes every session** and checks the
+copy's structure and integrity again. Only then does it keep the current database as
+`.pre-restore-<time>` (with its journal) and swap the copy in atomically; if the swap fails, the
+previous database is put back. Sessions are revoked because a backup also contains sessions that
+were revoked later and data users deleted later, so everyone signs in again and deletions made since
+the backup must be repeated by their owners. A refused or failed restore changes nothing. Practise a
+restore on a scratch instance before you need it.
 
 ## Upgrades and rollback
 

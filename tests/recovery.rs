@@ -390,3 +390,59 @@ fn an_upgrade_first_copies_the_old_database_and_a_failed_one_changes_nothing() {
             .contains("newer than this server")
     );
 }
+
+#[test]
+fn an_incomplete_or_failing_restore_never_replaces_the_active_database() {
+    let dir = tempfile::tempdir().unwrap();
+    let live = dir.path().join("live").join("server.sqlite3");
+    let good = dir.path().join("good.sqlite3");
+    schema_five(&good);
+    restore(&live, &good).unwrap();
+    let before = fs::read(&live).unwrap();
+    let leftovers = || {
+        fs::read_dir(live.parent().unwrap())
+            .unwrap()
+            .flatten()
+            .filter(|e| e.file_name().to_string_lossy().starts_with(".re"))
+            .count()
+    };
+
+    // Integrity-valid and of the latest schema, but a table is missing.
+    let incomplete = dir.path().join("incomplete.sqlite3");
+    schema_five(&incomplete);
+    drop(Database::open(&incomplete).unwrap());
+    Connection::open(&incomplete)
+        .unwrap()
+        .execute_batch("DROP TABLE rate_buckets;")
+        .unwrap();
+    assert!(
+        verify(&incomplete)
+            .unwrap_err()
+            .contains("complete structure")
+    );
+    assert!(restore(&live, &incomplete).is_err());
+    assert_eq!(fs::read(&live).unwrap(), before);
+
+    // An older backup whose sessions cannot be ended: the failure happens on the staging
+    // copy, before activation, so no old bearer can become valid again.
+    let failing = dir.path().join("failing.sqlite3");
+    schema_five(&failing);
+    Connection::open(&failing)
+        .unwrap()
+        .execute_batch(
+            "INSERT INTO sessions VALUES('s','hash','acc','old device',0,0,9999999999,9999999999,NULL);
+             CREATE TRIGGER keep_sessions BEFORE UPDATE ON sessions BEGIN SELECT RAISE(ABORT,'blocked'); END;",
+        )
+        .unwrap();
+    assert_eq!(verify(&failing).unwrap().schema, 5);
+    assert!(restore(&live, &failing).is_err());
+    assert_eq!(fs::read(&live).unwrap(), before);
+    assert_eq!(leftovers(), 0);
+    // Neither refused restore moved the active database aside.
+    let kept = fs::read_dir(live.parent().unwrap())
+        .unwrap()
+        .flatten()
+        .filter(|e| e.file_name().to_string_lossy().contains("pre-restore-"))
+        .count();
+    assert_eq!(kept, 0);
+}
