@@ -216,6 +216,10 @@
           "cursor": {
             "type": "string"
           },
+          "head": {
+            "description": "Sync cursor at the time of this page; resume `/sync` from the first page's value.",
+            "type": "string"
+          },
           "items": {
             "items": {
               "$ref": "#/components/schemas/ContentItem"
@@ -229,7 +233,8 @@
         "required": [
           "items",
           "cursor",
-          "more"
+          "more",
+          "head"
         ],
         "type": "object"
       },
@@ -522,6 +527,27 @@
         },
         "required": [
           "inviteCode"
+        ],
+        "type": "object"
+      },
+      "KeyedRevision": {
+        "additionalProperties": false,
+        "description": "Query for keyed deletions and sharing withdrawals.",
+        "properties": {
+          "baseRevision": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "requestId": {
+            "description": "Stable UUIDv7 operation ID. Reuse only for an identical retry.",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "baseRevision"
         ],
         "type": "object"
       },
@@ -998,6 +1024,29 @@
         },
         "type": "object"
       },
+      "SyncPage": {
+        "description": "Incremental authorized state. Tombstones (`deleted`) carry no payload; for other\nmembers they also cover items that stopped being shared.",
+        "properties": {
+          "cursor": {
+            "type": "string"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ContentItem"
+            },
+            "type": "array"
+          },
+          "more": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "items",
+          "cursor",
+          "more"
+        ],
+        "type": "object"
+      },
       "Visibility": {
         "enum": [
           "private",
@@ -1016,7 +1065,7 @@
             "$ref": "#/components/schemas/Payload"
           },
           "requestId": {
-            "description": "Stable operation UUID. Reuse only for an identical save.",
+            "description": "Stable UUIDv7 operation ID. Reuse only for an identical save.",
             "type": [
               "string",
               "null"
@@ -1691,6 +1740,16 @@
           "required": true
         },
         "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Attachment"
+                }
+              }
+            },
+            "description": "Identical bytes already stored by this author; returns the existing attachment"
+          },
           "201": {
             "content": {
               "application/json": {
@@ -1981,6 +2040,14 @@
               "format": "int64",
               "type": "integer"
             }
+          },
+          {
+            "in": "query",
+            "name": "requestId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -2199,6 +2266,14 @@
               "format": "int64",
               "type": "integer"
             }
+          },
+          {
+            "in": "query",
+            "name": "requestId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -2228,6 +2303,52 @@
             "bearer": []
           }
         ],
+        "tags": [
+          "content"
+        ]
+      }
+    },
+    "/api/v1/campaigns/{campaignId}/events": {
+      "get": {
+        "operationId": "events",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "campaignId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": ""
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Content-free `text/event-stream` hints (`ready`, `changed`, `reconnect`, `closed`).",
         "tags": [
           "content"
         ]
@@ -2435,6 +2556,14 @@
             "schema": {
               "format": "int64",
               "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "requestId",
+            "required": false,
+            "schema": {
+              "type": "string"
             }
           }
         ],
@@ -2743,6 +2872,60 @@
         ],
         "tags": [
           "campaigns"
+        ]
+      }
+    },
+    "/api/v1/campaigns/{campaignId}/sync": {
+      "get": {
+        "operationId": "sync",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "campaignId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SyncPage"
+                }
+              }
+            },
+            "description": ""
+          },
+          "410": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Authorized current state of items changed since an opaque cursor, including tombstones.",
+        "tags": [
+          "content"
         ]
       }
     },

@@ -143,38 +143,80 @@ invitation, 413 oversized body, 429 quota/attempt limits, 503 worker/transfer sa
 status codes to localized text. Complete production security/recovery is still S7.
 
 
-## S5 first slice: durable idempotent content saves
+## S5 server contract: incremental sync, idempotent mutations, notifications
 
-The `idempotent-content-saves` meta capability advertises optional `requestId`
-(canonical lowercase UUID) on `PUT .../content/{kind}/{itemId}`. The client must
-persist this ID with its exact outbound operation before sending. Retries use the
-same account, campaign, target, baseRevision, payload and visibility. Existing
-clients may omit it and retain revision-conflict behavior. Legacy `/items` writes,
-attachment uploads, deletions and sharing withdrawal do not yet accept this ID.
+Capabilities in `GET /api/v1/meta`: `idempotent-content-saves`, `idempotent-mutations`,
+`incremental-sync`, `change-notifications`. Schema 005.
 
-The server stores the accepted revision and a normalized SHA-256 request digest
-in schema 004, atomically with content, references and publication. Only a committed
-save receives a success acknowledgment. Concurrent duplicates and retries after
-restart return that original revision without another write or feed event, even
-if later operations edited, withdrew or deleted the item. This is historical
-acknowledgment, not a statement that this is still the current revision or visibility.
-Current authentication and write membership remain mandatory on every retry.
-Receipt scope is account/campaign, so a different device of the same account may
-resume an operation; other accounts cannot use the receipt.
+### Idempotent mutations
 
-Reusing an ID with changed target, base revision, normalized payload or visibility
-returns 409 `{ "error": "Request ID already used for a different save." }` without
-content disclosure. A normal stale revision returns the existing 409 revision and
-payload body. Failed/conflicting operations do not consume the ID. JSON object key
-order and omitted default private visibility do not change request identity.
+Every keyed mutation carries a **UUIDv7** operation ID that the client persists with
+the exact outbound operation before sending: `requestId` on `PUT .../content/...`,
+`requestId` query parameter on `DELETE .../content/...` and `DELETE .../sharing`, and
+for the legacy `/items` routes either `requestId` (delete) or the `Idempotency-Key`
+header (put and delete; supplying both is 400). Unkeyed calls keep the previous
+revision-conflict behavior.
 
-Receipts contain IDs, hashes and revisions, never historical payload copies. For
-this initial slice, they do not expire and are capped at 10,000 per account per
-campaign. At capacity, new keyed saves return 429 before mutation; existing retries
-still work. Keep pending local edits and surface the error; do not generate new IDs
-or fall back to unkeyed writes to bypass it. Acknowledged compaction and safe retry
-horizons must be designed before production continuous replication. There is no
-receipt deletion API or automatic eviction that could resurrect a stale save.
+- The server stores the accepted revision and a normalized SHA-256 digest of the
+  operation (kind, item, operation, base revision, payload, visibility), atomically
+  with the change. Retries with the same ID return the original revision and never
+  re-apply, even after later edits, withdrawals or deletions. This acknowledges a
+  historical operation; it is not a statement of the current revision.
+- Reusing an ID for a different target, operation, base revision or payload is 409
+  `Request ID already used for a different save.` without disclosing content.
+  Failed and conflicting operations do not consume the ID.
+- Current authentication and write membership are required on every retry. Receipts are
+  scoped to account and campaign, so another device of the same account can resume.
+- **Retry horizon.** IDs older than 30 days are refused with 410, and IDs more than five
+  minutes in the future or not UUIDv7 with 400. Receipts are kept 31 days and compacted
+  opportunistically on later keyed operations, so an expired receipt can never matter:
+  a late retry is refused instead of silently re-applied. After 410 the client must
+  re-read the item and create a new operation from the current revision. The live cap is
+  100,000 receipts per account and campaign (429 `Save receipt quota reached`); existing
+  retries still succeed and nothing is partially written.
+- `POST .../attachments` is idempotent by content: identical bytes from the same author
+  in the campaign return the stored attachment (200) instead of a duplicate (201).
+  `DELETE .../attachments/{id}` has no receipt: after a lost response a retry sees 404,
+  which the client treats as already removed.
 
-This is a server foundation only: durable desktop queue, private incremental feed,
-notifications, attachment retries and measured end-to-end latency remain S5 work.
+### Incremental reads
+
+`GET /api/v1/campaigns/{campaignId}/sync?cursor=` returns the **current authorized
+state** of every item changed since an opaque cursor, as `{items, cursor, more}`.
+Each item is a content item with `deleted`. Rules:
+
+- An author receives every own item, private or shared, with its payload, and a
+  tombstone (`deleted: true`, no payload) when it is deleted.
+- Other members receive an item only while it is shared. When it is withdrawn, unshared,
+  or its page dependency was withdrawn, or it is deleted after having been shared, they
+  receive a payload-free tombstone; edits, creation and deletion of private items
+  produce nothing for them.
+- Pages hold at most 500 log rows and 6 MiB; repeated changes to one item inside a page
+  deliver one item. Persist the returned cursor only after the page has been applied
+  locally, then repeat while `more` is true. When `more` is false the cursor is the
+  campaign head. Cursors are opaque decimal strings.
+- `GET .../content` now also returns `head`. Full resynchronization: list every page of
+  `/content`, replace the local shared copies (items absent from the listing are gone),
+  then continue `/sync` from the `head` of the first page; duplicates are harmless
+  because delivery is by current revision.
+- **Cursor expiry.** Per campaign the server keeps at most 100,000 log rows; older rows
+  are dropped and the floor is raised. A cursor below the floor, or above the head (the
+  server was restored from an older backup), returns 410 `Sync cursor is no longer
+  valid`. The empty cursor means "from the beginning" and is subject to the same rule.
+  The server never guesses: a stale client must resynchronize from the listing, so a
+  revoked item cannot be resurrected by an old cursor.
+- The legacy `/changes` feed is unchanged and independent.
+
+### Notifications
+
+`GET .../events` is an authenticated `text/event-stream` (Bearer header). Frames are
+content-free hints: `ready` (subscription is active; poll once), `changed` (poll
+`/sync`), `reconnect` (lifetime reached, 10 minutes) and `closed` (access lost). They
+never contain identifiers, kinds, authors or cursors. A private edit notifies only its
+author's streams; sharing, withdrawal, deletion of shared items notify every member.
+Frames coalesce, a slow reader just receives `changed`, a keepalive comment arrives every
+25 seconds and session/membership are re-checked on each keepalive (revocation closes
+the stream within about 25 seconds). Limits: 3 streams per account, 64 total (429
+beyond that). Clients must keep a polling fallback: poll `/sync` about every 30 seconds
+while offline-push is unavailable, and always poll once after every (re)connection.
+Membership removal does not yet push a hint; polling covers it until S6.

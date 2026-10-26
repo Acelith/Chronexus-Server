@@ -1,7 +1,6 @@
 use crate::{
     AppState,
     attachments::{Attachment, MAX_BYTES},
-    campaigns::RevisionQuery,
     content::*,
     error::{ApiError, ErrorBody, Result},
     routes::{body, token},
@@ -33,6 +32,8 @@ pub(crate) fn router(state: AppState) -> Router<AppState> {
             put(legacy_put).delete(legacy_delete),
         )
         .route("/api/v1/campaigns/{campaignId}/changes", get(changes))
+        .route("/api/v1/campaigns/{campaignId}/sync", get(sync))
+        .route("/api/v1/campaigns/{campaignId}/events", get(events))
         .route("/api/v1/campaigns/{campaignId}/content", get(list))
         .route(
             "/api/v1/campaigns/{campaignId}/content/{kind}/{itemId}",
@@ -93,6 +94,20 @@ fn written(result: Written) -> Response {
         Written::Conflict(r) => (StatusCode::CONFLICT, Json(r)).into_response(),
     }
 }
+/// Optional `Idempotency-Key` header: the same UUIDv7 operation ID as typed `requestId`.
+fn idempotency_key(headers: &HeaderMap) -> Result<Option<String>> {
+    let mut values = headers.get_all("idempotency-key").iter();
+    let Some(first) = values.next() else {
+        return Ok(None);
+    };
+    if values.next().is_some() {
+        return Err(ApiError::invalid());
+    }
+    first
+        .to_str()
+        .map(|v| Some(v.to_string()))
+        .map_err(|_| ApiError::invalid())
+}
 fn query<T>(query: std::result::Result<Query<T>, QueryRejection>) -> Result<T> {
     query.map(|Query(q)| q).map_err(|_| ApiError::invalid())
 }
@@ -105,6 +120,7 @@ async fn legacy_put(
     input: std::result::Result<Json<WriteItem>, JsonRejection>,
 ) -> Result<Response> {
     let token = token(&headers)?;
+    let request_id = idempotency_key(&headers)?;
     let input = body(input)?;
     state
         .blocking(move |db| {
@@ -114,7 +130,7 @@ async fn legacy_put(
                 &kind,
                 &id,
                 &WriteContent {
-                    request_id: None,
+                    request_id,
                     base_revision: input.base_revision,
                     payload: input.payload,
                     visibility: Visibility::Members,
@@ -125,18 +141,30 @@ async fn legacy_put(
         .await
         .map(written)
 }
-#[utoipa::path(delete,path="/api/v1/campaigns/{campaignId}/items/{kind}/{itemId}",params(("campaignId"=String,Path),("kind"=String,Path),("itemId"=String,Path),("baseRevision"=i64,Query)),security(("bearer"=[])),responses((status=200,body=Revision),(status=409,body=Current)),tag="sharing")]
+#[utoipa::path(delete,path="/api/v1/campaigns/{campaignId}/items/{kind}/{itemId}",params(("campaignId"=String,Path),("kind"=String,Path),("itemId"=String,Path),("baseRevision"=i64,Query),("requestId"=Option<String>,Query)),security(("bearer"=[])),responses((status=200,body=Revision),(status=409,body=Current)),tag="sharing")]
 async fn legacy_delete(
     State(state): State<AppState>,
     headers: HeaderMap,
     Path((campaign, kind, id)): Path<(String, String, String)>,
-    params: std::result::Result<Query<RevisionQuery>, QueryRejection>,
+    params: std::result::Result<Query<KeyedRevision>, QueryRejection>,
 ) -> Result<Response> {
     let token = token(&headers)?;
     let params = query(params)?;
+    let request_id = match (params.request_id, idempotency_key(&headers)?) {
+        (Some(_), Some(_)) => return Err(ApiError::invalid()),
+        (query, header) => query.or(header),
+    };
     state
         .blocking(move |db| {
-            db.delete_content(&token, &campaign, &kind, &id, params.base_revision, true)
+            db.delete_content(
+                &token,
+                &campaign,
+                &kind,
+                &id,
+                params.base_revision,
+                request_id.as_deref(),
+                true,
+            )
         })
         .await
         .map(written)
@@ -195,37 +223,79 @@ async fn list(
         .await
         .map(Json)
 }
-#[utoipa::path(delete,path="/api/v1/campaigns/{campaignId}/content/{kind}/{itemId}",params(("campaignId"=String,Path),("kind"=String,Path),("itemId"=String,Path),("baseRevision"=i64,Query)),security(("bearer"=[])),responses((status=200,body=Revision),(status=409,body=Current)),tag="content")]
+#[utoipa::path(delete,path="/api/v1/campaigns/{campaignId}/content/{kind}/{itemId}",params(("campaignId"=String,Path),("kind"=String,Path),("itemId"=String,Path),("baseRevision"=i64,Query),("requestId"=Option<String>,Query)),security(("bearer"=[])),responses((status=200,body=Revision),(status=409,body=Current)),tag="content")]
 async fn remove(
     State(state): State<AppState>,
     headers: HeaderMap,
     Path((campaign, kind, id)): Path<(String, String, String)>,
-    params: std::result::Result<Query<RevisionQuery>, QueryRejection>,
+    params: std::result::Result<Query<KeyedRevision>, QueryRejection>,
 ) -> Result<Response> {
     let token = token(&headers)?;
     let params = query(params)?;
     state
         .blocking(move |db| {
-            db.delete_content(&token, &campaign, &kind, &id, params.base_revision, false)
+            db.delete_content(
+                &token,
+                &campaign,
+                &kind,
+                &id,
+                params.base_revision,
+                params.request_id.as_deref(),
+                false,
+            )
         })
         .await
         .map(written)
 }
-#[utoipa::path(delete,path="/api/v1/campaigns/{campaignId}/content/{kind}/{itemId}/sharing",params(("campaignId"=String,Path),("kind"=String,Path),("itemId"=String,Path),("baseRevision"=i64,Query)),security(("bearer"=[])),responses((status=200,body=Revision),(status=409,body=Current)),tag="content")]
+#[utoipa::path(delete,path="/api/v1/campaigns/{campaignId}/content/{kind}/{itemId}/sharing",params(("campaignId"=String,Path),("kind"=String,Path),("itemId"=String,Path),("baseRevision"=i64,Query),("requestId"=Option<String>,Query)),security(("bearer"=[])),responses((status=200,body=Revision),(status=409,body=Current)),tag="content")]
 async fn unshare(
     State(state): State<AppState>,
     headers: HeaderMap,
     Path((campaign, kind, id)): Path<(String, String, String)>,
-    params: std::result::Result<Query<RevisionQuery>, QueryRejection>,
+    params: std::result::Result<Query<KeyedRevision>, QueryRejection>,
 ) -> Result<Response> {
     let token = token(&headers)?;
     let params = query(params)?;
     state
-        .blocking(move |db| db.unshare_content(&token, &campaign, &kind, &id, params.base_revision))
+        .blocking(move |db| {
+            db.unshare_content(
+                &token,
+                &campaign,
+                &kind,
+                &id,
+                params.base_revision,
+                params.request_id.as_deref(),
+            )
+        })
         .await
         .map(written)
 }
-#[utoipa::path(post,path="/api/v1/campaigns/{campaignId}/attachments",params(("campaignId"=String,Path),("X-Content-SHA256"=String,Header)),request_body(content((BinaryImage="image/png"),(BinaryImage="image/jpeg"),(BinaryImage="image/webp"))),security(("bearer"=[])),responses((status=201,body=Attachment),(status=400,body=ErrorBody),(status=413,body=ErrorBody)),tag="attachments")]
+/// Authorized current state of items changed since an opaque cursor, including tombstones.
+#[utoipa::path(get,path="/api/v1/campaigns/{campaignId}/sync",params(("campaignId"=String,Path),("cursor"=Option<String>,Query)),security(("bearer"=[])),responses((status=200,body=SyncPage),(status=410,body=ErrorBody)),tag="content")]
+async fn sync(
+    State(state): State<AppState>,
+    headers: HeaderMap,
+    Path(campaign): Path<String>,
+    params: std::result::Result<Query<Cursor>, QueryRejection>,
+) -> Result<Json<SyncPage>> {
+    let token = token(&headers)?;
+    let params = query(params)?;
+    state
+        .blocking(move |db| db.sync(&token, &campaign, &params.cursor))
+        .await
+        .map(Json)
+}
+/// Content-free `text/event-stream` hints (`ready`, `changed`, `reconnect`, `closed`).
+#[utoipa::path(get,path="/api/v1/campaigns/{campaignId}/events",params(("campaignId"=String,Path)),security(("bearer"=[])),responses((status=200,content_type="text/event-stream",body=String),(status=429,body=ErrorBody)),tag="content")]
+async fn events(
+    State(state): State<AppState>,
+    headers: HeaderMap,
+    Path(campaign): Path<String>,
+) -> Result<Response> {
+    let token = token(&headers)?;
+    crate::events::open(state, token, campaign).await
+}
+#[utoipa::path(post,path="/api/v1/campaigns/{campaignId}/attachments",params(("campaignId"=String,Path),("X-Content-SHA256"=String,Header)),request_body(content((BinaryImage="image/png"),(BinaryImage="image/jpeg"),(BinaryImage="image/webp"))),security(("bearer"=[])),responses((status=201,body=Attachment),(status=200,body=Attachment,description="Identical bytes already stored by this author; returns the existing attachment"),(status=400,body=ErrorBody),(status=413,body=ErrorBody)),tag="attachments")]
 async fn upload(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -253,15 +323,16 @@ async fn upload(
             "Invalid or oversized image body.",
         )
     })?;
+    let (attachment, created) = state
+        .blocking(move |db| db.upload_attachment(&token, &campaign, &bytes, &mime, &checksum))
+        .await?;
     Ok((
-        StatusCode::CREATED,
-        Json(
-            state
-                .blocking(move |db| {
-                    db.upload_attachment(&token, &campaign, &bytes, &mime, &checksum)
-                })
-                .await?,
-        ),
+        if created {
+            StatusCode::CREATED
+        } else {
+            StatusCode::OK
+        },
+        Json(attachment),
     ))
 }
 #[utoipa::path(get,path="/api/v1/campaigns/{campaignId}/attachments/{attachmentId}",params(("campaignId"=String,Path),("attachmentId"=String,Path)),security(("bearer"=[])),responses((status=200,content((BinaryImage="image/png"),(BinaryImage="image/jpeg"),(BinaryImage="image/webp"))),(status=404,body=ErrorBody)),tag="attachments")]
@@ -326,6 +397,8 @@ async fn remove_attachment(
         legacy_put,
         legacy_delete,
         changes,
+        sync,
+        events,
         save,
         detail,
         list,
@@ -346,6 +419,8 @@ async fn remove_attachment(
         ContentItem,
         Changes,
         ContentList,
+        SyncPage,
+        KeyedRevision,
         Attachment,
         BinaryImage
     ))

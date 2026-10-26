@@ -12,6 +12,7 @@ audit or a grant of a license for this repository's own code.
 | `chrono` | 0.4.45 | MIT OR Apache-2.0 | UTC timestamps |
 | `getrandom` | 0.4.3 | MIT OR Apache-2.0 | Operating-system random bytes |
 | `http-body-util` | 0.1.5 | MIT | Test response collection |
+| `futures-core` | 0.3.34 | MIT OR Apache-2.0 | `Stream` trait for the bounded notification body |
 | `image` | 0.25.10 | MIT OR Apache-2.0 | Bounded PNG/JPEG/WebP decode, original bytes retained |
 | `ipnet` | 2.12.2 | MIT OR Apache-2.0 | Explicit trusted proxy networks |
 | `rusqlite` | 0.38.0 | MIT | Parameterized SQLite with bundled engine |
@@ -23,7 +24,7 @@ audit or a grant of a license for this repository's own code.
 | `tower` | 0.5.3 | MIT | In-process HTTP integration tests |
 | `url` | 2.5.8 | MIT OR Apache-2.0 | Strict public origin parsing |
 | `utoipa` | 5.5.0 | MIT OR Apache-2.0 | Code-derived OpenAPI schemas |
-| `uuid` | 1.26.1 | Apache-2.0 OR MIT | Stable account/session IDs |
+| `uuid` | 1.26.1 | Apache-2.0 OR MIT | Stable account/session IDs; v7 operation IDs with verifiable age |
 | `zeroize` | 1.9.1 | Apache-2.0 OR MIT | Best-effort password/code buffer cleanup |
 
 Axum 0.8 supports the selected Tokio/Tower HTTP stack. Argon2 0.5.3 and utoipa 5.5

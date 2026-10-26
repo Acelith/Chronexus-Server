@@ -84,18 +84,21 @@ impl Database {
         bytes: &[u8],
         mime: &str,
         checksum: &str,
-    ) -> Result<Attachment> {
+    ) -> Result<(Attachment, bool)> {
         let identity = self.identity(token)?;
         self.with(|conn| writable(conn, campaign, &identity.account_id))?;
         let (width, height) = decode(bytes, mime, checksum)?;
         self.with(|conn| {
             let tx=conn.transaction_with_behavior(TransactionBehavior::Immediate)?;writable(&tx,campaign,&identity.account_id)?;
+            // Retrying an interrupted upload returns the stored original instead of a duplicate.
+            let existing=tx.query_row("SELECT id,author_id,sha256,mime,width,height,byte_length,created_at FROM attachments WHERE campaign_id=?1 AND author_id=?2 AND sha256=?3",params![campaign,identity.account_id,checksum],|r|Ok(Attachment{id:r.get(0)?,author_id:r.get(1)?,sha256:r.get(2)?,mime:r.get(3)?,width:r.get(4)?,height:r.get(5)?,byte_length:r.get::<_,i64>(6)? as u64,created_at:timestamp(r.get(7)?)})).optional()?;
+            if let Some(found)=existing {return Ok((found,false));}
             let (count,campaign_bytes):(i64,i64)=tx.query_row("SELECT count(*),coalesce(sum(byte_length),0) FROM attachments WHERE campaign_id=?1",[campaign],|r|Ok((r.get(0)?,r.get(1)?)))?;
             let account_bytes:i64=tx.query_row("SELECT coalesce(sum(byte_length),0) FROM attachments WHERE author_id=?1",[&identity.account_id],|r|r.get(0))?;
             if count>=512||campaign_bytes+bytes.len() as i64>128*1024*1024||account_bytes+bytes.len() as i64>256*1024*1024{return Err(ApiError(StatusCode::TOO_MANY_REQUESTS,"Attachment quota reached."));}
             let id=Uuid::new_v4().to_string();let time=now();
             tx.execute("INSERT INTO attachments(id,campaign_id,author_id,sha256,mime,width,height,byte_length,original,created_at) VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10)",params![id,campaign,identity.account_id,checksum,mime,width,height,bytes.len() as i64,bytes,time])?;
-            tx.commit()?;Ok(Attachment{id,author_id:identity.account_id.clone(),sha256:checksum.into(),mime:mime.into(),width,height,byte_length:bytes.len() as u64,created_at:timestamp(time)})
+            tx.commit()?;Ok((Attachment{id,author_id:identity.account_id.clone(),sha256:checksum.into(),mime:mime.into(),width,height,byte_length:bytes.len() as u64,created_at:timestamp(time)},true))
         })
     }
     pub fn download_attachment(&self, token: &str, campaign: &str, id: &str) -> Result<Download> {

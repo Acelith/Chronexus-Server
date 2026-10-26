@@ -6,8 +6,20 @@ use std::{
     sync::Mutex,
     time::Duration,
 };
+use tokio::sync::broadcast;
 
-pub struct Database(pub(crate) Mutex<Connection>);
+/// Content-free hint that a campaign changed. `public` means every member may re-read it.
+#[derive(Clone)]
+pub struct Signal {
+    pub campaign: String,
+    pub author: String,
+    pub public: bool,
+}
+
+pub struct Database(
+    pub(crate) Mutex<Connection>,
+    pub(crate) broadcast::Sender<Signal>,
+);
 const SERVER_ID: i64 = 0x43584e53;
 
 fn inspect_identity(conn: &Connection) -> std::result::Result<u32, String> {
@@ -17,7 +29,7 @@ fn inspect_identity(conn: &Connection) -> std::result::Result<u32, String> {
     let application_id: i64 = conn
         .pragma_query_value(None, "application_id", |r| r.get(0))
         .map_err(|_| "Cannot read database identity.")?;
-    if version > 4 {
+    if version > 5 {
         return Err("Database schema is newer than this server; use a compatible binary.".into());
     }
     if application_id != SERVER_ID && !(application_id == 0 && version < 3) {
@@ -138,12 +150,29 @@ impl Database {
             tx.pragma_update(None, "user_version", 4)
                 .map_err(|_| "Cannot record schema version.")?;
         }
+        if version < 5 {
+            tx.execute_batch(include_str!("../migrations/005_sync_log.sql"))
+                .map_err(|_| "Sync log migration failed; transaction rolled back.")?;
+            tx.pragma_update(None, "user_version", 5)
+                .map_err(|_| "Cannot record schema version.")?;
+        }
         tx.commit().map_err(|_| "Cannot commit schema migration.")?;
-        Ok(Self(Mutex::new(conn)))
+        Ok(Self(Mutex::new(conn), broadcast::channel(64).0))
     }
     pub fn with<T>(&self, operation: impl FnOnce(&mut Connection) -> Result<T>) -> Result<T> {
         let mut conn = self.0.lock().map_err(|_| ApiError::internal())?;
         operation(&mut conn)
+    }
+    pub fn subscribe(&self) -> broadcast::Receiver<Signal> {
+        self.1.subscribe()
+    }
+    pub(crate) fn notify(&self, campaign: &str, author: &str, public: bool) {
+        // No subscriber is not an error; clients fall back to bounded polling.
+        let _ = self.1.send(Signal {
+            campaign: campaign.into(),
+            author: author.into(),
+            public,
+        });
     }
     pub fn ready(&self) -> Result<()> {
         self.with(|conn| {

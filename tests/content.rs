@@ -1107,15 +1107,17 @@ async fn attachment_dimension_and_count_limits_and_content_quota_are_enforced() 
             Ok(())
         })
         .unwrap();
+    // Identical bytes are an idempotent retry; a new original is what the quota refuses.
+    let other = image_bytes(ImageFormat::Jpeg);
     assert_eq!(
         raw(
             &g.f,
             "POST",
             &path,
             g.owner["token"].as_str(),
-            "image/png",
-            &checksum,
-            bytes
+            "image/jpeg",
+            &format!("{:x}", Sha256::digest(&other)),
+            other
         )
         .await
         .0,
@@ -1175,7 +1177,8 @@ async fn save_receipt_survives_restart_and_does_not_reapply_after_delete() {
     let g = Group::new().await;
     let id = Uuid::new_v4().to_string();
     let path = g.path("page", &id);
-    let input = json!({"requestId":Uuid::new_v4().to_string(),"baseRevision":0,"payload":page("Durable save")});
+    let input =
+        json!({"requestId":common::request_id(),"baseRevision":0,"payload":page("Durable save")});
     let token = g.owner["token"].as_str();
     let first = g.f.call("PUT", &path, input.clone(), token).await;
     assert_eq!(first, (StatusCode::OK, json!({"revision":1})));
@@ -1218,7 +1221,7 @@ async fn save_request_id_rejects_changed_payload_visibility_base_and_target() {
     let g = Group::new().await;
     let path = g.path("page", &Uuid::new_v4().to_string());
     let input =
-        json!({"requestId":Uuid::new_v4().to_string(),"baseRevision":0,"payload":page("Original")});
+        json!({"requestId":common::request_id(),"baseRevision":0,"payload":page("Original")});
     let token = g.owner["token"].as_str();
     assert_eq!(
         g.f.call("PUT", &path, input.clone(), token).await.0,
@@ -1258,7 +1261,7 @@ async fn save_request_id_rejects_changed_payload_visibility_base_and_target() {
 async fn duplicate_saves_commit_once_and_recheck_current_permissions() {
     let g = Group::new().await;
     let path = g.path("page", &Uuid::new_v4().to_string());
-    let input = json!({"requestId":Uuid::new_v4().to_string(),"baseRevision":0,"visibility":"members","payload":page("Exactly once")});
+    let input = json!({"requestId":common::request_id(),"baseRevision":0,"visibility":"members","payload":page("Exactly once")});
     let token = g.player["token"].as_str();
     let (a, b) = tokio::join!(
         g.f.call("PUT", &path, input.clone(), token),
@@ -1327,7 +1330,7 @@ async fn failed_save_does_not_consume_request_id_or_suppress_conflicts() {
         g.f.call("PUT", &path, input.clone(), token).await.0,
         StatusCode::BAD_REQUEST
     );
-    input["requestId"] = json!(Uuid::new_v4().to_string());
+    input["requestId"] = json!(common::request_id());
     input["baseRevision"] = json!(9);
     assert_eq!(
         g.f.call("PUT", &path, input.clone(), token).await.0,
@@ -1338,7 +1341,7 @@ async fn failed_save_does_not_consume_request_id_or_suppress_conflicts() {
         g.f.call("PUT", &path, input.clone(), token).await.0,
         StatusCode::OK
     );
-    input["requestId"] = json!(Uuid::new_v4().to_string());
+    input["requestId"] = json!(common::request_id());
     assert_eq!(
         g.f.call("PUT", &path, input.clone(), token).await.0,
         StatusCode::CONFLICT
@@ -1354,7 +1357,7 @@ async fn failed_save_does_not_consume_request_id_or_suppress_conflicts() {
 async fn receipt_quota_preserves_existing_acknowledgments_without_partial_writes() {
     let g = Group::new().await;
     let id = Uuid::new_v4().to_string();
-    let request_id = Uuid::new_v4().to_string();
+    let request_id = common::request_id();
     let path = g.path("page", &id);
     let input = json!({"requestId":request_id,"baseRevision":0,"payload":page("Quota")});
     let token = g.owner["token"].as_str();
@@ -1366,15 +1369,16 @@ async fn receipt_quota_preserves_existing_acknowledgments_without_partial_writes
         .database
         .with(|conn| {
             let tx = conn.transaction()?;
-            for n in 1..10000 {
+            for n in 1..100000 {
                 tx.execute(
-                    "INSERT INTO save_receipts VALUES(?1,?2,?3,'page',?4,?5,1)",
+                    "INSERT INTO save_receipts VALUES(?1,?2,?3,'page',?4,?5,1,'save',?6)",
                     rusqlite::params![
                         g.c,
                         g.owner["accountId"].as_str().unwrap(),
-                        format!("00000000-0000-4000-8000-{n:012x}"),
+                        format!("00000000-0000-7000-8000-{n:012x}"),
                         id,
-                        "0".repeat(64)
+                        "0".repeat(64),
+                        chrono_now()
                     ],
                 )?;
             }
@@ -1387,7 +1391,7 @@ async fn receipt_quota_preserves_existing_acknowledgments_without_partial_writes
         (StatusCode::OK, json!({"revision":1}))
     );
     let mut next = input;
-    next["requestId"] = json!(Uuid::new_v4().to_string());
+    next["requestId"] = json!(common::request_id());
     next["baseRevision"] = json!(1);
     assert_eq!(
         g.f.call("PUT", &path, next, token).await.0,
@@ -1398,7 +1402,7 @@ async fn receipt_quota_preserves_existing_acknowledgments_without_partial_writes
 }
 
 #[test]
-fn content_schema_upgrade_adds_receipts_without_modifying_originals() {
+fn content_schema_upgrade_adds_receipts_and_log_without_modifying_originals() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("s4.sqlite3");
     let conn = rusqlite::Connection::open(&path).unwrap();
@@ -1428,7 +1432,17 @@ fn content_schema_upgrade_adds_receipts_without_modifying_originals() {
     db.with(|conn| {
         assert_eq!(
             conn.pragma_query_value(None, "user_version", |r| r.get::<_, i64>(0))?,
-            4
+            5
+        );
+        assert_eq!(
+            conn.query_row("SELECT state FROM content_log WHERE id='item'", [], |r| {
+                r.get::<_, String>(0)
+            })?,
+            "private"
+        );
+        assert_eq!(
+            conn.query_row("SELECT next_seq FROM campaigns", [], |r| r.get::<_, i64>(0))?,
+            1
         );
         assert_eq!(
             conn.query_row("SELECT revision FROM content", [], |r| r.get::<_, i64>(0))?,
@@ -1446,4 +1460,37 @@ fn content_schema_upgrade_adds_receipts_without_modifying_originals() {
         Ok(())
     })
     .unwrap();
+}
+
+fn chrono_now() -> i64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_secs() as i64
+}
+
+#[tokio::test]
+async fn repeated_upload_returns_the_stored_original_instead_of_a_duplicate() {
+    let g = Group::new().await;
+    let bytes = image_bytes(ImageFormat::Png);
+    let first = upload(&g, &g.owner, &bytes, "image/png").await;
+    let (status, body) = raw(
+        &g.f,
+        "POST",
+        &format!("/api/v1/campaigns/{}/attachments", g.c),
+        g.owner["token"].as_str(),
+        "image/png",
+        &format!("{:x}", Sha256::digest(&bytes)),
+        bytes.clone(),
+    )
+    .await;
+    assert_eq!(status, StatusCode::OK);
+    let again: Value = serde_json::from_slice(&body).unwrap();
+    assert_eq!(again["id"], first["id"]);
+    let stored: i64 =
+        g.f.state
+            .database
+            .with(|conn| Ok(conn.query_row("SELECT count(*) FROM attachments", [], |r| r.get(0))?))
+            .unwrap();
+    assert_eq!(stored, 1);
 }

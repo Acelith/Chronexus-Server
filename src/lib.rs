@@ -7,6 +7,7 @@ pub mod content;
 mod content_routes;
 pub mod db;
 pub mod error;
+mod events;
 pub mod payload;
 pub mod routes;
 
@@ -23,6 +24,7 @@ pub struct AppState {
     pub config: Arc<Config>,
     pub database: Arc<Database>,
     pub(crate) transfers: Arc<Semaphore>,
+    pub(crate) streams: Arc<events::Streams>,
     pub(crate) workers: Arc<Semaphore>,
     pub(crate) dummy_hash: Arc<String>,
 }
@@ -36,6 +38,7 @@ impl AppState {
             config: Arc::new(config),
             database: Arc::new(database),
             transfers: Arc::new(Semaphore::new(2)),
+            streams: Arc::new(events::Streams::new()),
             workers: Arc::new(Semaphore::new(4)),
             dummy_hash: Arc::new(dummy_hash),
         })

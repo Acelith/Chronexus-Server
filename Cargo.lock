@@ -179,6 +179,7 @@ dependencies = [
  "argon2",
  "axum",
  "chrono",
+ "futures-core",
  "getrandom",
  "http-body-util",
  "image",

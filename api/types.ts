@@ -55,6 +55,7 @@ export type ContentItem = Item & {
 
 export type ContentList = {
   "cursor": string;
+  "head": string;
   "items": Array<ContentItem>;
   "more": boolean;
 };
@@ -133,6 +134,11 @@ export type Item = {
 
 export type JoinCampaign = {
   "inviteCode": string;
+};
+
+export type KeyedRevision = {
+  "baseRevision": number;
+  "requestId"?: string | null;
 };
 
 export type LinkText = {
@@ -259,6 +265,12 @@ export type Styles = {
   "strike"?: boolean | null;
   "textColor"?: string | null;
   "underline"?: boolean | null;
+};
+
+export type SyncPage = {
+  "cursor": string;
+  "items": Array<ContentItem>;
+  "more": boolean;
 };
 
 export type Visibility = "private" | "members";

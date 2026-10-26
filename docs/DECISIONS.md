@@ -136,3 +136,33 @@ safe retry-horizon protocol before production continuous use. Existing unkeyed
 clients and legacy sharing routes remain compatible. Schema 004 is additive;
 previous server binaries must refuse the newer archive. No desktop changes,
 new dependencies, deployment, publication or complete S5 acceptance in this slice.
+
+## S5 server contract: log, retry horizon, notifications (26 October 2026)
+
+- **Feed = signal, state = truth.** Schema 005 adds a payload-free per-campaign change
+  log. `/sync` reads the log only to learn which items to re-examine and always emits
+  the *current* state the caller may see (own items fully; other members' items only
+  while shared, otherwise a payload-free tombstone). Private edits of other authors
+  never reach a member's feed, cursor or notification, so activity cannot be inferred.
+  The log reuses the campaign sequence counter shared with the legacy feed.
+- **Fail closed on cursors.** Bounded log (100,000 rows per campaign); dropping rows
+  raises a floor and stale or future cursors get 410, forcing a full listing. No attempt
+  is made to replay deletions the server no longer remembers, because guessing could
+  resurrect withdrawn items. The cost is an occasional full resync for very stale clients.
+- **Retry horizon instead of acknowledgments.** The provisional 10,000-receipt cap is
+  replaced by verifiable age. Operation IDs are UUIDv7; IDs older than 30 days are refused
+  (410) and receipts are kept 31 days, so expiry cannot allow a late retry to re-apply an
+  old creation after deletion. Chosen over client acknowledgments because it needs no
+  extra round trip or state on devices that may be offline for weeks. Existing v4 IDs from
+  the unreleased first slice are rejected; no deployed client used them.
+- **Idempotent deletes and withdrawals** reuse the same receipts (`op` column). Uploads
+  are idempotent by (campaign, author, SHA-256), returning the stored original; attachment
+  deletion stays unkeyed and clients treat 404 as done.
+- **Notifications** are SSE with Bearer authentication: it needs no WebSocket dependency
+  and survives plain reverse proxies. Frames are content-free hints; bounded streams
+  (3 per account, 64 total, 10-minute lifetime, 25 s keepalive re-authorization). Polling
+  `/sync` remains the required fallback. The only new direct dependency is `futures-core`
+  (already in the lock graph via axum) for the response stream trait.
+- Schema 005 is additive and backfills one log row per existing content row. Prior server
+  binaries refuse the newer archive. No desktop change in this slice; the legacy four-kind
+  client keeps its behavior.

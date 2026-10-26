@@ -27,7 +27,10 @@ async fn meta_health_and_contract_describe_only_implemented_scope() {
             "sharing",
             "private-content",
             "attachments",
-            "idempotent-content-saves"
+            "idempotent-content-saves",
+            "idempotent-mutations",
+            "incremental-sync",
+            "change-notifications"
         ])
     );
     assert_eq!(

@@ -204,6 +204,9 @@ async fn meta() -> Json<Meta> {
             "private-content",
             "attachments",
             "idempotent-content-saves",
+            "idempotent-mutations",
+            "incremental-sync",
+            "change-notifications",
         ],
     })
 }

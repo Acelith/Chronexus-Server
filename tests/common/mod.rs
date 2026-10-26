@@ -112,3 +112,8 @@ pub async fn call(
     };
     (status, value)
 }
+
+/// Request IDs must be UUIDv7 so the server can verify their age.
+pub fn request_id() -> String {
+    uuid::Uuid::now_v7().to_string()
+}
