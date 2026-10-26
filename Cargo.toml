@@ -26,6 +26,8 @@ zeroize = "1"
 image = { version = "=0.25.10", default-features = false, features = ["png", "jpeg", "webp"] }
 
 [dev-dependencies]
+# Paused time for stream lifetime and keepalive tests.
+tokio = { version = "1", features = ["test-util"] }
 tower = { version = "0.5", features = ["util"] }
 tempfile = "3"
 http-body-util = "0.1"

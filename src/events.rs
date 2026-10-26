@@ -3,8 +3,13 @@
 //! A frame never names an item, kind, author or cursor: it only tells an authenticated
 //! member that a re-read of `/sync` is worthwhile. Private edits notify their author
 //! only, so other members cannot infer activity. Polling `/sync` remains the fallback.
+//!
+//! The stream task never waits on a slow client: frames are sent without blocking, and a
+//! client that still has a full queue at the keepalive is disconnected, so revocation,
+//! expiry and the lifetime limit always run and stream slots are released.
 use crate::{
     AppState,
+    db::Database,
     error::{ApiError, Result},
 };
 use axum::{
@@ -19,9 +24,16 @@ use std::{
     pin::Pin,
     sync::{Arc, Mutex},
     task::{Context, Poll},
-    time::{Duration, Instant},
+    time::Duration,
 };
-use tokio::sync::{OwnedSemaphorePermit, Semaphore, broadcast::error::RecvError, mpsc};
+use tokio::{
+    sync::{
+        OwnedSemaphorePermit, Semaphore,
+        broadcast::error::RecvError,
+        mpsc::{self, error::TrySendError},
+    },
+    time::Instant,
+};
 
 const GLOBAL_STREAMS: usize = 64;
 const ACCOUNT_STREAMS: usize = 3;
@@ -89,6 +101,21 @@ fn event(name: &'static str) -> Bytes {
     Bytes::from(format!("event: {name}\ndata: {{}}\n\n"))
 }
 
+impl Database {
+    /// The newest change-log position `account` may learn about in `campaign`: shared
+    /// states of anyone, plus the account's own private ones.
+    fn audience_seq(&self, campaign: &str, account: &str) -> Result<i64> {
+        self.with(|conn| {
+            Ok(conn.query_row(
+                "SELECT coalesce(max(seq),0) FROM content_log WHERE campaign_id=?1 \
+                 AND (state IN ('members','deleted','withdrawn') OR author_id=?2)",
+                [campaign, account],
+                |r| r.get(0),
+            )?)
+        })
+    }
+}
+
 /// Opens a notification stream for an already authorized member.
 pub(crate) async fn open(state: AppState, token: String, campaign: String) -> Result<Response> {
     let account = {
@@ -98,13 +125,18 @@ pub(crate) async fn open(state: AppState, token: String, campaign: String) -> Re
     let guard = state.streams.open(&account)?;
     // Subscribe before replying so nothing committed after `ready` can be missed.
     let mut signals = state.database.subscribe();
+    let mut seen = {
+        let (campaign, account) = (campaign.clone(), account.clone());
+        state
+            .blocking(move |db| db.audience_seq(&campaign, &account))
+            .await?
+    };
     let (sender, receiver) = mpsc::channel::<Bytes>(4);
+    // The queue is fresh, so the first frame always fits.
+    let _ = sender.try_send(event("ready"));
     tokio::spawn(async move {
         let _guard = guard;
         let started = Instant::now();
-        if sender.send(event("ready")).await.is_err() {
-            return;
-        }
         let mut tick = tokio::time::interval(KEEPALIVE);
         tick.tick().await;
         loop {
@@ -118,13 +150,21 @@ pub(crate) async fn open(state: AppState, token: String, campaign: String) -> Re
                         }
                     }
                     Err(RecvError::Lagged(_)) => {
-                        let _ = sender.try_send(event("changed"));
+                        // Missed signals may belong to other campaigns or to other members'
+                        // private edits: hint only if this member's own audience moved.
+                        let (c, a) = (campaign.clone(), account.clone());
+                        if let Ok(latest) = state.blocking(move |db| db.audience_seq(&c, &a)).await
+                            && latest > seen
+                        {
+                            seen = latest;
+                            let _ = sender.try_send(event("changed"));
+                        }
                     }
                     Err(RecvError::Closed) => return,
                 },
                 _ = tick.tick() => {
                     if started.elapsed() >= LIFETIME {
-                        let _ = sender.send(event("reconnect")).await;
+                        let _ = sender.try_send(event("reconnect"));
                         return;
                     }
                     let (token, campaign) = (token.clone(), campaign.clone());
@@ -133,12 +173,14 @@ pub(crate) async fn open(state: AppState, token: String, campaign: String) -> Re
                         // Saturated workers must not drop a healthy stream.
                         Err(ApiError(StatusCode::SERVICE_UNAVAILABLE, _)) => {}
                         Err(_) => {
-                            let _ = sender.send(event("closed")).await;
+                            let _ = sender.try_send(event("closed"));
                             return;
                         }
                     }
-                    if sender.send(Bytes::from_static(b": keepalive\n\n")).await.is_err() {
-                        return;
+                    match sender.try_send(Bytes::from_static(b": keepalive\n\n")) {
+                        Ok(()) => {}
+                        // Nothing was read since the last keepalive: release the slot.
+                        Err(TrySendError::Full(_) | TrySendError::Closed(_)) => return,
                     }
                 }
             }

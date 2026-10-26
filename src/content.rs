@@ -269,17 +269,18 @@ fn withdraw(conn: &Connection, campaign: &str, kind: &str, id: &str) -> Result<i
     log_change(conn, campaign, kind, id, &author, "withdrawn")?;
     Ok(revision)
 }
-pub(crate) fn withdraw_dependents(conn: &Connection, campaign: &str, page: &str) -> Result<()> {
+/// Withdraws the published items that depend on `page` and returns how many there were.
+pub(crate) fn withdraw_dependents(conn: &Connection, campaign: &str, page: &str) -> Result<usize> {
     let mut q=conn.prepare("SELECT c.kind,c.id FROM content c JOIN content_dependencies d ON d.campaign_id=c.campaign_id AND d.kind=c.kind AND d.item_id=c.id WHERE c.campaign_id=?1 AND d.page_id=?2 AND c.visibility='members' AND c.deleted=0")?;
     let rows = q
         .query_map(params![campaign, page], |r| {
             Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?))
         })?
         .collect::<std::result::Result<Vec<_>, _>>()?;
-    for (kind, id) in rows {
-        withdraw(conn, campaign, &kind, &id)?;
+    for (kind, id) in &rows {
+        withdraw(conn, campaign, kind, id)?;
     }
-    Ok(())
+    Ok(rows.len())
 }
 pub(crate) fn withdraw_author(conn: &Connection, campaign: &str, account: &str) -> Result<()> {
     let mut q=conn.prepare("SELECT kind,id FROM content WHERE campaign_id=?1 AND author_id=?2 AND visibility='members' AND deleted=0")?;
@@ -542,9 +543,10 @@ impl Database {
             tx.execute("UPDATE content SET deleted=1,payload=NULL,revision=?1,updated_at=?2 WHERE campaign_id=?3 AND kind=?4 AND id=?5",params![revision,now(),campaign,kind_name,id])?;
             for table in ["content_dependencies","content_attachments"] {tx.execute(&format!("DELETE FROM {table} WHERE campaign_id=?1 AND kind=?2 AND item_id=?3"),params![campaign,kind_name,id])?;}
             if was_public{publish(&tx,campaign,kind_name,id,revision,true)?;}
-            if kind_name=="page"{withdraw_dependents(&tx,campaign,id)?;}
+            // Other members hear about the deletion only if something they could see changed.
+            let withdrawn = if kind_name=="page"{withdraw_dependents(&tx,campaign,id)?}else{0};
             let public = log_change(&tx, campaign, kind_name, id, &identity.account_id, if was_public { "deleted" } else { "deleted-private" })?
-                || kind_name == "page";
+                || withdrawn > 0;
             if let Some(keyed) = &keyed { keyed.remember(&tx, revision)?; }
             tx.commit()?;
             self.notify(campaign, &identity.account_id, public);
