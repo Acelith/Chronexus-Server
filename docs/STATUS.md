@@ -15,6 +15,10 @@ and authenticated web management (S11). These are planned requirements, not
 implemented features. Server AI extends the original local-only plan; the local
 adapter keeps its loopback boundary.
 
+The README now follows the original Chronexus presentation, with unchanged
+project wordmark/icon assets, a planned-feature table and links to the original
+application. Asset provenance is recorded in `assets/brand/README.md`.
+
 ## Next milestone
 
 S0: confirm hosting, registration, encryption, persistence, account security,
@@ -27,7 +31,8 @@ Record confirmed choices in `docs/DECISIONS.md` before implementing S1.
 - Planning expands application M24/M25 with the user's explicit continuous-save,
   self-hosted AI, Compose and web-management requirements.
 - Local Markdown links, S0–S11 coverage and requirement consistency checked.
-- `git diff --check`: passed for the planning change.
+- README local links, images, heading anchors and byte-for-byte brand copies checked.
+- `git diff --check`: passed for the documentation change.
 - Runtime tests, builds and deployments: not run; no implementation exists.
 - Skill used: `pages:write-page` for documentation structure and editorial review,
   using repository Markdown as the destination.
