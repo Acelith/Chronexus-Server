@@ -142,7 +142,7 @@ and campaign AI activation will remain separate actions. See
 
 [ROADMAP.md](ROADMAP.md) defines S0–S11, dependencies and acceptance criteria.
 [docs/STATUS.md](docs/STATUS.md) records what exists, checks actually performed
-and the next step: **S7 security qualification and operational recovery**. Production
+and the next step: **S8 desktop integration acceptance and the first release** (S7 is implemented on Windows). Production
 hosting and full campaign acceptance remain open.
 
 ## Development and contributing

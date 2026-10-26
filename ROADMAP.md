@@ -60,7 +60,7 @@ not a production deployment or a completed application M25.
 | S4 | Explicit selective sharing and managed attachments | S3 | Server implemented; new app selection/preview UI pending |
 | S5 | Continuous local and server saving with visible conflicts | S4 | Server contract implemented (receipts, incremental sync, notifications); desktop queue pending |
 | S6 | Revocation, deletion and recovery | S5 | Implemented (server and desktop client); Windows tested |
-| S7 | Security qualification and operational recovery | S6 | Planned |
+| S7 | Security qualification and operational recovery | S6 | Implemented on Windows; Docker/Linux, scans, CI and TLS unverified |
 | S8 | Desktop integration and first server release | S7 and full desktop M24 acceptance | Planned |
 | S9 | Android contract qualification | S8 and application M27 | Planned |
 | S10 | Explicit local or self-hosted server AI | S8; independent of S9 | Planned |
@@ -279,6 +279,11 @@ cursor scenarios cannot restore revoked items. Backup restore preserves revocati
 and does not silently grant old sessions access again.
 
 ## S7 Security and operational recovery
+
+Implemented 26 October 2026 (Windows x64): `tests/security.rs`, `tests/recovery.rs`, the
+`backup`/`verify`/`restore` commands, automatic pre-upgrade copies and the operator guide in
+[docs/INSTALLATION.md](docs/INSTALLATION.md). Remaining before a release: Docker/Linux amd64 runs,
+vulnerability and image scans, remote CI, a real TLS deployment and the hosting/licence decisions.
 
 - Test the authentication and authorization matrix, malformed inputs, injection,
   attachment traversal, resource exhaustion and limits with synthetic fixtures.

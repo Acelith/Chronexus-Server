@@ -61,6 +61,32 @@ async fn run() -> Result<(), String> {
             let removed = db.purge_tombstones(days).map_err(|e| e.1.to_string())?;
             println!("{removed} tombstones removed.");
         }
+        "backup" if args.len() == 2 => {
+            let database = PathBuf::from(
+                std::env::var("CHRONEXUS_DATABASE")
+                    .unwrap_or_else(|_| "data/chronexus.sqlite3".into()),
+            );
+            let report = chronexus_server::backup::create(&database, &PathBuf::from(&args[1]))?;
+            println!("Backup written and verified: {report}");
+        }
+        "verify" if args.len() == 2 => {
+            let report = chronexus_server::backup::verify(&PathBuf::from(&args[1]))?;
+            println!("Backup is healthy: {report}");
+        }
+        "restore" if args.len() == 2 => {
+            // The server must be stopped: the restored file replaces the live database.
+            let database = PathBuf::from(
+                std::env::var("CHRONEXUS_DATABASE")
+                    .unwrap_or_else(|_| "data/chronexus.sqlite3".into()),
+            );
+            let (report, ended, kept) =
+                chronexus_server::backup::restore(&database, &PathBuf::from(&args[1]))?;
+            println!("Restored: {report}");
+            println!("{ended} sessions revoked; everyone must sign in again.");
+            if let Some(kept) = kept {
+                println!("The previous database was kept as {}", kept.display());
+            }
+        }
         "healthcheck" if args.len() == 1 => {
             use tokio::io::{AsyncReadExt, AsyncWriteExt};
             let listen: SocketAddr = std::env::var("CHRONEXUS_LISTEN")
@@ -98,7 +124,7 @@ async fn run() -> Result<(), String> {
         }
         _ => {
             return Err(
-                "Usage: chronexus-server [serve|invite|recover USERNAME|revoke-sessions|compact [DAYS]|openapi|healthcheck]"
+                "Usage: chronexus-server [serve|invite|recover USERNAME|revoke-sessions|compact [DAYS]|backup FILE|verify FILE|restore FILE|openapi|healthcheck]"
                     .into(),
             );
         }

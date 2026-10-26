@@ -186,13 +186,15 @@ impl Database {
         input: &EraseOwnContent,
     ) -> Result<Erased> {
         identifier(campaign)?;
+        let identity = self.identity(token)?;
+        // Authorize first: a refusal must not depend on what the body says.
+        self.with(|conn| member(conn, campaign, &identity.account_id).map(|_| ()))?;
         if !input.confirm {
             return Err(ApiError(
                 StatusCode::BAD_REQUEST,
                 "Confirm the deletion of your server copy.",
             ));
         }
-        let identity = self.identity(token)?;
         let erased = self.with(|conn| {
             let tx = conn.transaction_with_behavior(TransactionBehavior::Immediate)?;
             member(&tx, campaign, &identity.account_id)?;

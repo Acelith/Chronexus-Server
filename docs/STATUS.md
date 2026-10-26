@@ -28,6 +28,24 @@ Updated: 26 October 2026. Source 0.1.0, server schema 006. Not published.
   binary image MIME types. Server archive identity is checked before journal changes
   or migrations, preserving schemas 001/002 and refusing foreign/desktop archives.
 
+## S7 security and recovery implemented (Windows)
+
+- `tests/security.rs` (6 tests): role matrix over every campaign route and five principals, credential
+  header and scheme abuse, hostile identifiers, malformed/oversized/nesting-bomb bodies, hostile
+  uploads, error leakage and login indistinguishability. It found one real defect (a refusal that
+  depended on the request body), now fixed.
+- `tests/recovery.rs` (3 tests): `backup`/`verify`/`restore` (consistent copy while running,
+  checksum verification of every image, corruption/foreign/newer/tampered files refused with the live
+  database untouched, restore on a clean instance with sessions revoked and removals intact),
+  automatic `.pre-upgrade-v<N>` copy, failed-upgrade rollback and newer-schema refusal. The CLI was
+  also exercised as a real process.
+- Operator guide: TLS/proxy examples, secrets, volumes, monitoring, backup/restore with the
+  encryption/key policy, upgrade and rollback (docs/INSTALLATION.md). Evidence: all 71 integration
+  tests, rustfmt and Clippy `-D warnings` pass on Windows x64.
+- Not done: Docker/Linux amd64 execution, `cargo audit`/image scans (not available offline), remote CI,
+  third-party penetration test, load testing, real TLS. Hosting and licence decisions remain open.
+- Next: **S8**, the full M24 acceptance with 2-3 users against a deployment and the first release.
+
 ## S6 lifecycle implemented (schema 006)
 
 - Campaign deletion (owner, exact name), erasing one's own server copy, account deletion
@@ -98,10 +116,8 @@ Docker/Compose:
 
 ## Next step and explicit limits
 
-Next: **S7 security qualification and operational recovery** (authorization matrix, installation
-guide, backup/restore with integrity checks, failed-upgrade recovery, CI, Linux amd64), then **S8**
-(first release after full M24 acceptance). Open decisions: production hosting and the server
-code license.
+Next: **S8** (first release after full M24 acceptance). Open decisions: production hosting and the
+server code license.
 
 The application repository now holds the S5 desktop client (schema 020, commit 7bf720e) and
 the S6 access-loss handling; its legacy storage identifiers and personal data were not

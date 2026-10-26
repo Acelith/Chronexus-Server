@@ -188,3 +188,18 @@ new dependencies, deployment, publication or complete S5 acceptance in this slic
   floor, so purging can only force a relisting, never a resurrection.
 - **Restores are the operator's responsibility.** A backup contains only what existed when it
   was made; `revoke-sessions` removes the one thing that must not silently come back.
+
+## S7 backup, restore and upgrade policy (26 October 2026)
+
+- **One verified file.** Uploads live in the database, so `VACUUM INTO` gives a consistent,
+  complete backup while the server runs, and verification re-reads everything it promises
+  (identity, supported schema, integrity, foreign keys, every image checksum). Success is reported
+  only after verification; a failed backup is deleted.
+- **No server-side encryption or key custody.** A key held by the server would be lost or stolen
+  with it; the operator encrypts with their own tools and owns the key recovery policy.
+- **Restore always revokes sessions.** A backup necessarily contains sessions and data that were
+  revoked or deleted afterwards; making that impossible to miss is safer than a flag.
+- **Upgrades copy first.** The pre-upgrade file is the rollback path, an older binary refuses a
+  newer archive instead of guessing, and an upgrade that cannot be backed up does not start.
+- **Authorization before validation.** A refusal never depends on the body (found by the matrix
+  test: erasing one's own copy validated `confirm` before checking membership).

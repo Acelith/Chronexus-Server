@@ -1,5 +1,6 @@
 pub mod attachments;
 pub mod auth;
+pub mod backup;
 mod campaign_routes;
 pub mod campaigns;
 pub mod config;

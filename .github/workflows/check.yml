@@ -18,3 +18,11 @@ jobs:
         env:
           CHRONEXUS_PUBLIC_ORIGIN: https://sync.example.test
         run: docker compose config --quiet
+  audit:
+    # Advisory only until the first release is qualified: it reports, it does not block.
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - run: cargo install cargo-audit --locked
+      - run: cargo audit
