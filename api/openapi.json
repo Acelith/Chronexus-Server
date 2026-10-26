@@ -842,6 +842,17 @@
         ],
         "type": "object"
       },
+      "SaveConflict": {
+        "description": "Save conflicts either contain the current version or reject request ID reuse.",
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/Current"
+          },
+          {
+            "$ref": "#/components/schemas/ErrorBody"
+          }
+        ]
+      },
       "Session": {
         "additionalProperties": false,
         "properties": {
@@ -1003,6 +1014,13 @@
           },
           "payload": {
             "$ref": "#/components/schemas/Payload"
+          },
+          "requestId": {
+            "description": "Stable operation UUID. Reuse only for an identical save.",
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "visibility": {
             "$ref": "#/components/schemas/Visibility"
@@ -2118,7 +2136,17 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Current"
+                  "$ref": "#/components/schemas/SaveConflict"
+                }
+              }
+            },
+            "description": ""
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
                 }
               }
             },

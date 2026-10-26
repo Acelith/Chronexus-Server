@@ -1,6 +1,6 @@
 # Implemented API and desktop compatibility
 
-Source version 0.1.0 implements server milestones S1–S4, schema 003. This is not a
+Source version 0.1.0 implements server milestones S1–S4, schema 004. This is not a
 published release. The original Chronexus source 0.8.1 has an M24 sharing client;
 server delivery is application M25 and Android M27. The server now implements its
 account, campaign and four-kind sharing protocol, plus explicit private-content,
@@ -141,3 +141,40 @@ inaccessible content, 409 stale revisions/referenced originals, 410 unavailable
 invitation, 413 oversized body, 429 quota/attempt limits, 503 worker/transfer saturation,
 500 safe storage failure. Ordinary errors use an English error field; the app maps
 status codes to localized text. Complete production security/recovery is still S7.
+
+
+## S5 first slice: durable idempotent content saves
+
+The `idempotent-content-saves` meta capability advertises optional `requestId`
+(canonical lowercase UUID) on `PUT .../content/{kind}/{itemId}`. The client must
+persist this ID with its exact outbound operation before sending. Retries use the
+same account, campaign, target, baseRevision, payload and visibility. Existing
+clients may omit it and retain revision-conflict behavior. Legacy `/items` writes,
+attachment uploads, deletions and sharing withdrawal do not yet accept this ID.
+
+The server stores the accepted revision and a normalized SHA-256 request digest
+in schema 004, atomically with content, references and publication. Only a committed
+save receives a success acknowledgment. Concurrent duplicates and retries after
+restart return that original revision without another write or feed event, even
+if later operations edited, withdrew or deleted the item. This is historical
+acknowledgment, not a statement that this is still the current revision or visibility.
+Current authentication and write membership remain mandatory on every retry.
+Receipt scope is account/campaign, so a different device of the same account may
+resume an operation; other accounts cannot use the receipt.
+
+Reusing an ID with changed target, base revision, normalized payload or visibility
+returns 409 `{ "error": "Request ID already used for a different save." }` without
+content disclosure. A normal stale revision returns the existing 409 revision and
+payload body. Failed/conflicting operations do not consume the ID. JSON object key
+order and omitted default private visibility do not change request identity.
+
+Receipts contain IDs, hashes and revisions, never historical payload copies. For
+this initial slice, they do not expire and are capped at 10,000 per account per
+campaign. At capacity, new keyed saves return 429 before mutation; existing retries
+still work. Keep pending local edits and surface the error; do not generate new IDs
+or fall back to unkeyed writes to bypass it. Acknowledged compaction and safe retry
+horizons must be designed before production continuous replication. There is no
+receipt deletion API or automatic eviction that could resurrect a stale save.
+
+This is a server foundation only: durable desktop queue, private incremental feed,
+notifications, attachment retries and measured end-to-end latency remain S5 work.

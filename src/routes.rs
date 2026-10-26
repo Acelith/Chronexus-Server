@@ -203,6 +203,7 @@ async fn meta() -> Json<Meta> {
             "sharing",
             "private-content",
             "attachments",
+            "idempotent-content-saves",
         ],
     })
 }

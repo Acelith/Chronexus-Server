@@ -1169,3 +1169,281 @@ fn migration_refuses_another_app_database_even_when_its_version_matches() {
         "delete"
     );
 }
+
+#[tokio::test]
+async fn save_receipt_survives_restart_and_does_not_reapply_after_delete() {
+    let g = Group::new().await;
+    let id = Uuid::new_v4().to_string();
+    let path = g.path("page", &id);
+    let input = json!({"requestId":Uuid::new_v4().to_string(),"baseRevision":0,"payload":page("Durable save")});
+    let token = g.owner["token"].as_str();
+    let first = g.f.call("PUT", &path, input.clone(), token).await;
+    assert_eq!(first, (StatusCode::OK, json!({"revision":1})));
+    // New AppState opens the same on-disk store, without in-memory receipts.
+    let state = chronexus_server::AppState::new((*g.f.state.config).clone()).unwrap();
+    let app = chronexus_server::routes::router(state);
+    assert_eq!(
+        common::call(
+            app,
+            "PUT",
+            &path,
+            input.clone(),
+            token,
+            "127.0.0.1:8080",
+            None
+        )
+        .await,
+        first
+    );
+    assert_eq!(
+        g.f.call(
+            "DELETE",
+            &format!("{path}?baseRevision=1"),
+            Value::Null,
+            token
+        )
+        .await
+        .0,
+        StatusCode::OK
+    );
+    assert_eq!(g.f.call("PUT", &path, input, token).await, first);
+    assert_eq!(
+        g.f.call("GET", &path, Value::Null, token).await.0,
+        StatusCode::NOT_FOUND
+    );
+}
+
+#[tokio::test]
+async fn save_request_id_rejects_changed_payload_visibility_base_and_target() {
+    let g = Group::new().await;
+    let path = g.path("page", &Uuid::new_v4().to_string());
+    let input =
+        json!({"requestId":Uuid::new_v4().to_string(),"baseRevision":0,"payload":page("Original")});
+    let token = g.owner["token"].as_str();
+    assert_eq!(
+        g.f.call("PUT", &path, input.clone(), token).await.0,
+        StatusCode::OK
+    );
+    for (field, value) in [
+        ("payload", page("Changed")),
+        ("visibility", json!("members")),
+        ("baseRevision", json!(1)),
+    ] {
+        let mut changed = input.clone();
+        changed[field] = value;
+        let (status, response) = g.f.call("PUT", &path, changed, token).await;
+        assert_eq!(status, StatusCode::CONFLICT);
+        assert!(response.get("payload").is_none());
+    }
+    assert_eq!(
+        g.f.call(
+            "PUT",
+            &g.path("page", &Uuid::new_v4().to_string()),
+            input.clone(),
+            token
+        )
+        .await
+        .0,
+        StatusCode::CONFLICT
+    );
+    let mut explicit_default = input;
+    explicit_default["visibility"] = json!("private");
+    assert_eq!(
+        g.f.call("PUT", &path, explicit_default, token).await,
+        (StatusCode::OK, json!({"revision":1}))
+    );
+}
+
+#[tokio::test]
+async fn duplicate_saves_commit_once_and_recheck_current_permissions() {
+    let g = Group::new().await;
+    let path = g.path("page", &Uuid::new_v4().to_string());
+    let input = json!({"requestId":Uuid::new_v4().to_string(),"baseRevision":0,"visibility":"members","payload":page("Exactly once")});
+    let token = g.player["token"].as_str();
+    let (a, b) = tokio::join!(
+        g.f.call("PUT", &path, input.clone(), token),
+        g.f.call("PUT", &path, input.clone(), token)
+    );
+    assert_eq!(a, (StatusCode::OK, json!({"revision":1})));
+    assert_eq!(b, a);
+    assert_eq!(
+        g.feed(&g.owner, "").await.1["items"]
+            .as_array()
+            .unwrap()
+            .len(),
+        1
+    );
+    // Another account cannot use the receipt to bypass authorship checks.
+    assert_eq!(
+        g.f.call("PUT", &path, input.clone(), g.owner["token"].as_str())
+            .await
+            .0,
+        StatusCode::FORBIDDEN
+    );
+    let member_path = format!(
+        "/api/v1/campaigns/{}/members/{}",
+        g.c,
+        g.player["accountId"].as_str().unwrap()
+    );
+    let (_, members) =
+        g.f.call(
+            "GET",
+            &format!("/api/v1/campaigns/{}/members", g.c),
+            Value::Null,
+            g.owner["token"].as_str(),
+        )
+        .await;
+    let revision = members
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|m| m["accountId"] == g.player["accountId"])
+        .unwrap()["revision"]
+        .clone();
+    assert_eq!(
+        g.f.call(
+            "PATCH",
+            &member_path,
+            json!({"baseRevision":revision,"role":"reader"}),
+            g.owner["token"].as_str()
+        )
+        .await
+        .0,
+        StatusCode::NO_CONTENT
+    );
+    assert_eq!(
+        g.f.call("PUT", &path, input, token).await.0,
+        StatusCode::FORBIDDEN
+    );
+}
+
+#[tokio::test]
+async fn failed_save_does_not_consume_request_id_or_suppress_conflicts() {
+    let g = Group::new().await;
+    let path = g.path("page", &Uuid::new_v4().to_string());
+    let token = g.owner["token"].as_str();
+    let mut input = json!({"requestId":"invalid","baseRevision":0,"payload":page("Valid")});
+    assert_eq!(
+        g.f.call("PUT", &path, input.clone(), token).await.0,
+        StatusCode::BAD_REQUEST
+    );
+    input["requestId"] = json!(Uuid::new_v4().to_string());
+    input["baseRevision"] = json!(9);
+    assert_eq!(
+        g.f.call("PUT", &path, input.clone(), token).await.0,
+        StatusCode::NOT_FOUND
+    );
+    input["baseRevision"] = json!(0);
+    assert_eq!(
+        g.f.call("PUT", &path, input.clone(), token).await.0,
+        StatusCode::OK
+    );
+    input["requestId"] = json!(Uuid::new_v4().to_string());
+    assert_eq!(
+        g.f.call("PUT", &path, input.clone(), token).await.0,
+        StatusCode::CONFLICT
+    );
+    input["baseRevision"] = json!(1);
+    assert_eq!(
+        g.f.call("PUT", &path, input, token).await,
+        (StatusCode::OK, json!({"revision":2}))
+    );
+}
+
+#[tokio::test]
+async fn receipt_quota_preserves_existing_acknowledgments_without_partial_writes() {
+    let g = Group::new().await;
+    let id = Uuid::new_v4().to_string();
+    let request_id = Uuid::new_v4().to_string();
+    let path = g.path("page", &id);
+    let input = json!({"requestId":request_id,"baseRevision":0,"payload":page("Quota")});
+    let token = g.owner["token"].as_str();
+    assert_eq!(
+        g.f.call("PUT", &path, input.clone(), token).await.0,
+        StatusCode::OK
+    );
+    g.f.state
+        .database
+        .with(|conn| {
+            let tx = conn.transaction()?;
+            for n in 1..10000 {
+                tx.execute(
+                    "INSERT INTO save_receipts VALUES(?1,?2,?3,'page',?4,?5,1)",
+                    rusqlite::params![
+                        g.c,
+                        g.owner["accountId"].as_str().unwrap(),
+                        format!("00000000-0000-4000-8000-{n:012x}"),
+                        id,
+                        "0".repeat(64)
+                    ],
+                )?;
+            }
+            tx.commit()?;
+            Ok(())
+        })
+        .unwrap();
+    assert_eq!(
+        g.f.call("PUT", &path, input.clone(), token).await,
+        (StatusCode::OK, json!({"revision":1}))
+    );
+    let mut next = input;
+    next["requestId"] = json!(Uuid::new_v4().to_string());
+    next["baseRevision"] = json!(1);
+    assert_eq!(
+        g.f.call("PUT", &path, next, token).await.0,
+        StatusCode::TOO_MANY_REQUESTS
+    );
+    let (_, current) = g.f.call("GET", &path, Value::Null, token).await;
+    assert_eq!(current["revision"], 1);
+}
+
+#[test]
+fn content_schema_upgrade_adds_receipts_without_modifying_originals() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("s4.sqlite3");
+    let conn = rusqlite::Connection::open(&path).unwrap();
+    for migration in [
+        include_str!("../migrations/001_accounts.sql"),
+        include_str!("../migrations/002_campaigns.sql"),
+        include_str!("../migrations/003_content.sql"),
+    ] {
+        conn.execute_batch(migration).unwrap();
+    }
+    conn.pragma_update(None, "application_id", 0x43584e53)
+        .unwrap();
+    conn.pragma_update(None, "user_version", 3).unwrap();
+    conn.execute(
+        "INSERT INTO accounts VALUES('author','synthetic','Synthetic','hash',1,0)",
+        [],
+    )
+    .unwrap();
+    conn.execute("INSERT INTO campaigns(id,name,owner_id,created_at) VALUES('campaign','Synthetic','author',1)",[]).unwrap();
+    conn.execute(
+        "INSERT INTO content VALUES('campaign','page','item','author',7,'private',?1,0,1)",
+        [page("Preserved").to_string()],
+    )
+    .unwrap();
+    drop(conn);
+    let db = chronexus_server::db::Database::open(&path).unwrap();
+    db.with(|conn| {
+        assert_eq!(
+            conn.pragma_query_value(None, "user_version", |r| r.get::<_, i64>(0))?,
+            4
+        );
+        assert_eq!(
+            conn.query_row("SELECT revision FROM content", [], |r| r.get::<_, i64>(0))?,
+            7
+        );
+        assert_eq!(
+            conn.query_row("SELECT count(*) FROM save_receipts", [], |r| r
+                .get::<_, i64>(0))?,
+            0
+        );
+        assert_eq!(
+            conn.query_row("SELECT payload FROM content", [], |r| r.get::<_, String>(0))?,
+            page("Preserved").to_string()
+        );
+        Ok(())
+    })
+    .unwrap();
+}

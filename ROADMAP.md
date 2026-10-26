@@ -47,7 +47,7 @@ Server S0–S11 IDs remain unchanged. End-to-end campaign acceptance is still pe
 
 S1–S4 server APIs are implemented and verified natively and in a Linux arm64
 container. The S4 app selection extensions remain integration work. S0 core protocol choices are
-resolved; actual production hosting remains pending. S5–S11 are planned. Each
+resolved; actual production hosting remains pending. S5 has its first server slice; S6–S11 are planned. Each
 milestone needs focused tests and recorded evidence; this partial delivery is
 not a production deployment or a completed application M25.
 
@@ -58,7 +58,7 @@ not a production deployment or a completed application M25.
 | S2 | Accounts, sessions and device access | S1 | Implemented; auth subset tested with original desktop client |
 | S3 | Campaign invitations and authorization | S2 | Implemented; original desktop membership calls verified |
 | S4 | Explicit selective sharing and managed attachments | S3 | Server implemented; new app selection/preview UI pending |
-| S5 | Continuous local and server saving with visible conflicts | S4 | Planned, next |
+| S5 | Continuous local and server saving with visible conflicts | S4 | In progress: durable content-save receipts; integration pending |
 | S6 | Revocation, deletion and recovery | S5 | Planned |
 | S7 | Security qualification and operational recovery | S6 | Planned |
 | S8 | Desktop integration and first server release | S7 and full desktop M24 acceptance | Planned |
@@ -214,6 +214,14 @@ exposes only the chosen projection. Attachment corruption, invalid formats and
 unauthorized access fail safely.
 
 ## S5 Continuous local and server saving
+
+In progress: schema 004 adds optional per-save UUID receipts to the typed content
+PUT route, committed atomically with accepted writes. Concurrent retries, restart,
+changed-request rejection and non-resurrection after deletion are covered by native
+Windows tests. This is not full S5 acceptance: legacy writes/uploads/deletes,
+private incremental reads, notifications and the durable desktop queue remain pending.
+Receipt retention currently fails closed at 10,000 operations per account/campaign;
+a safe acknowledgment/compaction policy is required before production replication.
 
 - Introduce transactional changes with stable IDs, revisions, bounded cursors,
   idempotent requests and resumable incremental reads and writes.

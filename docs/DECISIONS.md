@@ -116,3 +116,23 @@ UI are not added to the desktop in this repository. S5/S8 must integrate and ver
 that explicit scope preview. Continuous save queues, idempotency keys and change
 notifications are S5 work; production recovery and full revocation lifecycle remain
 S6/S7. AI and web remain S10/S11. No production deployment or publication.
+
+
+## S5 save receipts (26 October 2026)
+
+Keep idempotency in the existing content transaction rather than HTTP response
+middleware: a durable acknowledgment and mutation must commit or roll back together.
+Use an optional client-generated operation UUID, scoped to account/campaign and
+bound to normalized payload, visibility, base revision and target. Authentication
+and current write membership precede receipt lookup. Retrying acknowledges only
+the historical accepted revision; it never reapplies content or sharing.
+
+Retain only request digests and revisions, without private response snapshots.
+Do not cache conflict bodies that may become unauthorized later. Initial bounded
+storage refuses new keyed operations at 10,000 receipts per account/campaign;
+never silently expire receipts and risk replaying an old creation after deletion.
+This limit is explicit and provisional; S5 must add an acknowledged compaction or
+safe retry-horizon protocol before production continuous use. Existing unkeyed
+clients and legacy sharing routes remain compatible. Schema 004 is additive;
+previous server binaries must refuse the newer archive. No desktop changes,
+new dependencies, deployment, publication or complete S5 acceptance in this slice.

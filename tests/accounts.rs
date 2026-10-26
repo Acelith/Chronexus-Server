@@ -26,7 +26,8 @@ async fn meta_health_and_contract_describe_only_implemented_scope() {
             "campaigns",
             "sharing",
             "private-content",
-            "attachments"
+            "attachments",
+            "idempotent-content-saves"
         ])
     );
     assert_eq!(

@@ -114,6 +114,7 @@ async fn legacy_put(
                 &kind,
                 &id,
                 &WriteContent {
+                    request_id: None,
                     base_revision: input.base_revision,
                     payload: input.payload,
                     visibility: Visibility::Members,
@@ -154,7 +155,7 @@ async fn changes(
         .await
         .map(Json)
 }
-#[utoipa::path(put,path="/api/v1/campaigns/{campaignId}/content/{kind}/{itemId}",params(("campaignId"=String,Path),("kind"=String,Path),("itemId"=String,Path)),request_body=WriteContent,security(("bearer"=[])),responses((status=200,body=Revision),(status=409,body=Current),(status=404,body=ErrorBody)),tag="content")]
+#[utoipa::path(put,path="/api/v1/campaigns/{campaignId}/content/{kind}/{itemId}",params(("campaignId"=String,Path),("kind"=String,Path),("itemId"=String,Path)),request_body=WriteContent,security(("bearer"=[])),responses((status=200,body=Revision),(status=409,body=SaveConflict),(status=429,body=ErrorBody),(status=404,body=ErrorBody)),tag="content")]
 async fn save(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -337,6 +338,7 @@ async fn remove_attachment(
     components(schemas(
         WriteItem,
         WriteContent,
+        SaveConflict,
         Visibility,
         Revision,
         Current,

@@ -17,7 +17,7 @@ fn inspect_identity(conn: &Connection) -> std::result::Result<u32, String> {
     let application_id: i64 = conn
         .pragma_query_value(None, "application_id", |r| r.get(0))
         .map_err(|_| "Cannot read database identity.")?;
-    if version > 3 {
+    if version > 4 {
         return Err("Database schema is newer than this server; use a compatible binary.".into());
     }
     if application_id != SERVER_ID && !(application_id == 0 && version < 3) {
@@ -130,6 +130,12 @@ impl Database {
             tx.pragma_update(None, "application_id", SERVER_ID)
                 .map_err(|_| "Cannot record server database identity.")?;
             tx.pragma_update(None, "user_version", 3)
+                .map_err(|_| "Cannot record schema version.")?;
+        }
+        if version < 4 {
+            tx.execute_batch(include_str!("../migrations/004_save_receipts.sql"))
+                .map_err(|_| "Save receipt migration failed; transaction rolled back.")?;
+            tx.pragma_update(None, "user_version", 4)
                 .map_err(|_| "Cannot record schema version.")?;
         }
         tx.commit().map_err(|_| "Cannot commit schema migration.")?;

@@ -2,12 +2,13 @@ use crate::{
     auth::now,
     campaigns::{forbidden, identifier, member, missing, owner, timestamp},
     db::Database,
-    error::{ApiError, Result},
+    error::{ApiError, ErrorBody, Result},
     payload::Payload,
 };
 use axum::http::StatusCode;
 use rusqlite::{Connection, OptionalExtension, TransactionBehavior, params};
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 use utoipa::ToSchema;
 
 const LEGACY: &[&str] = &["page", "session", "relationship", "party"];
@@ -35,6 +36,9 @@ pub struct WriteItem {
 #[derive(Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct WriteContent {
+    /// Stable operation UUID. Reuse only for an identical save.
+    #[serde(default)]
+    pub request_id: Option<String>,
     pub base_revision: i64,
     pub payload: Payload,
     #[serde(default)]
@@ -50,6 +54,13 @@ pub struct Revision {
 pub struct Current {
     pub revision: i64,
     pub payload: Option<Payload>,
+}
+/// Save conflicts either contain the current version or reject request ID reuse.
+#[derive(Serialize, ToSchema)]
+#[serde(untagged)]
+pub enum SaveConflict {
+    Current(Current),
+    Request(ErrorBody),
 }
 pub enum Written {
     Accepted(Revision),
@@ -269,6 +280,9 @@ impl Database {
         input: &WriteContent,
         legacy: bool,
     ) -> Result<Written> {
+        if let Some(request_id) = &input.request_id {
+            identifier(request_id)?;
+        }
         identifier(id)?;
         kind(kind_name)?;
         if legacy && !LEGACY.contains(&kind_name) {
@@ -279,8 +293,34 @@ impl Database {
             return Err(ApiError::invalid());
         }
         let identity = self.identity(token)?;
+        // Hash normalized JSON so omitted default visibility and object key order are equivalent.
+        let normalized =
+            serde_json::to_value((&input.payload, input.base_revision, input.visibility))
+                .map_err(|_| ApiError::internal())?;
+        let digest = format!("{:x}", Sha256::digest(normalized.to_string().as_bytes()));
         self.with(|conn| {
             let tx=conn.transaction_with_behavior(TransactionBehavior::Immediate)?;writable(&tx,campaign,&identity.account_id)?;
+            if let Some(request_id) = &input.request_id {
+                let receipt: Option<(String, String, String, i64)> = tx.query_row(
+                    "SELECT kind,item_id,request_hash,revision FROM save_receipts WHERE campaign_id=?1 AND account_id=?2 AND request_id=?3",
+                    params![campaign, identity.account_id, request_id],
+                    |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?)),
+                ).optional()?;
+                if let Some((saved_kind, saved_id, saved_hash, revision)) = receipt {
+                    if saved_kind != kind_name || saved_id != id || saved_hash != digest {
+                        return Err(ApiError(StatusCode::CONFLICT, "Request ID already used for a different save."));
+                    }
+                    // A receipt acknowledges a historical operation, never restores its content.
+                    return Ok(Written::Accepted(Revision { revision }));
+                }
+                let count: i64 = tx.query_row(
+                    "SELECT count(*) FROM save_receipts WHERE campaign_id=?1 AND account_id=?2",
+                    params![campaign, identity.account_id], |r| r.get(0),
+                )?;
+                if count >= 10000 {
+                    return Err(ApiError(StatusCode::TOO_MANY_REQUESTS, "Save receipt quota reached. Preserve pending local changes."));
+                }
+            }
             let old=stored(&tx,campaign,kind_name,id)?;
             if let Some(old)=&old {
                 if old.author!=identity.account_id {return Err(if old.visibility==Visibility::Private{missing()}else{forbidden()});}
@@ -296,6 +336,12 @@ impl Database {
             if input.visibility==Visibility::Members {publish(&tx,campaign,kind_name,id,revision,false)?;}
             else if old.as_ref().is_some_and(|o|o.visibility==Visibility::Members && !o.deleted) {publish(&tx,campaign,kind_name,id,revision,true)?;}
             if kind_name=="page" && input.visibility==Visibility::Private {withdraw_dependents(&tx,campaign,id)?;}
+            if let Some(request_id) = &input.request_id {
+                tx.execute(
+                    "INSERT INTO save_receipts(campaign_id,account_id,request_id,kind,item_id,request_hash,revision) VALUES(?1,?2,?3,?4,?5,?6,?7)",
+                    params![campaign, identity.account_id, request_id, kind_name, id, digest, revision],
+                )?;
+            }
             tx.commit()?;Ok(Written::Accepted(Revision{revision}))
         })
     }

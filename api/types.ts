@@ -222,6 +222,8 @@ export type RevisionQuery = {
   "baseRevision": number;
 };
 
+export type SaveConflict = Current | ErrorBody;
+
 export type Session = {
   "document": Document;
   "playedOn"?: string | null;
@@ -264,6 +266,7 @@ export type Visibility = "private" | "members";
 export type WriteContent = {
   "baseRevision": number;
   "payload": Payload;
+  "requestId"?: string | null;
   "visibility"?: Visibility;
 };
 
