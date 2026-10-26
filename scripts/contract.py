@@ -9,11 +9,15 @@ ROOT = Path(__file__).resolve().parent.parent
 
 
 def ts(schema):
+    if schema.get("format") == "binary":
+        return "Uint8Array"
     if "$ref" in schema:
         return schema["$ref"].rsplit("/", 1)[1]
     for union in ("oneOf", "anyOf"):
         if union in schema:
             return " | ".join(ts(item) for item in schema[union])
+    if "allOf" in schema:
+        return " & ".join(ts(item) for item in schema["allOf"])
     if "enum" in schema:
         return " | ".join(json.dumps(item) for item in schema["enum"])
     kind = schema.get("type")

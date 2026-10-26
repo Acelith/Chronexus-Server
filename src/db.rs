@@ -8,6 +8,48 @@ use std::{
 };
 
 pub struct Database(pub(crate) Mutex<Connection>);
+const SERVER_ID: i64 = 0x43584e53;
+
+fn inspect_identity(conn: &Connection) -> std::result::Result<u32, String> {
+    let version: u32 = conn
+        .pragma_query_value(None, "user_version", |r| r.get(0))
+        .map_err(|_| "Cannot read schema version.")?;
+    let application_id: i64 = conn
+        .pragma_query_value(None, "application_id", |r| r.get(0))
+        .map_err(|_| "Cannot read database identity.")?;
+    if version > 3 {
+        return Err("Database schema is newer than this server; use a compatible binary.".into());
+    }
+    if application_id != SERVER_ID && !(application_id == 0 && version < 3) {
+        return Err(
+            "Database belongs to another application or has no valid server identity.".into(),
+        );
+    }
+    if version > 0 && application_id == 0 {
+        for sql in [
+            "SELECT id,username,display_name,password_hash,created_at,disabled FROM accounts LIMIT 0",
+            "SELECT id,token_hash,account_id,device,expires_at,absolute_expires_at,revoked_at FROM sessions LIMIT 0",
+            "SELECT code_hash,recovery_account_id,expires_at,used_at FROM invites LIMIT 0",
+        ] {
+            conn.prepare(sql).map_err(
+                |_| "Refusing to migrate a database that is not a Chronexus server archive.",
+            )?;
+        }
+    }
+    if version == 0 {
+        let tables: i64 = conn
+            .query_row(
+                "SELECT count(*) FROM sqlite_master WHERE name NOT LIKE 'sqlite_%'",
+                [],
+                |r| r.get(0),
+            )
+            .map_err(|_| "Cannot inspect unversioned database.")?;
+        if tables != 0 {
+            return Err("Refusing to migrate an unrecognized existing database.".into());
+        }
+    }
+    Ok(version)
+}
 
 impl Database {
     pub fn open(path: &Path) -> std::result::Result<Self, String> {
@@ -62,6 +104,7 @@ impl Database {
         let mut conn = Connection::open(&absolute).map_err(|_| "Cannot open SQLite database.")?;
         conn.busy_timeout(Duration::from_secs(5))
             .map_err(|_| "Cannot configure SQLite timeout.")?;
+        inspect_identity(&conn)?;
         conn.execute_batch(
             "PRAGMA foreign_keys=ON; PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL;",
         )
@@ -69,25 +112,9 @@ impl Database {
         let tx = conn
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| "Cannot lock database migration.")?;
-        let version: u32 = tx
-            .pragma_query_value(None, "user_version", |r| r.get(0))
-            .map_err(|_| "Cannot read schema version.")?;
-        if version > 2 {
-            return Err(
-                "Database schema is newer than this server; use a compatible binary.".into(),
-            );
-        }
+        // Recheck after acquiring the migration lock in case another process upgraded it.
+        let version = inspect_identity(&tx)?;
         if version == 0 {
-            let tables: i64 = tx
-                .query_row(
-                    "SELECT count(*) FROM sqlite_master WHERE name NOT LIKE 'sqlite_%'",
-                    [],
-                    |r| r.get(0),
-                )
-                .map_err(|_| "Cannot inspect unversioned database.")?;
-            if tables != 0 {
-                return Err("Refusing to migrate an unrecognized existing database.".into());
-            }
             tx.execute_batch(include_str!("../migrations/001_accounts.sql"))
                 .map_err(|_| "Account migration failed; transaction rolled back.")?;
         }
@@ -95,6 +122,14 @@ impl Database {
             tx.execute_batch(include_str!("../migrations/002_campaigns.sql"))
                 .map_err(|_| "Campaign migration failed; transaction rolled back.")?;
             tx.pragma_update(None, "user_version", 2)
+                .map_err(|_| "Cannot record schema version.")?;
+        }
+        if version < 3 {
+            tx.execute_batch(include_str!("../migrations/003_content.sql"))
+                .map_err(|_| "Content migration failed; transaction rolled back.")?;
+            tx.pragma_update(None, "application_id", SERVER_ID)
+                .map_err(|_| "Cannot record server database identity.")?;
+            tx.pragma_update(None, "user_version", 3)
                 .map_err(|_| "Cannot record schema version.")?;
         }
         tx.commit().map_err(|_| "Cannot commit schema migration.")?;

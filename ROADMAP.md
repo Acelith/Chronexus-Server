@@ -1,6 +1,6 @@
 # Chronexus Server roadmap
 
-Updated: 26 October 2026. Status: S1–S3 implemented in source; campaign synchronization and release pending.
+Updated: 26 October 2026. Status: S1–S4 server APIs implemented in source; campaign synchronization and release pending.
 
 Chronexus Server will provide optional, self-hosted campaign synchronization and
 sharing between Chronexus players. Enabling synchronization for a campaign keeps
@@ -45,8 +45,9 @@ Server S0–S11 IDs remain unchanged. End-to-end campaign acceptance is still pe
 
 ## Milestone sequence
 
-S1–S3 are implemented and locally verified. S0 core protocol choices are
-resolved; actual production hosting remains pending. S4–S11 are planned. Each
+S1–S4 server APIs are implemented and verified natively and in a Linux arm64
+container. The S4 app selection extensions remain integration work. S0 core protocol choices are
+resolved; actual production hosting remains pending. S5–S11 are planned. Each
 milestone needs focused tests and recorded evidence; this partial delivery is
 not a production deployment or a completed application M25.
 
@@ -56,8 +57,8 @@ not a production deployment or a completed application M25.
 | S1 | Persistent service foundation, Compose and versioned contract | S0 core decisions | Implemented; macOS native and Linux arm64 container verified |
 | S2 | Accounts, sessions and device access | S1 | Implemented; auth subset tested with original desktop client |
 | S3 | Campaign invitations and authorization | S2 | Implemented; original desktop membership calls verified |
-| S4 | Explicit selective sharing and managed attachments | S3 | Planned, next |
-| S5 | Continuous local and server saving with visible conflicts | S4 | Planned |
+| S4 | Explicit selective sharing and managed attachments | S3 | Server implemented; new app selection/preview UI pending |
+| S5 | Continuous local and server saving with visible conflicts | S4 | Planned, next |
 | S6 | Revocation, deletion and recovery | S5 | Planned |
 | S7 | Security qualification and operational recovery | S6 | Planned |
 | S8 | Desktop integration and first server release | S7 and full desktop M24 acceptance | Planned |
@@ -91,13 +92,13 @@ compatibility and license verification before adoption.
 
 Acceptance for production: confirm hosting and operator policy, extend the
 authentication threat boundaries to campaigns and complete S7 security/recovery
-qualification. No production deployment or publication in the S1/S2 slice.
+qualification. No production deployment or publication in this server delivery.
 
 ## S1 Persistent service foundation and versioned contract
 
 Implemented in source. See [docs/STATUS.md](docs/STATUS.md) for executed checks
 and [docs/INSTALLATION.md](docs/INSTALLATION.md) for the source-build quick start.
-The generated contract currently covers only accounts and sessions.
+The generated contract covers the implemented account, campaign, content and image APIs.
 
 - Bootstrap the Rust service with axum, validated configuration, versioned database
   migrations, parameterized queries and safe transaction boundaries.
@@ -185,6 +186,13 @@ invitations, removal and cross-campaign access attempts. Read-only users cannot
 write; list endpoints and error messages do not disclose private item metadata.
 
 ## S4 Selective sharing and attachments
+
+Server implemented in schema 003: private-by-default typed content, explicit member
+projections, legacy-compatible sharing/feed, relationship dependencies, selected
+sheet sections and byte-preserving owned images. The original HTTP client passes
+four-kind sharing acceptance; image/section/private-copy selection and preview UI
+remain desktop integration work for S5/S8. Docker S4 acceptance passed on Linux arm64; public TLS and other platforms
+remain unverified.
 
 - Define explicit shareable projections for pages, sessions, relationships, parties,
   images and selected sheet sections. Show the selected scope before first upload
@@ -367,5 +375,5 @@ For each milestone, update `docs/STATUS.md` with what works, exact executed chec
 remaining limitations and the next step. Review the diff and whitespace, run the
 relevant Rust, contract, security and integration checks, then commit only relevant
 files with an English Conventional Commit and specific validation evidence.
-S1/S2 do not count as completed application M25 or M27. Advance milestone status
+S1–S4 server APIs do not count as completed application M25 or M27. Advance milestone status
 only with corresponding implementation and acceptance evidence.

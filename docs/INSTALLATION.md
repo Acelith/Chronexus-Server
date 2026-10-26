@@ -1,8 +1,8 @@
-# Running Chronexus Server through S2
+# Running Chronexus Server through S4
 
-This source build supports accounts, sessions and campaign membership. Content
-upload, continuous saving, AI and the web interface are not implemented. Do not point
-users at it as a complete synchronization service or replace an existing deployment.
+This source build supports accounts, campaign membership, explicit four-kind
+sharing and private content/image APIs. Continuous saving, new image/sheet selection
+UI, AI and web management are not implemented. Do not point users at it as a complete synchronization service or replace an existing deployment.
 
 ## Compose quick start
 
@@ -27,7 +27,9 @@ a new invite if it is lost. Never put it in Git, URLs or proxy logs.
 
 In Chronexus, enter the HTTPS origin, verify the server and redeem the invitation
 with a username, display name and password. Login/logout, campaign creation, campaign invitations and joining are supported.
-Content sharing remains S4 work. The current desktop has
+Explicit page/session/relationship/party sharing is supported. Share referenced
+pages first when publishing relationships or party entries; nothing is uploaded
+implicitly. Image/selected-sheet/private-copy UI remains client integration work. The current desktop has
 no UI for this server's extended recovery/device-management endpoints yet.
 
 ## Ports and reverse proxy
@@ -106,7 +108,8 @@ Authenticated device management:
 
 ## Storage and restart
 
-`server-data` persists the independent server SQLite database and its WAL files at
+`server-data` persists the independent server SQLite database, original image BLOBs
+and its WAL files at
 `/var/lib/chronexus`. Do not map this to an application's database, a shared/network
 SQLite file or an untrusted writable directory. Database paths and existing SQLite
 companion files must not be symbolic links. Newly created Unix data directories
@@ -115,7 +118,10 @@ use mode 0700 and database files 0600; protect permissions of existing volumes t
 Container recreation preserves the volume. `docker compose down` stops the test
 service without deleting data; adding `--volumes` deletes its data. Keep independent
 copies before manual operations. The tested automated backup/restore workflow is
-planned in S7; this account-only slice is not production-qualified recovery tooling.
+planned in S7; this account-only slice is not production-qualified recovery tooling. Schema 003 validates a server-specific
+archive identity before changing journal mode or applying migrations; older server
+binaries refuse the newer schema. Use a consistent whole-database backup rather
+than copying an active SQLite file alone.
 
 ## Development and checks
 

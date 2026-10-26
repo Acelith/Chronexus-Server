@@ -20,7 +20,14 @@ async fn meta_health_and_contract_describe_only_implemented_scope() {
     assert_eq!(meta["version"], 1);
     assert_eq!(
         meta["capabilities"],
-        json!(["accounts", "sessions", "campaigns"])
+        json!([
+            "accounts",
+            "sessions",
+            "campaigns",
+            "sharing",
+            "private-content",
+            "attachments"
+        ])
     );
     assert_eq!(
         f.call("GET", "/health/ready", Value::Null, None).await.0,

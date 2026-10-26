@@ -18,8 +18,8 @@ can see, and decide whether AI runs on your computer or your own server.
 </div>
 
 > [!NOTE]
-> The service foundation, accounts and campaign membership (S1–S3) are implemented in source.
-> Content sharing, continuous synchronization, AI and web management are still planned.
+> The service foundation, accounts, campaign membership and selective-sharing APIs (S1–S4) are implemented in source.
+> Continuous desktop saving, new image/sheet selection UI, AI and web management remain planned.
 > Build locally with Compose; no server release has been published.
 
 ## What is Chronexus Server
@@ -57,7 +57,7 @@ The delivery goal:
 | --- | --- | --- | --- |
 | **Accounts and devices** | Authentication, revocable sessions and account recovery under the selected registration policy | S2 | Implemented |
 | **Campaign membership** | Invitations, owner/player/read-only roles and authorization on every item | S3 | Implemented |
-| **Selective sharing** | Private owner copies, explicit member access, selected sheet sections and managed images | S4 | Planned |
+| **Selective sharing** | Private owner copies, explicit member access, selected sheet sections and managed images | S4 | Server implemented; client extensions pending |
 | **Continuous saving** | Local autosave, automatic online replication, durable pending changes and visible save status | S5 | Planned |
 | **Conflict handling** | Both versions remain visible when concurrent edits need your decision | S5 | Planned |
 | **Revocation** | Remove member access and clear shared copies on their next synchronization | S6 | Planned |
@@ -80,7 +80,7 @@ docker compose exec -T server chronexus-server invite
 
 The second command prints a private, one-use registration invitation. See the
 [installation guide](docs/INSTALLATION.md) for the complete proxy setup, optional
-ports, account policy and recovery. This build supports accounts, campaign invitations and role management.
+ports, account policy and recovery. This build supports accounts, campaign roles, explicit sharing and managed image APIs.
 
 - Host bind address, published port and internal API port are configurable.
 - The API uses one HTTPS origin; future web management will use the same origin.
@@ -88,8 +88,9 @@ ports, account policy and recovery. This build supports accounts, campaign invit
 - Public access requires a valid HTTPS origin and explicitly trusted TLS proxy.
   Credentials are generated securely; no default password.
 - AI/GPU services remain S10 work; no model is downloaded or runtime started.
-- The Linux arm64 container was built and tested locally. Linux amd64 and native
-  Windows verification remain pending. No registry image is published.
+- The current S4 Linux arm64 image and Compose persistence/authorization checks
+  passed locally. Linux amd64 and native Windows remain unverified.
+  No registry image is published.
 
 Confirmed protocol decisions and remaining hosting work are tracked in
 [roadmap S0](ROADMAP.md#s0-deployment-and-security-decisions) and
@@ -97,7 +98,9 @@ Confirmed protocol decisions and remaining hosting work are tracked in
 
 ## Synchronization and backups
 
-Planned in S5–S7; account support does not enable campaign saving yet.
+S4 implements explicit per-item sharing and private-content APIs. The original app
+can share pages, sessions, relationships and party members; new image/selected-sheet
+selection UI and continuous local/server saving remain S5/S8 client work.
 
 For an activated campaign, every autosave will persist locally before its change
 is sent to the server. The interface will distinguish local success from confirmed
@@ -132,26 +135,27 @@ and campaign AI activation will remain separate actions. See
 - No telemetry, campaign content in logs or automatic upload of local AI weights,
   training datasets, adapters or complete desktop backups.
 - Authentication, session isolation, HTTPS proxy checks and bounded auth resources
-  are implemented. Campaign permissions are S3/S4 work. V1 uses server-readable
+  are implemented. Campaign and per-item permissions are enforced. V1 uses server-readable
   storage without end-to-end encryption, as confirmed for the application.
 
 ## Roadmap
 
 [ROADMAP.md](ROADMAP.md) defines S0–S11, dependencies and acceptance criteria.
 [docs/STATUS.md](docs/STATUS.md) records what exists, checks actually performed
-and the next step: **S4 selected content and managed attachments**. Production
+and the next step: **S5 continuous local/server saving**. Production
 hosting and full campaign acceptance remain open.
 
 ## Development and contributing
 
 The stack is Rust with axum, SQLite WAL and Docker Compose. The implemented
-[OpenAPI subset](api/openapi.json) and [TypeScript schemas](api/types.ts) are
+[OpenAPI contract](api/openapi.json) and [TypeScript schemas](api/types.ts) are
 generated from Rust; the full campaign contract is still pending.
 
 See [development and checks](docs/DEVELOPMENT.md), [API compatibility](docs/API.md),
 [dependency licenses](docs/DEPENDENCIES.md) and [project rules](AGENTS.md).
-Formatting, Clippy, Rust tests, release build, contract generation, isolated Compose
-acceptance and the original desktop auth HTTP client have been checked locally.
+Formatting, Clippy, Rust tests, release build, contract generation and the original
+desktop sharing HTTP client are checked locally. The Linux arm64 Compose test
+also verifies private/shared content and unchanged images after container recreation.
 
 Report ideas and issues in [Chronexus Server](https://github.com/Acelith/Chronexus-Server/issues);
 report desktop issues in [Chronexus](https://github.com/Acelith/Chronexus/issues).

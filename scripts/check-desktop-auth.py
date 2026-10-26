@@ -67,9 +67,29 @@ async fn original_desktop_meta_redeem_login_logout() {
     let player_client=desktop::api::Client::new(url::Url::parse(&origin).unwrap(),Some(player.token.clone()),true).unwrap();
     let invite=authenticated.invite(&campaign.id,"player").await.unwrap();
     assert_eq!(player_client.join(&invite.code).await.unwrap().role,"player");
+    let first_page=uuid::Uuid::new_v4().to_string();
+    let second_page=uuid::Uuid::new_v4().to_string();
+    let document=serde_json::json!({"version":1,"blocks":[{"id":"block-1","type":"paragraph","props":{},"content":[],"children":[]}]});
+    let page=serde_json::json!({"title":"Public synthetic page","kind":"npc","status":"active","aliases":[],"document":document});
+    for id in [&first_page,&second_page] {assert!(matches!(authenticated.put_item(&campaign.id,"page",id,0,&page).await.unwrap(),desktop::api::Write::Accepted{revision:1}));}
+    let session=serde_json::json!({"sequence":1,"title":"Session one","playedOn":null,"document":document});
+    let session_id=uuid::Uuid::new_v4().to_string();
+    authenticated.put_item(&campaign.id,"session",&session_id,0,&session).await.unwrap();
+    let relationship=serde_json::json!({"fromPageId":first_page,"toPageId":second_page,"label":"Knows","certainty":"suspected","evidence":"Player claim","notes":""});
+    authenticated.put_item(&campaign.id,"relationship",&uuid::Uuid::new_v4().to_string(),0,&relationship).await.unwrap();
+    let party=serde_json::json!({"pageId":first_page,"name":"Synthetic party member","playerName":"QA","role":"Scout","status":"active"});
+    authenticated.put_item(&campaign.id,"party",&first_page,0,&party).await.unwrap();
+    let changes=reader_client.changes(&campaign.id,"").await.unwrap();assert_eq!(changes.items.len(),5);
+    assert!(changes.items.iter().all(|item|item.author_id==first.account_id));
+    assert!(matches!(authenticated.put_item(&campaign.id,"page",&first_page,0,&page).await.unwrap(),desktop::api::Write::Conflict{revision:1,..}));
+    assert!(reader_client.put_item(&campaign.id,"page",&uuid::Uuid::new_v4().to_string(),0,&page).await.is_err());
+    assert!(player_client.put_item(&campaign.id,"page",&first_page,1,&page).await.is_err());
+    authenticated.delete_item(&campaign.id,"page",&first_page,1).await.unwrap();
+    let removed=reader_client.changes(&campaign.id,&changes.cursor).await.unwrap();
+    assert_eq!(removed.items.len(),3);assert!(removed.items.iter().all(|item|item.deleted&&item.payload.is_none()));
     authenticated.logout().await.unwrap();assert!(state.database.sessions(&first.token).is_err());
     assert_eq!(state.database.sessions(&second.token).unwrap().len(),1);
-    task.abort();println!("Original desktop auth and campaign client: PASS (real loopback HTTP, synthetic profile).");
+    task.abort();println!("Original desktop auth, campaign and sharing client: PASS (real loopback HTTP, synthetic profile).");
 }
 '''
 

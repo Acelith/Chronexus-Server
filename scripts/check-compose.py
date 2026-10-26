@@ -6,9 +6,13 @@ Only this script's unique test project and synthetic volume are removed.
 """
 import json
 import os
+import struct
+import zlib
+import hashlib
 from pathlib import Path
 import socket
 import subprocess
+import sys
 import urllib.error
 import urllib.request
 import uuid
@@ -35,12 +39,14 @@ def main():
 
     opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
 
-    def request(method, path, payload=None, token=None, proto="https"):
+    def request(method, path, payload=None, token=None, proto="https", mime="application/json", checksum=None, binary=False):
         headers = {"Host": "sync.example.test:18443", "X-Forwarded-Proto": proto,
-                   "X-Forwarded-For": "198.51.100.42", "Content-Type": "application/json"}
+                   "X-Forwarded-For": "198.51.100.42", "Content-Type": mime}
         if token:
             headers["Authorization"] = "Bearer " + token
-        data = json.dumps(payload).encode() if payload is not None else None
+        if checksum:
+            headers["X-Content-SHA256"] = checksum
+        data = payload if isinstance(payload, bytes) else json.dumps(payload).encode() if payload is not None else None
         req = urllib.request.Request(f"http://127.0.0.1:{port}{path}", data=data, headers=headers, method=method)
         try:
             response = opener.open(req, timeout=10)
@@ -49,8 +55,11 @@ def main():
         with response:
             content = response.read()
             assert response.headers["Cache-Control"] == "no-store"
-            return response.status, json.loads(content) if content else None
+            return response.status, content if binary else json.loads(content) if content else None
 
+    engine = subprocess.run(["docker", "info"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    if engine.returncode:
+        raise SystemExit("Docker engine unavailable; no QA resources were created.")
     try:
         compose("up", "-d", "--build", "--wait", "--wait-timeout", "45")
         container = compose("ps", "-q", "server", capture=True).strip()
@@ -70,8 +79,30 @@ def main():
         token = signed_in["token"]
         assert request("POST", "/api/v1/auth/redeem", payload)[0] == 410
         assert request("GET", "/api/v1/auth/sessions", token=token)[0] == 200
+        status, campaign = request("POST", "/api/v1/campaigns", {"name": "QA campaign"}, token=token)
+        assert status == 201
+        campaign_id = campaign["id"]
+        page_id = str(uuid.uuid4())
+        page_path = f"/api/v1/campaigns/{campaign_id}/content/page/{page_id}"
+        page = {"title": "PRIVATE-QA-MARKER", "kind": "note", "status": "active", "aliases": [],
+                "document": {"version": 1, "blocks": [{"id": "b1", "type": "paragraph", "props": {}, "content": [], "children": []}]}}
+        assert request("PUT", page_path, {"baseRevision": 0, "payload": page}, token=token)[0] == 200
+        assert request("GET", f"/api/v1/campaigns/{campaign_id}/changes?since=", token=token)[1]["items"] == []
+        def chunk(kind, data):
+            return struct.pack(">I", len(data)) + kind + data + struct.pack(">I", zlib.crc32(kind + data))
+        png = b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">2I5B", 1, 1, 8, 2, 0, 0, 0)) + chunk(b"IDAT", zlib.compress(b"\x00\x33\x44\x55")) + chunk(b"IEND", b"")
+        status, attachment = request("POST", f"/api/v1/campaigns/{campaign_id}/attachments", png, token=token,
+                                     mime="image/png", checksum=hashlib.sha256(png).hexdigest())
+        assert status == 201
+        image_path = f"/api/v1/campaigns/{campaign_id}/attachments/{attachment['id']}"
         compose("up", "-d", "--no-build", "--force-recreate", "--wait", "--wait-timeout", "45")
         assert request("GET", "/api/v1/auth/sessions", token=token)[0] == 200
+        assert request("GET", page_path, token=token)[1]["payload"] == page
+        assert request("GET", image_path, token=token, binary=True)[1] == png
+        assert request("PUT", page_path, {"baseRevision": 1, "payload": page, "visibility": "members"}, token=token)[0] == 200
+        assert len(request("GET", f"/api/v1/campaigns/{campaign_id}/changes?since=", token=token)[1]["items"]) == 1
+        assert request("DELETE", page_path + "/sharing?baseRevision=2", token=token)[0] == 200
+        assert request("GET", page_path, token=token)[1]["visibility"] == "private"
         container = compose("ps", "-q", "server", capture=True).strip()
         # Inspect bytes in memory only: no database or credentials enter the checkout.
         raw = subprocess.check_output(["docker", "exec", container, "sh", "-c",
@@ -81,11 +112,14 @@ def main():
         assert request("POST", "/api/v1/auth/logout", token=token)[0] == 204
         assert request("GET", "/api/v1/auth/sessions", token=token)[0] == 401
         logs = compose("logs", "--no-color", "server", capture=True)
-        for value in [code, token, payload["password"]]:
+        for value in [code, token, payload["password"], page["title"]]:
             assert value not in logs
-        print("PASS: Compose build/health, non-root/read-only, alternate ports, trusted proxy gate, auth, recreation persistence, hash-only storage and secret-free logs.")
+        print("PASS: Compose build/health, non-root/read-only, alternate ports, trusted proxy gate, auth, private/shared content, image byte integrity, recreation persistence, hash-only credentials and content-free logs.")
     finally:
-        compose("down", "--volumes", "--remove-orphans")
+        try:
+            compose("down", "--volumes", "--remove-orphans")
+        except subprocess.CalledProcessError:
+            print(f"QA cleanup incomplete for {project}; remove that test project when Docker is available.", file=sys.stderr)
 
 
 if __name__ == "__main__":

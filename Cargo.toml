@@ -2,7 +2,7 @@
 name = "chronexus-server"
 version = "0.1.0"
 edition = "2024"
-rust-version = "1.85"
+rust-version = "1.88"
 description = "Optional self-hosted campaign companion for Chronexus"
 publish = false
 
@@ -21,6 +21,7 @@ url = "2"
 ipnet = "2"
 utoipa = { version = "5.5", features = ["axum_extras"] }
 zeroize = "1"
+image = { version = "=0.25.10", default-features = false, features = ["png", "jpeg", "webp"] }
 
 [dev-dependencies]
 tower = { version = "0.5", features = ["util"] }

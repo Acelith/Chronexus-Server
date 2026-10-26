@@ -74,3 +74,45 @@ Removal increments an inactive membership revision; rejoin increments it again,
 so an old role/removal request cannot affect a later membership accidentally.
 No campaign content is stored until S4; authored content withdrawal on removal
 will be added atomically with that storage. No publication in this milestone.
+
+## 26 October 2026 S4 private originals and explicit projections
+
+Schema 003 adds typed content, public legacy projections, dependencies and owned
+image originals. Per-item visibility defaults to private and only the author can
+read private data, including against the campaign owner. The legacy PUT endpoint
+is itself explicit publication. Legacy DELETE withdraws publication while retaining
+the private original; extension DELETE explicitly removes its payload. Revisions
+remain monotonic across deletion/recreation, preventing stale-write resurrection.
+
+The public feed includes only the original four kinds and uses per-campaign clocks;
+private changes and image/sheet extensions do not enter it. Responses are bounded
+by both count and encoded bytes. Document properties/styles are allowlisted and
+active URL schemes rejected. No target data is pulled from mentions. Public
+relationships/party entries need explicitly shared pages; withdrawing one page
+withdraws dependent public projections without rewriting their original assertions.
+Removing an author withdraws their projections atomically and retains originals.
+
+Use SQLite BLOBs for server image originals within existing persistent storage,
+keyed by UUID/campaign/author with SHA-256 and dimensions. This preserves bytes and
+atomic quota/reference checks without accepting user paths or introducing a second
+filesystem writer. It is independent of the desktop's managed attachment folders.
+No partially committed file cleanup is needed; completed unreferenced uploads are
+private, quota-accounted and explicitly deletable. S7 backups must include these BLOBs.
+
+Adopt the desktop's pinned image 0.25.10 with PNG/JPEG/WebP features only. Its Rust
+minimum raises the server manifest floor from 1.85 to 1.88; the verified toolchain
+remains 1.97. Output size/dimensions are checked before full decode, with a bounded
+allocation setting, two content-transfer admissions and four blocking workers.
+The original bytes, including metadata, are preserved without interpreting photos.
+
+Record a server-specific SQLite application_id and validate legacy server tables
+before modifying journal mode or migrating. A desktop/foreign archive with a similar
+version number is refused; schemas 001/002 upgrade additively and older server
+binaries refuse schema 003. No application storage identifiers or schemas change.
+
+S4 server APIs are implemented. The original app's sharing client is exercised for
+four legacy kinds; private whole-campaign replication and image/section selection
+UI are not added to the desktop in this repository. S5/S8 must integrate and verify
+that explicit scope preview. Continuous save queues, idempotency keys and change
+notifications are S5 work; production recovery and full revocation lifecycle remain
+S6/S7. AI and web remain S10/S11. No production deployment or publication.

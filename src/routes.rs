@@ -34,6 +34,7 @@ pub struct Health {
 pub fn router(state: AppState) -> Router {
     Router::new()
         .merge(crate::campaign_routes::router())
+        .merge(crate::content_routes::router(state.clone()))
         .route("/api/v1/meta", get(meta))
         .route("/api/v1/openapi.json", get(openapi))
         .route("/health/live", get(live))
@@ -195,7 +196,14 @@ async fn meta() -> Json<Meta> {
         api: "chronexus-sync",
         version: 1,
         server_version: env!("CARGO_PKG_VERSION"),
-        capabilities: vec!["accounts", "sessions", "campaigns"],
+        capabilities: vec![
+            "accounts",
+            "sessions",
+            "campaigns",
+            "sharing",
+            "private-content",
+            "attachments",
+        ],
     })
 }
 #[utoipa::path(get,path="/health/live",responses((status=200,body=Health)),tag="service")]
@@ -314,13 +322,14 @@ async fn revoke_session(
     )),
     info(
         title = "Chronexus Server accounts API",
-        description = "S1-S3: accounts, sessions and campaign membership for sync protocol v1. Content sharing and browser UI pending."
+        description = "S1-S4: accounts, campaigns, selective sharing, private content and attachments. No continuous desktop replication or browser UI yet."
     )
 )]
 struct Contract;
 pub fn contract() -> utoipa::openapi::OpenApi {
     let mut api = Contract::openapi();
     api.merge(crate::campaign_routes::CampaignContract::openapi());
+    api.merge(crate::content_routes::ContentContract::openapi());
     api.components.as_mut().unwrap().add_security_scheme(
         "bearer",
         SecurityScheme::Http(HttpBuilder::new().scheme(HttpAuthScheme::Bearer).build()),

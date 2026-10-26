@@ -12,6 +12,7 @@ audit or a grant of a license for this repository's own code.
 | `chrono` | 0.4.45 | MIT OR Apache-2.0 | UTC timestamps |
 | `getrandom` | 0.4.3 | MIT OR Apache-2.0 | Operating-system random bytes |
 | `http-body-util` | 0.1.5 | MIT | Test response collection |
+| `image` | 0.25.10 | MIT OR Apache-2.0 | Bounded PNG/JPEG/WebP decode, original bytes retained |
 | `ipnet` | 2.12.2 | MIT OR Apache-2.0 | Explicit trusted proxy networks |
 | `rusqlite` | 0.38.0 | MIT | Parameterized SQLite with bundled engine |
 | `serde` | 1.0.229 | MIT OR Apache-2.0 | Typed serialization |
@@ -26,16 +27,17 @@ audit or a grant of a license for this repository's own code.
 | `zeroize` | 1.9.1 | Apache-2.0 OR MIT | Best-effort password/code buffer cleanup |
 
 Axum 0.8 supports the selected Tokio/Tower HTTP stack. Argon2 0.5.3 and utoipa 5.5
-use their documented APIs compatible with the manifest's Rust 1.85 floor; newer
+use their documented APIs compatible with the manifest's Rust 1.88 floor; newer
 major versions are not required for this slice. Rusqlite 0.38 matches the desktop's
 selected family while keeping the server database completely separate. Compilation,
 Clippy and tests provide executable compatibility evidence on the tested platforms.
-No claim of execution on Rust 1.85 is made; development and Docker builds use 1.97.
+Image 0.25.10 raises the previous Rust 1.85 floor to 1.88. No claim of execution on Rust 1.88 is made; development and Docker builds use 1.97.
 
 Primary references: [axum](https://docs.rs/crate/axum/0.8.9),
 [argon2](https://docs.rs/crate/argon2/0.5.3),
 [rusqlite](https://docs.rs/crate/rusqlite/0.38.0),
-[utoipa](https://docs.rs/crate/utoipa/5.5.0).
+[utoipa](https://docs.rs/crate/utoipa/5.5.0),
+[image decoder limits](https://docs.rs/image/0.25.10/image/struct.Limits.html).
 SQLite is bundled through libsqlite3-sys; inspect that package's notices when
 preparing distribution. Review the complete transitive graph and advisories for S7.
 Base Docker images are official Rust/Debian images pinned by content digest;

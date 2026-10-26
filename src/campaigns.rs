@@ -183,7 +183,7 @@ impl Database {
             let tx=conn.transaction_with_behavior(TransactionBehavior::Immediate)?;
             membership_quota(&tx,&identity.account_id)?;
             let id=Uuid::new_v4().to_string();
-            tx.execute("INSERT INTO campaigns VALUES(?1,?2,?3,?4)",params![id,input.name,identity.account_id,now()])?;
+            tx.execute("INSERT INTO campaigns(id,name,owner_id,created_at) VALUES(?1,?2,?3,?4)",params![id,input.name,identity.account_id,now()])?;
             tx.execute("INSERT INTO members(campaign_id,account_id,role,joined_at) VALUES(?1,?2,'owner',?3)",params![id,identity.account_id,now()])?;
             tx.commit()?;Ok(RemoteCampaign{id,name:input.name.clone(),role:"owner".into()})
         })
@@ -310,6 +310,7 @@ impl Database {
             if identity.account_id!=account {owner(&tx,campaign,&identity.account_id)?;}
             let (role,current)=target(&tx,campaign,account)?;if role=="owner" {return Err(forbidden());}
             if current!=revision {return Err(ApiError(StatusCode::CONFLICT,"Membership changed; reload before removal."));}
+            crate::content::withdraw_author(&tx,campaign,account)?;
             tx.execute("UPDATE members SET active=0,revision=revision+1 WHERE campaign_id=?1 AND account_id=?2",params![campaign,account])?;
             tx.commit()?;Ok(())
         })
