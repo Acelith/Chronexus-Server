@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2024"
 rust-version = "1.88"
 description = "Optional self-hosted campaign companion for Chronexus"
+license = "Apache-2.0"
 publish = false
 
 [dependencies]

@@ -28,6 +28,13 @@ Updated: 26 October 2026. Source 0.1.0, server schema 006. Not published.
   binary image MIME types. Server archive identity is checked before journal changes
   or migrations, preserving schemas 001/002 and refusing foreign/desktop archives.
 
+## Licence and distribution setup (not executed: Docker unavailable)
+
+Apache-2.0 licence added. `compose.yaml` now derives the public origin from `CHRONEXUS_DOMAIN`,
+accepts `CHRONEXUS_IMAGE`, and offers a `https` profile with a bundled Caddy (`deploy/Caddyfile`,
+automatic certificates, fixed trusted address). The compose and Caddy files were reviewed by hand
+but never run; verify with `docker compose config` and a real start before relying on them.
+
 ## S7 security and recovery implemented (Windows)
 
 - `tests/security.rs` (6 tests): role matrix over every campaign route and five principals, credential

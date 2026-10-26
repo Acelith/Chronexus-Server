@@ -168,9 +168,8 @@ report desktop issues in [Chronexus](https://github.com/Acelith/Chronexus/issues
   application milestones, including M24 client, M25 server and M27 Android.
 - Logo and herald artwork: original Chronexus project assets, copied unchanged;
   see [asset provenance](assets/brand/README.md).
-- The original Chronexus code is Apache-2.0 licensed. This server repository does
-  not yet contain a license file; its own licensing must be established before
-  distributing implementation code.
+- Chronexus and this server are licensed under the Apache License 2.0 ([LICENSE](LICENSE)),
+  the same license as the desktop application.
 
 <div align="center">
 

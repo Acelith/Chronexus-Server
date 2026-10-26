@@ -1,0 +1,20 @@
+# Bundled HTTPS front end (compose profile "https"). Everything comes from the environment:
+# CHRONEXUS_DOMAIN is the public host name; certificates are requested automatically from
+# Let's Encrypt, so ports 80 and 443 must reach this host and the name must resolve to it.
+{$CHRONEXUS_DOMAIN} {
+	# No access log: the server never logs content or credentials and neither should the proxy.
+	log {
+		output discard
+	}
+	reverse_proxy server:{$CHRONEXUS_INTERNAL_PORT:8080} {
+		# Change notifications are a long-lived stream: do not buffer, allow long reads.
+		flush_interval -1
+		transport http {
+			read_timeout 15m
+		}
+		# The server requires these three, overwritten (never appended) by the proxy it trusts.
+		header_up Host {http.request.hostport}
+		header_up X-Forwarded-Proto https
+		header_up X-Forwarded-For {remote_host}
+	}
+}

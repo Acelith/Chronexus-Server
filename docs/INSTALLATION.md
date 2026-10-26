@@ -6,33 +6,38 @@ notifications), deletion and recovery. AI and the web interface are not implemen
 not been published as a release and has had no production deployment: read the security
 summary and the limits at the end of this file before exposing it to anyone.
 
-## Compose quick start
+## Quick start (anyone can run it)
 
-Requires Docker with Compose and an existing HTTPS reverse proxy. On a private
-test host, from this repository:
+You need Docker with Compose and a domain name whose DNS points at the machine. Everything is
+driven by `.env`; the only value you must set is your domain.
 
 ```sh
-cp .env.example .env
+git clone https://github.com/Acelith/Chronexus-Server.git && cd Chronexus-Server
+cp .env.example .env            # set CHRONEXUS_DOMAIN=sync.your-domain.example
 ```
 
-Set `CHRONEXUS_PUBLIC_ORIGIN` to the exact external HTTPS origin in `.env`, then:
+**Mode A: bundled HTTPS (nothing else to install).** Ports 80 and 443 must reach this host; the
+bundled Caddy obtains and renews the certificate by itself:
 
 ```sh
-docker compose up -d --build
+docker compose --profile https up -d --build
 docker compose exec -T server chronexus-server invite
 ```
 
-The second command prints one server invitation, usable for 24 hours. Pass it to
-the intended account holder through a private channel; it is a credential. It is
-shown only by that explicit command and cannot be recovered from storage. Create
-a new invite if it is lost. Never put it in Git, URLs or proxy logs.
+**Mode B: you already run a reverse proxy** (Caddy, nginx, Traefik...): leave the profile out,
+`docker compose up -d --build`, and point your proxy at `127.0.0.1:8080` as described under
+*Production deployment*.
 
-In Chronexus, enter the HTTPS origin, verify the server and redeem the invitation
-with a username, display name and password. Login/logout, campaign creation, campaign invitations and joining are supported.
-Explicit page/session/relationship/party sharing is supported. Share referenced
-pages first when publishing relationships or party entries; nothing is uploaded
-implicitly. Image/selected-sheet/private-copy UI remains client integration work. The current desktop has
-no UI for this server's extended recovery/device-management endpoints yet.
+To use a prebuilt image instead of building, set `CHRONEXUS_IMAGE` in `.env` and run
+`docker compose pull` (no image has been published yet). The domain, ports, network and image are
+all environment-driven, so the same checkout serves any deployment without editing files.
+
+The `invite` command prints one server invitation, usable for 24 hours. Pass it to the intended
+account holder through a private channel; it is a credential, shown only by that command and not
+recoverable from storage. Create a new one if it is lost. Never put it in Git, URLs or proxy logs.
+
+In Chronexus, enter `https://your-domain`, verify the server and redeem the invitation with a
+user name, display name and password.
 
 ## Ports and reverse proxy
 

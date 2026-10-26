@@ -203,3 +203,15 @@ new dependencies, deployment, publication or complete S5 acceptance in this slic
   newer archive instead of guessing, and an upgrade that cannot be backed up does not start.
 - **Authorization before validation.** A refusal never depends on the body (found by the matrix
   test: erasing one's own copy validated `confirm` before checking membership).
+
+## Licence and distribution (26 October 2026)
+
+- **Apache-2.0**, the same as the desktop application (user decision): `LICENSE`, `license` in
+  `Cargo.toml`, README. Dependencies are MIT/Apache-compatible.
+- **Everything is environment-driven** so one checkout serves any deployment: a single required
+  setting (`CHRONEXUS_DOMAIN`) derives the public origin; an optional compose profile adds a
+  bundled Caddy with automatic certificates for people without a proxy; an existing proxy keeps
+  working unchanged; the image, ports, network and trusted proxy addresses are overridable.
+  The bundled proxy has a fixed address that the server trusts, overwrites the three forwarded
+  headers and keeps no access log. Untested here: Docker was unavailable, so the compose file and
+  Caddyfile are reviewed but not executed.
