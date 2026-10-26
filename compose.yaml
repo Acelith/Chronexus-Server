@@ -1,0 +1,40 @@
+services:
+  server:
+    build: .
+    restart: unless-stopped
+    init: true
+    read_only: true
+    user: "10001:10001"
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 128
+    mem_limit: 512m
+    cpus: 2
+    environment:
+      CHRONEXUS_PUBLIC_ORIGIN: ${CHRONEXUS_PUBLIC_ORIGIN:?Set the exact public HTTPS origin in .env}
+      CHRONEXUS_LISTEN: 0.0.0.0:${CHRONEXUS_INTERNAL_PORT:-8080}
+      CHRONEXUS_DATABASE: /var/lib/chronexus/chronexus.sqlite3
+      CHRONEXUS_TRUSTED_PROXIES: ${CHRONEXUS_TRUSTED_PROXIES:-172.30.253.1/32}
+    ports:
+      - "${CHRONEXUS_BIND_ADDRESS:-127.0.0.1}:${CHRONEXUS_HOST_PORT:-8080}:${CHRONEXUS_INTERNAL_PORT:-8080}"
+    volumes:
+      - server-data:/var/lib/chronexus
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=16m
+    healthcheck:
+      test: [CMD, chronexus-server, healthcheck]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+    networks: [backend]
+
+volumes:
+  server-data:
+
+networks:
+  backend:
+    ipam:
+      config:
+        - subnet: ${CHRONEXUS_NETWORK_SUBNET:-172.30.253.0/24}
+          gateway: ${CHRONEXUS_NETWORK_GATEWAY:-172.30.253.1}

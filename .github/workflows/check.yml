@@ -1,0 +1,20 @@
+name: Server checks
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Rust toolchain
+        run: rustup toolchain install 1.97.0 --profile minimal --component rustfmt --component clippy && rustup default 1.97.0
+      - run: cargo fmt --check
+      - run: cargo clippy --locked --all-targets -- -D warnings
+      - run: cargo test --locked
+      - run: cargo build --locked --release
+      - run: python3 scripts/contract.py --check
+      - name: Compose configuration
+        env:
+          CHRONEXUS_PUBLIC_ORIGIN: https://sync.example.test
+        run: docker compose config --quiet

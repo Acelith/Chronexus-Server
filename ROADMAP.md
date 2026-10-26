@@ -1,6 +1,6 @@
 # Chronexus Server roadmap
 
-Updated: 26 October 2026. Status: planning only; no server implementation.
+Updated: 26 October 2026. Status: S1/S2 implemented in source; campaign synchronization and release pending.
 
 Chronexus Server will provide optional, self-hosted campaign synchronization and
 sharing between Chronexus players. Enabling synchronization for a campaign keeps
@@ -8,12 +8,13 @@ a durable local copy and a private server copy continuously updated while online
 Sharing with other players is a separate explicit choice. Users may also explicitly
 select local AI or AI running on their own server. The desktop remains fully usable
 offline without an account or server. This repository owns the server, its HTTP
-contract, releases and container images; the Chronexus
-repository owns desktop and Android clients.
+contract, releases and container images; the Chronexus repository owns desktop
+and Android clients.
 
-This roadmap expands the application's M24 milestone without renumbering it.
-Application M23 remains the prerequisite for M24 implementation; M25 Android
-depends on a qualified server and compatible desktop synchronization.
+This roadmap implements the server side of the application's M24 contract. The
+current application records M23 as implemented and M24 as a client tested against
+a fake; server delivery is now application **M25**, and Android moved to **M27**.
+Server S0–S11 IDs remain unchanged. End-to-end campaign acceptance is still pending.
 
 ## Product boundaries
 
@@ -44,52 +45,59 @@ depends on a qualified server and compatible desktop synchronization.
 
 ## Milestone sequence
 
-All milestones below are **planned**. Each requires implementation, focused
-automated tests and a reviewed commit before it can be marked complete.
+S1 and S2 are implemented and locally verified. S0 core protocol choices are
+resolved; actual production hosting remains pending. S3–S11 are planned. Each
+milestone needs focused tests and recorded evidence; this partial delivery is
+not a production deployment or a completed application M25.
 
-| ID | Deliverable | Dependency |
-| --- | --- | --- |
-| S0 | Confirm deployment and security decisions | User decisions and application M23 |
-| S1 | Persistent service foundation and versioned contract | S0 |
-| S2 | Accounts, sessions and device access | S1 |
-| S3 | Campaign invitations and authorization | S2 |
-| S4 | Explicit selective sharing and managed attachments | S3 |
-| S5 | Continuous local and server saving with visible conflicts | S4 |
-| S6 | Revocation, deletion and recovery | S5 |
-| S7 | Security qualification and operational recovery | S6 |
-| S8 | Desktop integration and first server release | S7 and desktop M24 acceptance |
-| S9 | Android contract qualification | S8 and application M25 |
-| S10 | Explicit local or self-hosted server AI | S7 and S8; can follow S8 independently of S9 |
-| S11 | Web campaign and server management | S7 and S8; can follow S8 independently of S9/S10 |
+| ID | Deliverable | Dependency | Status |
+| --- | --- | --- | --- |
+| S0 | Deployment and security decisions | Application M23 and user decisions | Core protocol confirmed; production hosting pending |
+| S1 | Persistent service foundation, Compose and versioned contract | S0 core decisions | Implemented; macOS native and Linux arm64 container verified |
+| S2 | Accounts, sessions and device access | S1 | Implemented; auth subset tested with original desktop client |
+| S3 | Campaign invitations and authorization | S2 | Planned, next |
+| S4 | Explicit selective sharing and managed attachments | S3 | Planned |
+| S5 | Continuous local and server saving with visible conflicts | S4 | Planned |
+| S6 | Revocation, deletion and recovery | S5 | Planned |
+| S7 | Security qualification and operational recovery | S6 | Planned |
+| S8 | Desktop integration and first server release | S7 and full desktop M24 acceptance | Planned |
+| S9 | Android contract qualification | S8 and application M27 | Planned |
+| S10 | Explicit local or self-hosted server AI | S8; independent of S9 | Planned |
+| S11 | Web campaign and server management | S8; independent of S9/S10 | Planned |
 
 ## S0 Deployment and security decisions
 
-Confirm these choices before implementing the server:
+Core choices for S1/S2 are recorded in [docs/DECISIONS.md](docs/DECISIONS.md).
+Confirm the remaining deployment-specific choices before production use:
 
 | Decision | Required outcome |
 | --- | --- |
 | Hosting | Domain, host OS and CPU architecture, reverse proxy, TLS ownership, persistent storage and operator responsibilities; configurable bind address and ports |
-| Registration | Invitation-only or open registration; first administrator bootstrap and account recovery policy |
-| Encryption | Explicit decision on end-to-end encryption, including key ownership, device enrollment, recovery and metadata visibility |
-| Persistence | Choose SQLite or PostgreSQL against expected concurrent users, deployment and backup needs |
-| Account security | Choose passkeys, robust passwords or both; define recovery without assuming an email delivery service |
-| Retention | Agree on deletion, change-log retention, backup retention, quotas and offline-device behavior |
+| Registration | Confirmed invitation-only; explicit operator-issued one-use invites and recovery codes implemented |
+| Encryption | Confirmed HTTPS and server-readable v1 content; no end-to-end encryption in v1 |
+| Persistence | SQLite WAL selected for a single small-group service; PostgreSQL deferred |
+| Account security | Argon2id passwords and operator-assisted recovery implemented; no email service or passkeys |
+| Retention | S2 session and attempt-window defaults implemented; campaign deletion, backup retention and offline-device policy remain S5–S7 work |
 | Server AI | Confirm available CPU/GPU/RAM, qualified models and licenses, resource quotas, inference retention and the encrypted-content access policy |
 
-Record decisions and reasons in `docs/DECISIONS.md`. Encryption must be decided
-before fixing the payload and attachment formats: HTTPS alone does not provide
-end-to-end encryption. Server inference requires access to the submitted prompt
+Record decisions and reasons in `docs/DECISIONS.md`. V1 deliberately uses
+server-readable content over HTTPS. A future end-to-end encryption mode needs a
+new explicit design before changing payload and attachment formats. Server inference requires access to the submitted prompt
 and selected context in plaintext on the inference host. If end-to-end encryption
 is selected, the client must explicitly authorize that disclosure for each request
 or a clearly scoped saved policy; the server must not gain a general decryption key.
 Any proposed implementation dependencies need current
 compatibility and license verification before adoption.
 
-Acceptance: decisions confirmed by the user, threat model and authorization
-matrix documented, M23 findings relevant to sharing resolved or explicitly gated.
-This planning change does not authorize deployment, installers or publication.
+Acceptance for production: confirm hosting and operator policy, extend the
+authentication threat boundaries to campaigns and complete S7 security/recovery
+qualification. No production deployment or publication in the S1/S2 slice.
 
 ## S1 Persistent service foundation and versioned contract
+
+Implemented in source. See [docs/STATUS.md](docs/STATUS.md) for executed checks
+and [docs/INSTALLATION.md](docs/INSTALLATION.md) for the source-build quick start.
+The generated contract currently covers only accounts and sessions.
 
 - Bootstrap the Rust service with axum, validated configuration, versioned database
   migrations, parameterized queries and safe transaction boundaries.
@@ -116,18 +124,19 @@ This planning change does not authorize deployment, installers or publication.
   named volumes, health checks and resource limits. Do not mount the Docker socket,
   run privileged containers or expose secrets in the checked-in configuration.
 
-Planned configuration surface (final names fixed during S1):
+The implemented S1 configuration is documented in `.env.example` and
+`docs/INSTALLATION.md`. Remaining configuration goals for later milestones:
 
 | Setting | Default or requirement |
 | --- | --- |
 | Public origin | Required for public deployment; exact HTTPS origin, including a nonstandard port when used |
 | Host bind address and published port | Optional; loopback and a documented high port, both overridable |
 | Internal API port | Documented default; independently overridable with matching health checks and proxy routing |
-| Trusted proxies | None trusted by default; explicit addresses required when forwarding headers are used |
-| Session and bootstrap secrets | Generated securely; required before authenticated use, never shipped as sample values |
-| Database and storage | Persistent managed volumes and selected database defaults; external database configuration optional |
-| AI and GPU profile | Off by default; runtime/model and resource overrides required only when enabled |
-| Limits and retention | Conservative bounded defaults; optional operator overrides validated at startup |
+| Trusted proxies | Native service trusts none without configuration; Compose trusts its documented host bridge gateway only |
+| Session and invitation secrets | Generated securely on demand; no manual secret or default credential required |
+| Database and storage | Persistent managed SQLite volume; external database support deferred |
+| AI and GPU profile | S10, not shipped yet; off by default and explicit setup when implemented |
+| Limits and retention | Fixed bounded S2 defaults; campaign quotas/retention overrides belong to later milestones |
 
 Acceptance: clean startup and restart preserve a synthetic database; migrations,
 configuration failures, health checks and contract generation are tested. Record
@@ -136,6 +145,11 @@ Validate Compose configuration, minimal setup and an alternate host port; inspec
 actual exposed ports, persistent data after recreation and failed insecure startup.
 
 ## S2 Accounts and sessions
+
+Implemented in source: invite redemption, login/logout, persistent attempt limits,
+expiring sessions, own-device listing/revocation and operator-assisted recovery.
+The original desktop HTTP client passed meta/redeem/login/logout acceptance; no
+claim of full GUI, campaign-sharing or production TLS acceptance.
 
 - Implement the S0 registration and recovery policy, credential protection,
   authentication attempt limits and expiring/revocable sessions.
@@ -212,8 +226,7 @@ unauthorized access fail safely.
   drafts and provenance; never use silent last-write-wins for user content.
 - Document cursor expiration and safe resynchronization without uploading
   unselected content or resurrecting revoked items. Evaluate CRDT only for shared
-  documents;
-  it is not required for the first revision-based release.
+  documents; it is not required for the first revision-based release.
 
 Acceptance: concurrent edits on two clients, network interruption, duplicate
 requests, crash recovery, pagination and expired cursors retain all acknowledged
@@ -264,7 +277,8 @@ tokens or campaign content. Record tested host architectures separately.
 - Complete application M24 acceptance with two or three users: invitations, partial
   sharing, offline edits, conflicts, revocation and reconnection.
 - Verify the app remains fully usable offline with synchronization and server AI
-  disabled and makes no server requests in that state. Preserve existing local backups and schema migrations.
+  disabled and makes no server requests in that state. Preserve existing local
+  backups and schema migrations.
 - Publish versioned contract/types, compatibility table, release notes and actual
   verified container artifacts only after explicit release authorization. Use the
   confirmed Forgegit remote and registry; never overwrite tags or assets.
@@ -278,14 +292,14 @@ data-loss or authorization defects. Record supported versions and upgrade steps.
 
 ## S9 Android contract qualification
 
-- Reuse the desktop account and scoped API for application M25. Start with campaign
+- Reuse the desktop account and scoped API for application M27. Start with campaign
   lists and read-only shared content, bounded offline caching and incremental updates.
 - Validate session revocation, device management and logout cache deletion with
   Android Keystore credentials on a real device.
 - Add mobile writes only after their conflict and permission behavior is tested.
   Local AI, training and full desktop backup/import remain outside this milestone.
 
-Acceptance: application M25 real-device evidence, compatible API versions and no
+Acceptance: application M27 real-device evidence, compatible API versions and no
 additional private desktop content uploaded to enable mobile access.
 
 ## S10 Local or self-hosted server AI
@@ -348,5 +362,5 @@ For each milestone, update `docs/STATUS.md` with what works, exact executed chec
 remaining limitations and the next step. Review the diff and whitespace, run the
 relevant Rust, contract, security and integration checks, then commit only relevant
 files with an English Conventional Commit and specific validation evidence.
-Planning does not count as implemented M24 or M25, and elapsed dates alone do not
-advance milestone status.
+S1/S2 do not count as completed application M25 or M27. Advance milestone status
+only with corresponding implementation and acceptance evidence.

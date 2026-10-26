@@ -1,0 +1,10 @@
+/target/
+/data/
+/.env
+/secrets/
+*.sqlite*
+*.db
+*.db-wal
+*.db-shm
+.DS_Store
+__pycache__/

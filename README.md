@@ -9,21 +9,22 @@
 Keep a local and private online copy of your campaign, choose what other players
 can see, and decide whether AI runs on your computer or your own server.
 
-[![Status](https://img.shields.io/badge/status-planning-b89b60)](ROADMAP.md)
+[![Status](https://img.shields.io/badge/status-in%20development-b89b60)](ROADMAP.md)
 [![Deployment](https://img.shields.io/badge/deployment-Docker%20Compose-354b3e)](#deployment-and-configuration)
 [![Hosting](https://img.shields.io/badge/hosting-self--hosted-6c302b)](#privacy-and-data)
 
-[Chronexus](https://github.com/Acelith/Chronexus) · [Planned features](#planned-features) · [Roadmap](ROADMAP.md) · [Status](docs/STATUS.md)
+[Chronexus](https://github.com/Acelith/Chronexus) · [Features and roadmap](#features-and-roadmap) · [Roadmap](ROADMAP.md) · [Status](docs/STATUS.md)
 
 </div>
 
 > [!NOTE]
-> Chronexus Server is in planning. The features below are not implemented yet;
-> there is no runnable server, Compose package or published server release.
+> The service foundation and accounts/sessions (S1/S2) are implemented in source.
+> Campaign synchronization, sharing, AI and web management are still planned.
+> Build locally with Compose; no server release has been published.
 
 ## What is Chronexus Server
 
-Chronexus Server is the planned self-hosted companion to
+Chronexus Server is the self-hosted companion under development for
 [Chronexus](https://github.com/Acelith/Chronexus), the offline-first desktop
 journal and campaign manager for tabletop RPG players. It adds optional accounts,
 continuous campaign synchronization and selective sharing on infrastructure you
@@ -32,9 +33,11 @@ control. The original desktop app remains usable without a server or account.
 The projects have separate repositories and releases: this repository owns the
 server and its versioned API; the [original Chronexus repository](https://github.com/Acelith/Chronexus)
 owns the desktop app and planned Android client. Synchronization belongs to
-application milestone M24; Android support follows in M25.
+the M24 client contract; the server is application M25 and Android follows in M27.
 
 ## Why Chronexus Server
+
+The delivery goal:
 
 - **Two durable copies.** Once you enable campaign synchronization, edits save
   locally and automatically reach your server while connected. Offline changes
@@ -48,43 +51,53 @@ application milestone M24; Android support follows in M25.
 - **Simple to operate.** A Docker Compose setup with safe defaults, configurable
   ports and only essential security settings required from the operator.
 
-## Planned features
+## Features and roadmap
 
-| Feature | In short | Milestone |
-| --- | --- | --- |
-| **Accounts and devices** | Authentication, revocable sessions and account recovery under the selected registration policy | S2 |
-| **Campaign membership** | Invitations, owner/player/read-only roles and authorization on every item | S3 |
-| **Selective sharing** | Private owner copies, explicit member access, selected sheet sections and managed images | S4 |
-| **Continuous saving** | Local autosave, automatic online replication, durable pending changes and visible save status | S5 |
-| **Conflict handling** | Both versions remain visible when concurrent edits need your decision | S5 |
-| **Revocation** | Remove member access and clear shared copies on their next synchronization | S6 |
-| **Backup and recovery** | Consistent server backups, integrity checks and documented restoration | S7 |
-| **Desktop integration** | Tested synchronization with the original Chronexus app | S8 |
-| **Android access** | Same account and shared content, with read-only access first | S9 / app M25 |
-| **Local or server AI** | Explicit execution choice, scoped sources and citations, bounded server resource use | S10 |
-| **Web management** | Authenticated campaign, membership, storage and service management | S11 |
+| Feature | In short | Milestone | Status |
+| --- | --- | --- | --- |
+| **Accounts and devices** | Authentication, revocable sessions and account recovery under the selected registration policy | S2 | Implemented |
+| **Campaign membership** | Invitations, owner/player/read-only roles and authorization on every item | S3 | Planned |
+| **Selective sharing** | Private owner copies, explicit member access, selected sheet sections and managed images | S4 | Planned |
+| **Continuous saving** | Local autosave, automatic online replication, durable pending changes and visible save status | S5 | Planned |
+| **Conflict handling** | Both versions remain visible when concurrent edits need your decision | S5 | Planned |
+| **Revocation** | Remove member access and clear shared copies on their next synchronization | S6 | Planned |
+| **Backup and recovery** | Consistent server backups, integrity checks and documented restoration | S7 | Planned |
+| **Desktop integration** | Tested synchronization with the original Chronexus app | S8 | Planned |
+| **Android access** | Same account and shared content, with read-only access first | S9 / app M27 | Planned |
+| **Local or server AI** | Explicit execution choice, scoped sources and citations, bounded server resource use | S10 | Planned |
+| **Web management** | Authenticated campaign, membership, storage and service management | S11 | Planned |
 
 ## Deployment and configuration
 
-The planned distribution uses **Docker Compose**, persistent volumes and a Rust
-service. The goal is a short bootstrap followed by `docker compose up -d`, with
-an example configuration that makes most parameters optional. This is a deployment
-target, not a command supported by this repository today.
+The source build uses **Docker Compose**, persistent volumes and a Rust service.
+Copy `.env.example` to `.env`, set the public HTTPS origin and configure your host
+reverse proxy, then run:
 
-- Host bind address, published port and internal API port will be configurable.
-- API and web management will share one HTTPS origin. Database and optional AI
-  services will stay on the internal container network.
-- Public deployments will require a valid HTTPS origin and appropriate TLS/proxy
-  configuration. Credentials will be generated securely; no default password.
-- AI and GPU services will use optional profiles, disabled until explicitly enabled.
-- Linux amd64 and arm64 images are planned; supported targets will be listed only
-  after their artifacts and deployment have been verified.
+```sh
+docker compose up -d --build
+docker compose exec -T server chronexus-server invite
+```
 
-Hosting, registration, encryption and persistence decisions are tracked in
-[roadmap S0](ROADMAP.md#s0-deployment-and-security-decisions). No installers or
-infrastructure changes are part of the current planning work.
+The second command prints a private, one-use registration invitation. See the
+[installation guide](docs/INSTALLATION.md) for the complete proxy setup, optional
+ports, account policy and recovery. This build supports accounts only.
+
+- Host bind address, published port and internal API port are configurable.
+- The API uses one HTTPS origin; future web management will use the same origin.
+  Only the application port is published.
+- Public access requires a valid HTTPS origin and explicitly trusted TLS proxy.
+  Credentials are generated securely; no default password.
+- AI/GPU services remain S10 work; no model is downloaded or runtime started.
+- The Linux arm64 container was built and tested locally. Linux amd64 and native
+  Windows verification remain pending. No registry image is published.
+
+Confirmed protocol decisions and remaining hosting work are tracked in
+[roadmap S0](ROADMAP.md#s0-deployment-and-security-decisions) and
+[docs/DECISIONS.md](docs/DECISIONS.md).
 
 ## Synchronization and backups
+
+Planned in S5–S7; account support does not enable campaign saving yet.
 
 For an activated campaign, every autosave will persist locally before its change
 is sent to the server. The interface will distinguish local success from confirmed
@@ -97,6 +110,8 @@ separate roles. Sharing revocation will remove access immediately on the server
 and reach offline recipients when they reconnect; it cannot erase exported copies.
 
 ## Local or server assistant
+
+Planned in S10.
 
 AI will remain optional, with an explicit per-campaign choice of disabled, local
 device or the selected self-hosted server. Server mode will use your server's
@@ -116,25 +131,29 @@ and campaign AI activation will remain separate actions. See
 - Campaign notes and images are data, never instructions to execute.
 - No telemetry, campaign content in logs or automatic upload of local AI weights,
   training datasets, adapters or complete desktop backups.
-- Authentication, per-item permissions, HTTPS and bounded resource use are release
-  requirements. End-to-end encryption remains an explicit S0 decision.
+- Authentication, session isolation, HTTPS proxy checks and bounded auth resources
+  are implemented. Campaign permissions are S3/S4 work. V1 uses server-readable
+  storage without end-to-end encryption, as confirmed for the application.
 
 ## Roadmap
 
 [ROADMAP.md](ROADMAP.md) defines S0–S11, dependencies and acceptance criteria.
 [docs/STATUS.md](docs/STATUS.md) records what exists, checks actually performed
-and the next step. The first implementation gate is S0, alongside the original
-application's M23 audit prerequisite.
+and the next step: **S3 campaign invitations and authorization**. Production
+hosting and full campaign acceptance remain open.
 
 ## Development and contributing
 
-The planned stack is Rust with axum, a versioned HTTP/OpenAPI contract and Docker
-Compose. The database choice will be recorded during S0. Generated client types
-will come from the server contract so desktop and Android compatibility can be
-tested explicitly.
+The stack is Rust with axum, SQLite WAL and Docker Compose. The implemented
+[OpenAPI subset](api/openapi.json) and [TypeScript schemas](api/types.ts) are
+generated from Rust; the full campaign contract is still pending.
 
-There are no build or test commands for a server implementation yet. Report ideas
-and issues in [Chronexus Server](https://github.com/Acelith/Chronexus-Server/issues);
+See [development and checks](docs/DEVELOPMENT.md), [API compatibility](docs/API.md),
+[dependency licenses](docs/DEPENDENCIES.md) and [project rules](AGENTS.md).
+Formatting, Clippy, Rust tests, release build, contract generation, isolated Compose
+acceptance and the original desktop auth HTTP client have been checked locally.
+
+Report ideas and issues in [Chronexus Server](https://github.com/Acelith/Chronexus-Server/issues);
 report desktop issues in [Chronexus](https://github.com/Acelith/Chronexus/issues).
 
 ## Credits and related projects
@@ -142,7 +161,7 @@ report desktop issues in [Chronexus](https://github.com/Acelith/Chronexus/issues
 - [Chronexus](https://github.com/Acelith/Chronexus): original desktop application,
   campaign model, player knowledge principles and project identity.
 - [Chronexus roadmap](https://github.com/Acelith/Chronexus/blob/main/ROADMAP.md):
-  application milestones, including M24 sharing and M25 Android.
+  application milestones, including M24 client, M25 server and M27 Android.
 - Logo and herald artwork: original Chronexus project assets, copied unchanged;
   see [asset provenance](assets/brand/README.md).
 - The original Chronexus code is Apache-2.0 licensed. This server repository does
