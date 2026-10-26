@@ -33,6 +33,7 @@ pub struct Health {
 
 pub fn router(state: AppState) -> Router {
     Router::new()
+        .merge(crate::campaign_routes::router())
         .route("/api/v1/meta", get(meta))
         .route("/api/v1/openapi.json", get(openapi))
         .route("/health/live", get(live))
@@ -165,7 +166,7 @@ async fn security(State(state): State<AppState>, request: Request, next: Next) -
     }
     response
 }
-fn body<T>(value: std::result::Result<Json<T>, JsonRejection>) -> Result<T> {
+pub(crate) fn body<T>(value: std::result::Result<Json<T>, JsonRejection>) -> Result<T> {
     value.map(|Json(value)| value).map_err(|e| {
         let code = if e.status() == StatusCode::PAYLOAD_TOO_LARGE {
             StatusCode::PAYLOAD_TOO_LARGE
@@ -175,7 +176,7 @@ fn body<T>(value: std::result::Result<Json<T>, JsonRejection>) -> Result<T> {
         ApiError(code, "Invalid JSON request or body too large.")
     })
 }
-fn token(headers: &HeaderMap) -> Result<String> {
+pub(crate) fn token(headers: &HeaderMap) -> Result<String> {
     if headers.get_all("authorization").iter().count() != 1 {
         return Err(ApiError::unauthorized());
     }
@@ -194,7 +195,7 @@ async fn meta() -> Json<Meta> {
         api: "chronexus-sync",
         version: 1,
         server_version: env!("CARGO_PKG_VERSION"),
-        capabilities: vec!["accounts", "sessions"],
+        capabilities: vec!["accounts", "sessions", "campaigns"],
     })
 }
 #[utoipa::path(get,path="/health/live",responses((status=200,body=Health)),tag="service")]
@@ -313,12 +314,13 @@ async fn revoke_session(
     )),
     info(
         title = "Chronexus Server accounts API",
-        description = "S1/S2 subset of Chronexus sync protocol v1. Campaign/sharing routes are not implemented. No browser UI yet."
+        description = "S1-S3: accounts, sessions and campaign membership for sync protocol v1. Content sharing and browser UI pending."
     )
 )]
 struct Contract;
 pub fn contract() -> utoipa::openapi::OpenApi {
     let mut api = Contract::openapi();
+    api.merge(crate::campaign_routes::CampaignContract::openapi());
     api.components.as_mut().unwrap().add_security_scheme(
         "bearer",
         SecurityScheme::Http(HttpBuilder::new().scheme(HttpAuthScheme::Bearer).build()),

@@ -56,9 +56,20 @@ async fn original_desktop_meta_redeem_login_logout() {
     let second=client.login("qa_player","synthetic-password-123","QA laptop").await.unwrap();
     assert_eq!(first.account_id,second.account_id);assert_ne!(first.token,second.token);
     let authenticated=desktop::api::Client::new(url::Url::parse(&origin).unwrap(),Some(first.token.clone()),true).unwrap();
+    let campaign=authenticated.create_campaign("Synthetic campaign").await.unwrap();
+    assert_eq!(campaign.role,"owner");
+    let invite=authenticated.invite(&campaign.id,"reader").await.unwrap();
+    let reader=client.redeem(&invite.code,"qa_reader","QA Reader","synthetic-password-123","QA reader").await.unwrap();
+    let reader_client=desktop::api::Client::new(url::Url::parse(&origin).unwrap(),Some(reader.token.clone()),true).unwrap();
+    assert!(reader_client.invite(&campaign.id,"player").await.is_err());
+    let server_invite=state.database.issue_invite(None).unwrap();
+    let player=client.redeem(&server_invite,"qa_player_two","QA Player Two","synthetic-password-123","QA player").await.unwrap();
+    let player_client=desktop::api::Client::new(url::Url::parse(&origin).unwrap(),Some(player.token.clone()),true).unwrap();
+    let invite=authenticated.invite(&campaign.id,"player").await.unwrap();
+    assert_eq!(player_client.join(&invite.code).await.unwrap().role,"player");
     authenticated.logout().await.unwrap();assert!(state.database.sessions(&first.token).is_err());
     assert_eq!(state.database.sessions(&second.token).unwrap().len(),1);
-    task.abort();println!("Original desktop auth client: PASS (real loopback HTTP, synthetic profile).");
+    task.abort();println!("Original desktop auth and campaign client: PASS (real loopback HTTP, synthetic profile).");
 }
 '''
 

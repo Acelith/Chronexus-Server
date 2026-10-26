@@ -1,6 +1,6 @@
 # Chronexus Server roadmap
 
-Updated: 26 October 2026. Status: S1/S2 implemented in source; campaign synchronization and release pending.
+Updated: 26 October 2026. Status: S1–S3 implemented in source; campaign synchronization and release pending.
 
 Chronexus Server will provide optional, self-hosted campaign synchronization and
 sharing between Chronexus players. Enabling synchronization for a campaign keeps
@@ -45,8 +45,8 @@ Server S0–S11 IDs remain unchanged. End-to-end campaign acceptance is still pe
 
 ## Milestone sequence
 
-S1 and S2 are implemented and locally verified. S0 core protocol choices are
-resolved; actual production hosting remains pending. S3–S11 are planned. Each
+S1–S3 are implemented and locally verified. S0 core protocol choices are
+resolved; actual production hosting remains pending. S4–S11 are planned. Each
 milestone needs focused tests and recorded evidence; this partial delivery is
 not a production deployment or a completed application M25.
 
@@ -55,8 +55,8 @@ not a production deployment or a completed application M25.
 | S0 | Deployment and security decisions | Application M23 and user decisions | Core protocol confirmed; production hosting pending |
 | S1 | Persistent service foundation, Compose and versioned contract | S0 core decisions | Implemented; macOS native and Linux arm64 container verified |
 | S2 | Accounts, sessions and device access | S1 | Implemented; auth subset tested with original desktop client |
-| S3 | Campaign invitations and authorization | S2 | Planned, next |
-| S4 | Explicit selective sharing and managed attachments | S3 | Planned |
+| S3 | Campaign invitations and authorization | S2 | Implemented; original desktop membership calls verified |
+| S4 | Explicit selective sharing and managed attachments | S3 | Planned, next |
 | S5 | Continuous local and server saving with visible conflicts | S4 | Planned |
 | S6 | Revocation, deletion and recovery | S5 | Planned |
 | S7 | Security qualification and operational recovery | S6 | Planned |
@@ -166,6 +166,11 @@ revocation, recovery and invalid credentials. Replay and brute-force tests enfor
 the selected policy; one user's session cannot access another user's resources.
 
 ## S3 Campaign membership and authorization
+
+Implemented: owner/player/reader membership, one-use campaign invitations,
+registration with an invitation, role revision checks, self-leave/member removal
+and owner-only invitation administration. The sole owner cannot leave or be
+demoted; transfer/deletion require a later explicit workflow.
 
 - Add owner, player and read-only roles, expiring invitations and explicit acceptance.
 - Define who may publish, edit, reshare, revoke and delete each item, including

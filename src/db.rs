@@ -72,29 +72,30 @@ impl Database {
         let version: u32 = tx
             .pragma_query_value(None, "user_version", |r| r.get(0))
             .map_err(|_| "Cannot read schema version.")?;
-        match version {
-            0 => {
-                let tables: i64 = tx
-                    .query_row(
-                        "SELECT count(*) FROM sqlite_master WHERE name NOT LIKE 'sqlite_%'",
-                        [],
-                        |row| row.get(0),
-                    )
-                    .map_err(|_| "Cannot inspect unversioned database.")?;
-                if tables != 0 {
-                    return Err("Refusing to migrate an unrecognized existing database.".into());
-                }
-                tx.execute_batch(include_str!("../migrations/001_accounts.sql"))
-                    .map_err(|_| "Account migration failed; original transaction rolled back.")?;
-                tx.pragma_update(None, "user_version", 1)
-                    .map_err(|_| "Cannot record schema version.")?;
+        if version > 2 {
+            return Err(
+                "Database schema is newer than this server; use a compatible binary.".into(),
+            );
+        }
+        if version == 0 {
+            let tables: i64 = tx
+                .query_row(
+                    "SELECT count(*) FROM sqlite_master WHERE name NOT LIKE 'sqlite_%'",
+                    [],
+                    |r| r.get(0),
+                )
+                .map_err(|_| "Cannot inspect unversioned database.")?;
+            if tables != 0 {
+                return Err("Refusing to migrate an unrecognized existing database.".into());
             }
-            1 => {}
-            _ => {
-                return Err(
-                    "Database schema is newer than this server; use a compatible binary.".into(),
-                );
-            }
+            tx.execute_batch(include_str!("../migrations/001_accounts.sql"))
+                .map_err(|_| "Account migration failed; transaction rolled back.")?;
+        }
+        if version < 2 {
+            tx.execute_batch(include_str!("../migrations/002_campaigns.sql"))
+                .map_err(|_| "Campaign migration failed; transaction rolled back.")?;
+            tx.pragma_update(None, "user_version", 2)
+                .map_err(|_| "Cannot record schema version.")?;
         }
         tx.commit().map_err(|_| "Cannot commit schema migration.")?;
         Ok(Self(Mutex::new(conn)))

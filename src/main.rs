@@ -56,7 +56,7 @@ async fn run() -> Result<(), String> {
                 .map_err(|_| "Cannot bind listener; check address and port availability.")?;
             writeln!(
                 std::io::stderr(),
-                "Chronexus Server {} listening on {listen}; accounts/session subset only.",
+                "Chronexus Server {} listening on {listen}; accounts, sessions and campaign membership.",
                 env!("CARGO_PKG_VERSION")
             )
             .map_err(|_| "Cannot write startup status.")?;

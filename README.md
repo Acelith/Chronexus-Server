@@ -18,8 +18,8 @@ can see, and decide whether AI runs on your computer or your own server.
 </div>
 
 > [!NOTE]
-> The service foundation and accounts/sessions (S1/S2) are implemented in source.
-> Campaign synchronization, sharing, AI and web management are still planned.
+> The service foundation, accounts and campaign membership (S1–S3) are implemented in source.
+> Content sharing, continuous synchronization, AI and web management are still planned.
 > Build locally with Compose; no server release has been published.
 
 ## What is Chronexus Server
@@ -56,7 +56,7 @@ The delivery goal:
 | Feature | In short | Milestone | Status |
 | --- | --- | --- | --- |
 | **Accounts and devices** | Authentication, revocable sessions and account recovery under the selected registration policy | S2 | Implemented |
-| **Campaign membership** | Invitations, owner/player/read-only roles and authorization on every item | S3 | Planned |
+| **Campaign membership** | Invitations, owner/player/read-only roles and authorization on every item | S3 | Implemented |
 | **Selective sharing** | Private owner copies, explicit member access, selected sheet sections and managed images | S4 | Planned |
 | **Continuous saving** | Local autosave, automatic online replication, durable pending changes and visible save status | S5 | Planned |
 | **Conflict handling** | Both versions remain visible when concurrent edits need your decision | S5 | Planned |
@@ -80,7 +80,7 @@ docker compose exec -T server chronexus-server invite
 
 The second command prints a private, one-use registration invitation. See the
 [installation guide](docs/INSTALLATION.md) for the complete proxy setup, optional
-ports, account policy and recovery. This build supports accounts only.
+ports, account policy and recovery. This build supports accounts, campaign invitations and role management.
 
 - Host bind address, published port and internal API port are configurable.
 - The API uses one HTTPS origin; future web management will use the same origin.
@@ -139,7 +139,7 @@ and campaign AI activation will remain separate actions. See
 
 [ROADMAP.md](ROADMAP.md) defines S0–S11, dependencies and acceptance criteria.
 [docs/STATUS.md](docs/STATUS.md) records what exists, checks actually performed
-and the next step: **S3 campaign invitations and authorization**. Production
+and the next step: **S4 selected content and managed attachments**. Production
 hosting and full campaign acceptance remain open.
 
 ## Development and contributing

@@ -1,7 +1,7 @@
 # Running Chronexus Server through S2
 
-This source build supports accounts and sessions. Campaign upload, continuous
-saving, member sharing, AI and the web interface are not implemented. Do not point
+This source build supports accounts, sessions and campaign membership. Content
+upload, continuous saving, AI and the web interface are not implemented. Do not point
 users at it as a complete synchronization service or replace an existing deployment.
 
 ## Compose quick start
@@ -26,8 +26,8 @@ shown only by that explicit command and cannot be recovered from storage. Create
 a new invite if it is lost. Never put it in Git, URLs or proxy logs.
 
 In Chronexus, enter the HTTPS origin, verify the server and redeem the invitation
-with a username, display name and password. Login and logout are supported; trying
-campaign operations will fail until S3–S8 are implemented. The current desktop has
+with a username, display name and password. Login/logout, campaign creation, campaign invitations and joining are supported.
+Content sharing remains S4 work. The current desktop has
 no UI for this server's extended recovery/device-management endpoints yet.
 
 ## Ports and reverse proxy

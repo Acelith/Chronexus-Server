@@ -1,4 +1,6 @@
 pub mod auth;
+mod campaign_routes;
+pub mod campaigns;
 pub mod config;
 pub mod db;
 pub mod error;

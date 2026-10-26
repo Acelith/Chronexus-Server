@@ -1,8 +1,8 @@
 # Chronexus Server status
 
-Updated: 26 October 2026. Source version 0.1.0, server schema 001, not published.
+Updated: 26 October 2026. Source version 0.1.0, server schema 002, not published.
 
-## Implemented through S2
+## Implemented through S3
 
 - S1: Rust/axum service, independent SQLite WAL with full synchronous durability,
   transactional migration, health probes and fail-closed configuration. Docker
@@ -13,7 +13,11 @@ Updated: 26 October 2026. Source version 0.1.0, server schema 001, not published
   hashing, hashed random tokens/codes, persistent IP/principal attempt limits,
   idle/absolute session expiry, own-device listing/revocation, all-device revocation
   and operator-assisted recovery that resets credentials and revokes old sessions.
-- Code-generated account/session OpenAPI and TypeScript artifacts, with drift
+- S3: campaigns and bounded membership lists, hashed seven-day campaign invitations,
+  atomic account registration/join, owner-only invite management, role revision
+  checks and member removal/self-leave. Removed memberships retain increasing
+  revisions across rejoin; the sole owner cannot be demoted or removed.
+- Code-generated account/session/campaign OpenAPI and TypeScript artifacts, with drift
   verification. The full campaign contract is deliberately not claimed implemented.
 - Native HTTP compatibility with the original app client: meta, redeem, login and
   logout on a real loopback listener using synthetic accounts, no app profile access.
@@ -26,14 +30,14 @@ M25 Android reference is superseded by this current application state.
 ## Verification actually executed
 
 - macOS arm64, Rust 1.97: `cargo fmt --check`, Clippy all targets with warnings
-  denied, 19 Rust integration tests and `cargo build --locked --release`: passed.
+  denied, 26 Rust integration tests and `cargo build --locked --release`: passed.
 - `python3 scripts/contract.py --check`: generated OpenAPI/TypeScript match source.
   Generated schemas also passed `tsc --noEmit --strict api/types.ts`, using the
   existing desktop checkout's TypeScript compiler.
 - `python3 scripts/check-desktop-auth.py --app-dir <Chronexus checkout>`: one
-  original-client integration test passed; domain validators unrelated to auth are
+  original-client auth and membership integration test passed; domain validators unrelated to auth are
   harness stubs. No GUI/keychain or complete sharing acceptance claimed.
-- Linux arm64 Docker: image built; isolated `scripts/check-compose.py` passed
+- Linux arm64 Docker, prior S2 checkpoint (S3 image not rerun yet): image built; isolated `scripts/check-compose.py` passed
   health, non-root/read-only execution, alternate host/internal ports, HTTPS proxy
   header checks, account redemption, authentication, recreation persistence,
   hash-only storage, secret-free logs and logout. Synthetic containers and data
@@ -45,14 +49,14 @@ M25 Android reference is superseded by this current application state.
 
 ## Next milestone and limits
 
-Next: **S3 campaign invitations and authorization**, then S4 selected content and
-S5 continuous private local/server replication. No campaign data routes or campaign
-storage exist yet; the app's campaign operations currently return 404.
+Next: **S4 selected content and managed attachments**, then S5 continuous private
+local/server replication. Campaign membership exists; item payload and attachment
+routes remain unimplemented.
 
 The user-requested private online replica, optional server AI (S10) and web
 management (S11) remain planned. The current desktop only has explicit sharing
 operations, not continuous whole-campaign replication or server AI. Do not report
-S1/S2 as a completed application M25 release.
+S1–S3 as a completed application M25 release.
 
 S0 protocol choices are resolved: invitation-only registration, HTTPS,
 server-readable v1 and manual conflict resolution. Real domain/proxy deployment,

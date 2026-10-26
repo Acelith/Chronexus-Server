@@ -226,12 +226,16 @@ impl Database {
         self.with(|conn| {
             let tx = conn.transaction_with_behavior(TransactionBehavior::Immediate)?;
             let valid: bool = tx.query_row("SELECT EXISTS(SELECT 1 FROM invites WHERE code_hash=?1 AND recovery_account_id IS NULL AND used_at IS NULL AND expires_at>?2)", params![digest(&request.invite_code),now()], |r| r.get(0))?;
-            if !valid { return Err(ApiError::gone()); }
+            if !valid && !crate::campaigns::available_invite(&tx,&digest(&request.invite_code))? { return Err(ApiError::gone()); }
             let exists: bool = tx.query_row("SELECT EXISTS(SELECT 1 FROM accounts WHERE username=?1)", [&name], |r| r.get(0))?;
             if exists { return Err(ApiError(StatusCode::CONFLICT, "Username unavailable.")); }
             let id = Uuid::new_v4().to_string();
             tx.execute("INSERT INTO accounts(id,username,display_name,password_hash,created_at) VALUES(?1,?2,?3,?4,?5)", params![id,name,request.display_name,hash,now()])?;
-            tx.execute("UPDATE invites SET used_at=?1 WHERE code_hash=?2", params![now(),digest(&request.invite_code)])?;
+            if valid {
+                tx.execute("UPDATE invites SET used_at=?1 WHERE code_hash=?2", params![now(),digest(&request.invite_code)])?;
+            } else {
+                crate::campaigns::accept_invite(&tx,&digest(&request.invite_code),&id)?;
+            }
             let result = issue_session(&tx, &id, &name, &request.display_name, &request.device)?;
             tx.commit()?;
             Ok(result)

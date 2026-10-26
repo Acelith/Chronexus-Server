@@ -56,3 +56,21 @@ Campaign tombstone retention belongs to S5/S6, recoverable server backups to S7,
 server AI hardware/model qualification to S10 and web management to S11. The server
 code's license remains to be established before distribution; dependency licenses
 are recorded separately in `DEPENDENCIES.md`.
+
+## 26 October 2026 S3 campaign access
+
+Schema 002 adds campaigns, versioned active memberships and separate hashed
+campaign invitations. Campaign members see their campaign name, membership roles
+and display names; nonmembers receive no list or detail metadata. Only the owner
+issues/revokes invitations and changes other roles. Players/readers may leave;
+the sole owner must retain ownership until an explicit transfer/deletion workflow
+is implemented. The public role is `reader`, matching the original client.
+
+Each account may belong to 100 active campaigns; each campaign admits 100 active
+members, 100 pending invites and 1000 retained invitation records. Invites expire
+after seven days, are consumed once in the same transaction as registration/join,
+and old invitation records can be purged after their expiry plus thirty days.
+Removal increments an inactive membership revision; rejoin increments it again,
+so an old role/removal request cannot affect a later membership accidentally.
+No campaign content is stored until S4; authored content withdrawal on removal
+will be added atomically with that storage. No publication in this milestone.
