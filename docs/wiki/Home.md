@@ -22,6 +22,7 @@ it.
 | [Backups and upgrades](Backups-and-Upgrades.md) | Backup, verify, restore, upgrade, rollback |
 | [Security](Security.md) | Threat model, limits, what is and is not tested |
 | [Web interface](Web-Interface.md) | Manage campaigns, members, invitations, devices and the service in a browser |
+| [Server AI](Server-AI.md) | Optional assistant that runs on the server with models the operator installs |
 | [Operator commands](Operator-Commands.md) | Every CLI command |
 
 How players use sharing inside the app is explained in the app wiki:

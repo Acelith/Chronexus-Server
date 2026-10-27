@@ -1,0 +1,12 @@
+# NVIDIA GPU for the optional AI runtime (M25.10). Requires the NVIDIA Container Toolkit:
+#   docker compose -f compose.yaml -f compose.ai-gpu.yaml --profile ai up -d
+# GPU qualification of each model on your hardware is still open; see docs/AI.md.
+services:
+  ai:
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]

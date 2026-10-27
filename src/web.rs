@@ -108,7 +108,7 @@ pub struct OperatorStatus {
     content_bytes: i64,
     attachments: i64,
     attachment_bytes: i64,
-    /// Server AI is a separate, optional milestone; reported so its absence is explicit.
+    /// Server AI (M25.10): "configured" when the operator set a runtime, else "not installed".
     ai_service: &'static str,
 }
 #[derive(Serialize, ToSchema)]
@@ -280,7 +280,12 @@ impl Database {
             })
         })
     }
-    pub fn operator_status(&self, token: &str, operators: &[String]) -> Result<OperatorStatus> {
+    pub fn operator_status(
+        &self,
+        token: &str,
+        operators: &[String],
+        ai_service: &'static str,
+    ) -> Result<OperatorStatus> {
         operator_check(self, token, operators)?;
         self.with(|conn| {
             let one = |sql: &str| -> Result<i64> { Ok(conn.query_row(sql, [], |r| r.get(0))?) };
@@ -302,7 +307,7 @@ impl Database {
                 content_bytes: one("SELECT coalesce(sum(length(CAST(payload AS BLOB))),0) FROM content WHERE deleted=0")?,
                 attachments: one("SELECT count(*) FROM attachments")?,
                 attachment_bytes: one("SELECT coalesce(sum(byte_length),0) FROM attachments")?,
-                ai_service: "not installed",
+                ai_service,
             })
         })
     }
@@ -367,8 +372,13 @@ async fn operator_status(
 ) -> Result<Json<OperatorStatus>> {
     let token = token(&headers)?;
     let operators = state.config.operators.clone();
+    let ai = if state.ai.is_some() {
+        "configured"
+    } else {
+        "not installed"
+    };
     state
-        .blocking(move |db| db.operator_status(&token, &operators))
+        .blocking(move |db| db.operator_status(&token, &operators, ai))
         .await
         .map(Json)
 }

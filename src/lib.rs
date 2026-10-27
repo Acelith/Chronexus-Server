@@ -1,3 +1,4 @@
+mod ai;
 pub mod attachments;
 pub mod auth;
 pub mod backup;
@@ -30,6 +31,8 @@ pub struct AppState {
     pub(crate) streams: Arc<events::Streams>,
     pub(crate) workers: Arc<Semaphore>,
     pub(crate) dummy_hash: Arc<String>,
+    /// Present only when the operator configured server AI.
+    pub(crate) ai: Option<Arc<ai::Gate>>,
 }
 impl AppState {
     pub fn new(config: Config) -> std::result::Result<Self, String> {
@@ -37,6 +40,7 @@ impl AppState {
         let dummy_hash =
             auth::password_hash(&auth::random_secret().map_err(|_| "Random source unavailable.")?)
                 .map_err(|_| "Cannot initialize password verification.")?;
+        let ai = config.ai.as_ref().map(|c| Arc::new(ai::Gate::new(c)));
         Ok(Self {
             config: Arc::new(config),
             database: Arc::new(database),
@@ -44,6 +48,7 @@ impl AppState {
             streams: Arc::new(events::Streams::new()),
             workers: Arc::new(Semaphore::new(4)),
             dummy_hash: Arc::new(dummy_hash),
+            ai,
         })
     }
     pub async fn blocking<T, F>(&self, operation: F) -> Result<T>

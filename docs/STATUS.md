@@ -1,6 +1,24 @@
 # Chronexus Server status
 
-Updated: 27 October 2026. Source 0.1.1, server schema 006. GitHub release published.
+Updated: 27 October 2026. Source 0.1.1 + unreleased M25.10, server schema 006 (unchanged).
+
+## 27 October 2026 (night): M25.10 server AI without GPU qualification
+
+- Optional Compose profile `ai` (Ollama 0.40.10 pinned by digest, no published port, internal
+  network without internet, `OLLAMA_NO_CLOUD=1`, all capabilities dropped); `compose.ai-gpu.yaml`
+  for NVIDIA and `compose.ai-pull.yaml` for an operator's temporary model download.
+- `GET /api/v1/ai/status` and `POST /api/v1/campaigns/{id}/ai/answers`: membership check,
+  sources limited to what the account may read, instruction-like items excluded, citation
+  check, per-account hourly allowance, bounded concurrency and queue, timeout, cancellation
+  frees the place, cloud-disabled and model-digest checks before every answer. Nothing is
+  stored or logged. Settings in `CHRONEXUS_AI_*` (docs/AI.md); `meta` lists `server-ai`.
+- Evidence: 8 tests in `tests/ai.rs` against a fake runtime; 88 tests, Clippy `-D warnings`,
+  fmt, contract and public-origin audit pass; `scripts/check-compose.py` passes again (it
+  lacked `CHRONEXUS_DOMAIN` and the dynamic range since the environment-driven deployment).
+  Docker run with the real runtime and no weights: status ready, cloud disabled, missing model
+  refused, no internet from the runtime, internet only with the pull override.
+- **Open:** GPU/model qualification (quality, citations, latency, memory) needs hardware and
+  weights; no model was downloaded. M25.9 still needs application M27 on a real device.
 
 ## 27 October 2026: GitHub migration — reachable history sanitized
 
@@ -41,8 +59,8 @@ Updated: 27 October 2026. Source 0.1.1, server schema 006. GitHub release publis
   contract attached to release 0.1.1, desktop proof of no network without a configured
   server (application `scripts/qa/linux/no-network-check.sh`: 0 connections outside
   loopback). Container images on GHCR still need a `write:packages` GitHub credential.
-- **M25.10 / M25.9** not started: server AI needs qualified GPU hardware and models; the
-  Android contract needs application M27 on a real device.
+- **M25.9** not started: the Android contract needs application M27 on a real device.
+  (M25.10 was implemented later the same day without GPU qualification; see above.)
 
 ## 27 October 2026 (afternoon): release 0.1.1 and registry images (M25.8)
 

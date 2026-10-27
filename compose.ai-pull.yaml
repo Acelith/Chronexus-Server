@@ -1,0 +1,12 @@
+# Temporary internet access for the AI runtime, ONLY while the operator downloads a model
+# (M25.10). In normal operation the runtime sits on the internal `ai` network with no route out.
+#
+#   docker compose -f compose.yaml -f compose.ai-pull.yaml --profile ai up -d ai
+#   docker compose exec ai ollama pull qwen3.8:27b-q4_K_M
+#   docker compose exec ai ollama list            # note the digest for CHRONEXUS_AI_MODELS
+#   docker compose --profile ai up -d ai          # recreate without internet access
+services:
+  ai:
+    networks: [ai, ai-pull]
+networks:
+  ai-pull: {}

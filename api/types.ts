@@ -9,6 +9,37 @@ export type Account = {
   "username": string;
 };
 
+export type AiModel = {
+  "available": boolean;
+  "name": string;
+  "pinnedDigest"?: string | null;
+};
+
+export type AiStatus = {
+  "cloudDisabled": boolean;
+  "concurrency": number;
+  "maxQuestionChars": number;
+  "models": Array<AiModel>;
+  "perUserHour": number;
+  "queue": number;
+  "running": number;
+  "runtimeReachable": boolean;
+  "timeoutSeconds": number;
+  "waiting": number;
+};
+
+export type Answer = {
+  "answer": string;
+  "citations": Array<Citation>;
+  "digest": string;
+  "elapsedMs": number;
+  "excludedSources": number;
+  "model": string;
+  "runtimeUsed": boolean;
+  "sourcesConsidered": number;
+  "verified": boolean;
+};
+
 export type Attachment = {
   "authorId": string;
   "byteLength": number;
@@ -72,6 +103,15 @@ export type Changes = {
   "cursor": string;
   "items": Array<Item>;
   "more": boolean;
+};
+
+export type Citation = {
+  "authorName": string;
+  "itemId": string;
+  "key": string;
+  "kind": string;
+  "revision": number;
+  "title": string;
 };
 
 export type ContentItem = Item & {
@@ -269,6 +309,12 @@ export type Party = {
 };
 
 export type Payload = Page | Session | Relationship | Party | SheetSection | Image;
+
+export type Question = {
+  "locale"?: string | null;
+  "model": string;
+  "question": string;
+};
 
 export type Quotas = {
   "accountAttachmentBytes": number;

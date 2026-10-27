@@ -13,6 +13,88 @@ pub struct Config {
     /// User names with the operator role (service status and account metadata, never
     /// campaign content). Set by whoever controls the host configuration.
     pub operators: Vec<String>,
+    /// Optional server AI (M25.10); `None` unless the operator configured a runtime.
+    pub ai: Option<AiConfig>,
+}
+
+/// Server AI settings. Every value is explicit operator configuration; nothing is
+/// downloaded or started by the server itself.
+#[derive(Clone, Debug)]
+pub struct AiConfig {
+    /// Runtime base URL on the internal network, plain HTTP (e.g. `http://ai:11434`).
+    pub url: Url,
+    /// Allowed models: name and, when pinned, the runtime digest that must match.
+    pub models: Vec<(String, Option<String>)>,
+    /// Generations running at the same time.
+    pub concurrency: usize,
+    /// Requests allowed to wait for a free slot; more are refused, never queued silently.
+    pub queue: usize,
+    /// Questions per account per hour.
+    pub per_user_hour: usize,
+    pub timeout_seconds: u64,
+}
+fn parse_ai(get: impl Fn(&str, &str) -> String) -> std::result::Result<Option<AiConfig>, String> {
+    let raw = get("CHRONEXUS_AI_URL", "");
+    if raw.trim().is_empty() {
+        return Ok(None);
+    }
+    let url = Url::parse(raw.trim()).map_err(|_| "CHRONEXUS_AI_URL must be a URL.")?;
+    if url.scheme() != "http"
+        || url.host_str().is_none()
+        || !url.username().is_empty()
+        || url.password().is_some()
+        || url.path() != "/"
+        || url.query().is_some()
+    {
+        return Err(
+            "CHRONEXUS_AI_URL must be the internal runtime origin, e.g. http://ai:11434.".into(),
+        );
+    }
+    let models: Vec<(String, Option<String>)> = get("CHRONEXUS_AI_MODELS", "")
+        .split(',')
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+        .map(|entry| {
+            let (name, digest) = match entry.split_once('@') {
+                Some((n, d)) => (n, Some(d.to_ascii_lowercase())),
+                None => (entry, None),
+            };
+            let name_ok = (1..=128).contains(&name.len())
+                && name
+                    .chars()
+                    .all(|c| c.is_ascii_alphanumeric() || "._:-/".contains(c));
+            let digest_ok = digest
+                .as_ref()
+                .is_none_or(|d| d.len() == 64 && d.bytes().all(|b| b.is_ascii_hexdigit()));
+            if name_ok && digest_ok {
+                Ok((name.to_string(), digest))
+            } else {
+                Err(
+                    "CHRONEXUS_AI_MODELS lists model names, optionally name@sha256-digest."
+                        .to_string(),
+                )
+            }
+        })
+        .collect::<std::result::Result<_, _>>()?;
+    if models.is_empty() {
+        return Err("Set CHRONEXUS_AI_MODELS to the models allowed on this server.".into());
+    }
+    let number = |key: &str, default: &str, max: u64| -> std::result::Result<u64, String> {
+        get(key, default)
+            .trim()
+            .parse::<u64>()
+            .ok()
+            .filter(|n| (1..=max).contains(n))
+            .ok_or_else(|| format!("{key} must be a number between 1 and {max}."))
+    };
+    Ok(Some(AiConfig {
+        url,
+        models,
+        concurrency: number("CHRONEXUS_AI_CONCURRENCY", "1", 8)? as usize,
+        queue: number("CHRONEXUS_AI_QUEUE", "4", 64)? as usize,
+        per_user_hour: number("CHRONEXUS_AI_PER_USER_HOUR", "30", 1000)? as usize,
+        timeout_seconds: number("CHRONEXUS_AI_TIMEOUT_SECONDS", "120", 900)?,
+    }))
 }
 
 impl Config {
@@ -96,6 +178,7 @@ impl Config {
                 }
             })
             .collect::<std::result::Result<_, _>>()?;
+        let ai = parse_ai(get)?;
         Ok(Self {
             listen,
             database: get("CHRONEXUS_DATABASE", "data/chronexus.sqlite3").into(),
@@ -104,6 +187,7 @@ impl Config {
             trusted_proxies,
             loopback_http,
             operators,
+            ai,
         })
     }
 }

@@ -138,6 +138,14 @@ desktop with a Bearer token kept in the browser tab's session storage — no coo
 cross-site request forgery; requests from another origin are refused. Untrusted text is
 always shown as text. Close the tab or sign out to end the session.
 
+## Optional server AI (M25.10)
+
+Off by default. With `docker compose --profile ai up -d` a local Ollama runtime runs on an
+internal network without internet access; models are pulled by you and named in
+`CHRONEXUS_AI_MODELS`. Members then choose per campaign in the desktop whether the assistant
+runs locally or on the server. Settings, limits, safeguards and the open GPU qualification:
+[AI.md](AI.md).
+
 ## Storage and restart
 
 `server-data` persists one SQLite database (accounts, campaigns, content, change logs,

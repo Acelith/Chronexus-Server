@@ -11,7 +11,10 @@ audit or a grant of a license for this repository's own code.
 | `axum` | 0.8.9 | MIT | Typed HTTP routing |
 | `chrono` | 0.4.45 | MIT OR Apache-2.0 | UTC timestamps |
 | `getrandom` | 0.4.3 | MIT OR Apache-2.0 | Operating-system random bytes |
-| `http-body-util` | 0.1.5 | MIT | Test response collection |
+| `bytes` | 1.12.1 | MIT | Request body for the optional AI runtime call |
+| `http-body-util` | 0.1.5 | MIT | Bounded body collection (AI runtime responses, tests) |
+| `hyper` | 1.12.0 | MIT | HTTP/1 client for the optional AI runtime (M25.10) |
+| `hyper-util` | 0.1.21 | MIT | Tokio connector for that client; plain HTTP on the internal network only |
 | `futures-core` | 0.3.34 | MIT OR Apache-2.0 | `Stream` trait for the bounded notification body |
 | `image` | 0.25.10 | MIT OR Apache-2.0 | Bounded PNG/JPEG/WebP decode, original bytes retained |
 | `ipnet` | 2.12.2 | MIT OR Apache-2.0 | Explicit trusted proxy networks |

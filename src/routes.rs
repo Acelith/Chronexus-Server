@@ -37,6 +37,7 @@ pub fn router(state: AppState) -> Router {
         .merge(crate::content_routes::router(state.clone()))
         .merge(crate::lifecycle::router())
         .merge(crate::web::router())
+        .merge(crate::ai::router())
         .route("/api/v1/meta", get(meta))
         .route("/api/v1/openapi.json", get(openapi))
         .route("/health/live", get(live))
@@ -196,8 +197,8 @@ pub(crate) fn token(headers: &HeaderMap) -> Result<String> {
 }
 
 #[utoipa::path(get,path="/api/v1/meta",responses((status=200,body=Meta)),tag="service")]
-async fn meta() -> Json<Meta> {
-    Json(Meta {
+async fn meta(State(state): State<AppState>) -> Json<Meta> {
+    let mut meta = Meta {
         api: "chronexus-sync",
         version: 1,
         server_version: env!("CARGO_PKG_VERSION"),
@@ -214,7 +215,12 @@ async fn meta() -> Json<Meta> {
             "change-notifications",
             "deletion",
         ],
-    })
+    };
+    // Announced only when the operator configured a runtime (M25.10).
+    if state.ai.is_some() {
+        meta.capabilities.push("server-ai");
+    }
+    Json(meta)
 }
 #[utoipa::path(get,path="/health/live",responses((status=200,body=Health)),tag="service")]
 async fn live() -> Json<Health> {
@@ -342,6 +348,7 @@ pub fn contract() -> utoipa::openapi::OpenApi {
     api.merge(crate::content_routes::ContentContract::openapi());
     api.merge(crate::lifecycle::LifecycleContract::openapi());
     api.merge(crate::web::WebContract::openapi());
+    api.merge(crate::ai::AiContract::openapi());
     api.components.as_mut().unwrap().add_security_scheme(
         "bearer",
         SecurityScheme::Http(HttpBuilder::new().scheme(HttpAuthScheme::Bearer).build()),

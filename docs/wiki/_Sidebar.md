@@ -10,6 +10,7 @@
 - [Security](Security.md)
 - [Operator commands](Operator-Commands.md)
 - [Web interface](Web-Interface.md)
+- [Server AI](Server-AI.md)
 
 **For developers**
 - [Developer home](Developer-Home.md)

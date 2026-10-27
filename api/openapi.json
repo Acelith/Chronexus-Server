@@ -29,6 +29,140 @@
         ],
         "type": "object"
       },
+      "AiModel": {
+        "properties": {
+          "available": {
+            "type": "boolean"
+          },
+          "name": {
+            "type": "string"
+          },
+          "pinnedDigest": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "name",
+          "available"
+        ],
+        "type": "object"
+      },
+      "AiStatus": {
+        "properties": {
+          "cloudDisabled": {
+            "description": "The runtime confirms its cloud features are off; required before any question.",
+            "type": "boolean"
+          },
+          "concurrency": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "maxQuestionChars": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "models": {
+            "items": {
+              "$ref": "#/components/schemas/AiModel"
+            },
+            "type": "array"
+          },
+          "perUserHour": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "queue": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "running": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "runtimeReachable": {
+            "type": "boolean"
+          },
+          "timeoutSeconds": {
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "waiting": {
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "runtimeReachable",
+          "cloudDisabled",
+          "models",
+          "running",
+          "waiting",
+          "concurrency",
+          "queue",
+          "perUserHour",
+          "timeoutSeconds",
+          "maxQuestionChars"
+        ],
+        "type": "object"
+      },
+      "Answer": {
+        "properties": {
+          "answer": {
+            "description": "Untrusted draft: never a campaign fact.",
+            "type": "string"
+          },
+          "citations": {
+            "items": {
+              "$ref": "#/components/schemas/Citation"
+            },
+            "type": "array"
+          },
+          "digest": {
+            "type": "string"
+          },
+          "elapsedMs": {
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "excludedSources": {
+            "description": "Items left out because they look like instructions aimed at the model.",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "model": {
+            "type": "string"
+          },
+          "runtimeUsed": {
+            "description": "False when no readable item matched and the runtime was not called.",
+            "type": "boolean"
+          },
+          "sourcesConsidered": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "verified": {
+            "description": "Every citation refers to a provided source (or the not-found sentence).",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "answer",
+          "verified",
+          "citations",
+          "model",
+          "digest",
+          "sourcesConsidered",
+          "excludedSources",
+          "runtimeUsed",
+          "elapsedMs"
+        ],
+        "type": "object"
+      },
       "Attachment": {
         "properties": {
           "authorId": {
@@ -298,6 +432,38 @@
           "items",
           "cursor",
           "more"
+        ],
+        "type": "object"
+      },
+      "Citation": {
+        "properties": {
+          "authorName": {
+            "type": "string"
+          },
+          "itemId": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "revision": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "kind",
+          "itemId",
+          "revision",
+          "authorName",
+          "title"
         ],
         "type": "object"
       },
@@ -914,7 +1080,7 @@
             "type": "integer"
           },
           "aiService": {
-            "description": "Server AI is a separate, optional milestone; reported so its absence is explicit.",
+            "description": "Server AI (M25.10): \"configured\" when the operator set a runtime, else \"not installed\".",
             "type": "string"
           },
           "attachmentBytes": {
@@ -1059,6 +1225,31 @@
             "$ref": "#/components/schemas/Image"
           }
         ]
+      },
+      "Question": {
+        "additionalProperties": false,
+        "properties": {
+          "locale": {
+            "description": "Interface language of the asking client; the answer follows it.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "model": {
+            "description": "One of the models the operator allowed (see the status endpoint).",
+            "type": "string"
+          },
+          "question": {
+            "description": "At most 2000 characters.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "question",
+          "model"
+        ],
+        "type": "object"
       },
       "Quotas": {
         "description": "Limits the server enforces, shown so users understand a refused save.",
@@ -1498,6 +1689,51 @@
         ],
         "tags": [
           "accounts"
+        ]
+      }
+    },
+    "/api/v1/ai/status": {
+      "get": {
+        "operationId": "status",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AiStatus"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": ""
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "ai"
         ]
       }
     },
@@ -2138,6 +2374,121 @@
         ],
         "tags": [
           "campaigns"
+        ]
+      }
+    },
+    "/api/v1/campaigns/{campaignId}/ai/answers": {
+      "post": {
+        "operationId": "answer",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "campaignId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Question"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Answer"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": ""
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": ""
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": ""
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": ""
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": ""
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": ""
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "ai"
         ]
       }
     },

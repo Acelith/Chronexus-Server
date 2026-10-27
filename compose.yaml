@@ -22,6 +22,14 @@ services:
       CHRONEXUS_TRUSTED_PROXIES: ${CHRONEXUS_TRUSTED_PROXIES:-172.30.253.1/32,172.30.253.2/32}
       # User names allowed to see service status and account metadata in the web interface.
       CHRONEXUS_OPERATORS: ${CHRONEXUS_OPERATORS:-}
+      # Optional server AI (M25.10): empty means off. With the `ai` profile use http://ai:11434
+      # and list the models you pulled yourself, e.g. qwen3.8:27b-q4_K_M[@sha256-digest].
+      CHRONEXUS_AI_URL: ${CHRONEXUS_AI_URL:-}
+      CHRONEXUS_AI_MODELS: ${CHRONEXUS_AI_MODELS:-}
+      CHRONEXUS_AI_CONCURRENCY: ${CHRONEXUS_AI_CONCURRENCY:-1}
+      CHRONEXUS_AI_QUEUE: ${CHRONEXUS_AI_QUEUE:-4}
+      CHRONEXUS_AI_PER_USER_HOUR: ${CHRONEXUS_AI_PER_USER_HOUR:-30}
+      CHRONEXUS_AI_TIMEOUT_SECONDS: ${CHRONEXUS_AI_TIMEOUT_SECONDS:-120}
     ports:
       - "${CHRONEXUS_BIND_ADDRESS:-127.0.0.1}:${CHRONEXUS_HOST_PORT:-8080}:${CHRONEXUS_INTERNAL_PORT:-8080}"
     volumes:
@@ -34,7 +42,7 @@ services:
       timeout: 5s
       start_period: 10s
       retries: 3
-    networks: [backend]
+    networks: [backend, ai]
 
   # Optional bundled HTTPS front end: `docker compose --profile https up -d`.
   proxy:
@@ -67,10 +75,32 @@ services:
       backend:
         ipv4_address: ${CHRONEXUS_PROXY_IP:-172.30.253.2}
 
+  # Optional AI runtime: `docker compose --profile ai up -d`. Reachable only by the server on
+  # the internal `ai` network: no published port. Nothing is downloaded until the operator runs
+  # `docker compose exec ai ollama pull MODEL`. For an NVIDIA GPU add compose.ai-gpu.yaml.
+  ai:
+    profiles: [ai]
+    image: ${CHRONEXUS_AI_IMAGE:-ollama/ollama:0.40.10@sha256:4c5b27871a3239a717048f9b93057680a51b60c8119a7016aebb57f938e25e35}
+    restart: unless-stopped
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 512
+    mem_limit: ${CHRONEXUS_AI_MEMORY:-24g}
+    environment:
+      OLLAMA_HOST: 0.0.0.0:11434
+      # Cloud features off: the server refuses to send anything otherwise.
+      OLLAMA_NO_CLOUD: "1"
+      OLLAMA_NUM_PARALLEL: ${CHRONEXUS_AI_CONCURRENCY:-1}
+      OLLAMA_KEEP_ALIVE: 2m
+    volumes:
+      - ai-models:/root/.ollama
+    networks: [ai]
+
 volumes:
   server-data:
   proxy-data:
   proxy-config:
+  ai-models:
 
 networks:
   backend:
@@ -81,3 +111,6 @@ networks:
           # Dynamic addresses come from the upper half, so the server can never take the
           # proxy's fixed address (CHRONEXUS_PROXY_IP) and block the https profile.
           ip_range: ${CHRONEXUS_NETWORK_DYNAMIC_RANGE:-172.30.253.128/25}
+  # Internal only: no route to the internet and nothing published on the host.
+  ai:
+    internal: true
