@@ -27,3 +27,11 @@ English is the source language. Preserve the desktop's local-first behavior.
 - Update docs/STATUS.md after milestones. Publish only with authorization; never
   force-push or overwrite tags/assets. Planning and partial slices are not releases.
 - Consult relevant available Skills before new activities; report actual use.
+
+## GitHub migration — 27 October 2026
+
+Canonical origin: https://github.com/Acelith/Chronexus-Server.git. The user explicitly
+authorized the one-time history sanitization; private recovery bundles are external
+to both projects. Future work must keep normal history protections. Run
+`python3 scripts/check-public-origin.py --history --origin` before publication.
+Build containers locally until a GHCR image is explicitly published and verified.

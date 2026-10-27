@@ -1,12 +1,27 @@
 # Chronexus Server status
 
-Updated: 27 October 2026. Source 0.1.0, server schema 006. Not published.
+Updated: 27 October 2026. Source 0.1.1, server schema 006. GitHub release published.
+
+## 27 October 2026: GitHub migration prepared
+
+- GitHub is the canonical fetch/push and release destination. The owner authorized
+  the one-time complete history cleanup; external recovery bundles are verified.
+  Rewritten-history publication and final remote audit are pending.
+- Release publishing uses the GitHub API and verifies private draft/public downloads.
+  Credentials stay on API/upload hosts. GHCR is the only registry publishing target;
+  image publication is pending, so Compose defaults to building the local source.
+- Handbooks use ordinary repository Markdown links. Retired hosting workflows are
+  removed; GitHub CI audits full fetched history for retired-host fingerprints.
+- Validation: 75 Rust integration tests, rustfmt, Clippy with warnings denied,
+  release build and contract/TypeScript drift check passed. Five Python transport/origin
+  regressions passed. No server domain or schema change.
+- Procedure and limits: docs/GITHUB_MIGRATION.md. Next: M25.8 deployment acceptance.
 
 ## 27 October 2026 (afternoon): release 0.1.1 and registry images (M25.8)
 
 - Release [0.1.1](https://github.com/Acelith/Chronexus-Server/releases/tag/v0.1.1) (tag on
   0e8faf1) with Linux amd64/arm64 binaries and SHA256SUMS.txt, verified anonymously.
-- Images `ghcr.io/acelith/chronexus-server:0.1.1` and `:latest` (index
+- Historical images version `0.1.1` and `latest` on the retired registry (index
   `sha256:ce86254e…`, linux/amd64 + linux/arm64) pushed with `scripts/push-image.py`:
   `docker push` from Docker Desktop timed out on large layers. Pulled back by digest; both
   platforms report 0.1.1; the HTTPS test deployment now runs that image and kept its data.
@@ -14,10 +29,10 @@ Updated: 27 October 2026. Source 0.1.0, server schema 006. Not published.
 - Fixed a race in backup verification (shared reference file name; recovery tests failed in
   2 of 3 runs, now 0 of 6). 75 tests pass on macOS and on emulated Linux amd64.
 - `.forgejo/workflows/ci.yml` added; no Forgejo runner is registered yet.
-- CI image `ghcr.io/acelith/chronexus-ci:2026.10.27` (amd64+arm64) pushed for the
+- Historical CI image `chronexus-ci:2026.10.27` on the retired registry (amd64+arm64) pushed for the
   application's Forgejo workflow.
 - GitHub mirror: main, tags and releases 0.1.0 and 0.1.1 with verified identical assets.
-  Container images are on github.com only.
+  Container images remain on retired infrastructure; they have not been published to GHCR.
 - Planned: application M42–M47 (virtual tabletop) server work, see ROADMAP.
 - Still open: a public deployment with real DNS/TLS, image/dependency scans in CI.
 

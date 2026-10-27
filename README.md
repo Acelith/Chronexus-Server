@@ -13,26 +13,26 @@ can see, and decide whether AI runs on your computer or your own server.
 [![Deployment](https://img.shields.io/badge/deployment-Docker%20Compose-354b3e)](#deployment-and-configuration)
 [![Hosting](https://img.shields.io/badge/hosting-self--hosted-6c302b)](#privacy-and-data)
 
-[Chronexus](https://github.com/Acelith/Chronexus) · [Features and roadmap](#features-and-roadmap) · [Wiki](https://github.com/Acelith/Chronexus-Server/wiki) · [Roadmap](ROADMAP.md) · [Status](docs/STATUS.md)
+[Chronexus](https://github.com/acelith/Chronexus) · [Features and roadmap](#features-and-roadmap) · [Wiki](https://github.com/Acelith/Chronexus-Server/blob/main/docs/wiki/Home.md) · [Roadmap](ROADMAP.md) · [Status](docs/STATUS.md)
 
 </div>
 
 > [!NOTE]
-> **[Release 0.1.1](https://github.com/Acelith/Chronexus-Server/releases/tag/v0.1.1)** is published, with container images for Linux amd64 and arm64 in
-> the Forgejo registry (`ghcr.io/acelith/chronexus-server:0.1.1`). Accounts, membership, selective sharing, continuous
+> **[Release 0.1.1](https://github.com/Acelith/Chronexus-Server/releases/tag/v0.1.1)** is published on GitHub with Linux amd64 and arm64 binaries.
+> Build the Docker image locally with `docker compose --profile https up -d --build`; GHCR publication is pending. Accounts, membership, selective sharing, continuous
 > synchronization, deletion and recovery are implemented (M25.1–M25.7); server AI and web
-> management remain planned. See the [wiki](https://github.com/Acelith/Chronexus-Server/wiki).
+> management remain planned. See the [wiki](https://github.com/Acelith/Chronexus-Server/blob/main/docs/wiki/Home.md).
 
 ## What is Chronexus Server
 
 Chronexus Server is the self-hosted companion under development for
-[Chronexus](https://github.com/Acelith/Chronexus), the offline-first desktop
+[Chronexus](https://github.com/acelith/Chronexus), the offline-first desktop
 journal and campaign manager for tabletop RPG players. It adds optional accounts,
 continuous campaign synchronization and selective sharing on infrastructure you
 control. The original desktop app remains usable without a server or account.
 
 The projects have separate repositories and releases: this repository owns the
-server and its versioned API; the [original Chronexus repository](https://github.com/Acelith/Chronexus)
+server and its versioned API; the [original Chronexus repository](https://github.com/acelith/Chronexus)
 owns the desktop app and planned Android client. Synchronization belongs to
 the M24 client contract; the server is application M25 and Android follows in M27.
 
@@ -89,9 +89,10 @@ ports, account policy and recovery. This build supports accounts, campaign roles
 - Public access requires a valid HTTPS origin and explicitly trusted TLS proxy.
   Credentials are generated securely; no default password.
 - AI/GPU services remain M25.10 work; no model is downloaded or runtime started.
-- Images `ghcr.io/acelith/chronexus-server:0.1.1` (and `:latest`) for linux/amd64 and linux/arm64 are in the Forgejo
-  registry; set `CHRONEXUS_IMAGE` and run `docker compose pull`. Tests pass on macOS and
-  Linux amd64; a public deployment with real DNS/TLS is still unverified.
+- Build the container locally with `docker compose --profile https up -d --build`.
+  GHCR image publication remains pending. Tests pass on macOS and Linux amd64;
+  a public deployment with real DNS/TLS remains unverified.
+
 
 Confirmed protocol decisions and remaining hosting work are tracked in
 [roadmap M25.0](ROADMAP.md#m250-deployment-and-security-decisions) and
@@ -148,7 +149,7 @@ hosting and full campaign acceptance remain open.
 
 ## Development and contributing
 
-The **[wiki](https://github.com/Acelith/Chronexus-Server/wiki)** has an operator guide (installation, accounts, roles, sharing,
+The **[wiki](https://github.com/Acelith/Chronexus-Server/blob/main/docs/wiki/Home.md)** has an operator guide (installation, accounts, roles, sharing,
 backups, security, CLI) and a developer section; its sources are in [docs/wiki](docs/wiki).
 
 The stack is Rust with axum, SQLite WAL and Docker Compose. The implemented
@@ -166,7 +167,7 @@ report desktop issues in [Chronexus](https://github.com/Acelith/Chronexus/issues
 
 ## Credits and related projects
 
-- [Chronexus](https://github.com/Acelith/Chronexus): original desktop application,
+- [Chronexus](https://github.com/acelith/Chronexus): original desktop application,
   campaign model, player knowledge principles and project identity.
 - [Chronexus roadmap](https://github.com/Acelith/Chronexus/blob/main/ROADMAP.md):
   application milestones, including M24 client, M25 server and M27 Android.
@@ -182,3 +183,5 @@ report desktop issues in [Chronexus](https://github.com/Acelith/Chronexus/issues
 *People, places, ideas. Everything is connected.*
 
 </div>
+
+Repository hosting, history migration and download provenance: [GitHub migration](docs/GITHUB_MIGRATION.md).

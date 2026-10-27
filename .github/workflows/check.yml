@@ -7,6 +7,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - run: python3 scripts/check-public-origin.py --history --origin
+      - run: python3 -m unittest discover -s scripts -p test_github_release.py
+      - run: python3 -m unittest discover -s scripts -p test_public_origin.py
       - name: Rust toolchain
         run: rustup toolchain install 1.97.0 --profile minimal --component rustfmt --component clippy && rustup default 1.97.0
       - run: cargo fmt --check

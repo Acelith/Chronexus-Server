@@ -87,7 +87,7 @@ player over HTTP or the live channel (automated matrix); a full combat with one 
 and three desktop players; table data in server backups, never in players' `.nodex`.
 
 **Application M41 (project wiki) is published** at
-https://github.com/Acelith/Chronexus-Server/wiki (sources in `docs/wiki/`). M25.8's first
+https://github.com/Acelith/Chronexus-Server/blob/main/docs/wiki/Home.md (sources in `docs/wiki/`). M25.8's first
 registry release is 0.1.1 (27 October 2026); a public deployment with real DNS/TLS remains.
 
 ## M25.0 Deployment and security decisions

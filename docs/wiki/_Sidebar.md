@@ -1,18 +1,18 @@
-**[Home](Home)**
+**[Home](Home.md)**
 
 **Operators and players**
-- [What the server does](What-the-Server-Does)
-- [Installation](Installation)
-- [Accounts and invitations](Accounts-and-Invitations)
-- [Campaigns and roles](Campaigns-and-Roles)
-- [Sharing and synchronization](Sharing-and-Synchronization)
-- [Backups and upgrades](Backups-and-Upgrades)
-- [Security](Security)
-- [Operator commands](Operator-Commands)
+- [What the server does](What-the-Server-Does.md)
+- [Installation](Installation.md)
+- [Accounts and invitations](Accounts-and-Invitations.md)
+- [Campaigns and roles](Campaigns-and-Roles.md)
+- [Sharing and synchronization](Sharing-and-Synchronization.md)
+- [Backups and upgrades](Backups-and-Upgrades.md)
+- [Security](Security.md)
+- [Operator commands](Operator-Commands.md)
 
 **For developers**
-- [Developer home](Developer-Home)
-- [Architecture](Architecture)
-- [API contract](API-Contract)
-- [Testing](Testing)
-- [Milestones](Milestones)
+- [Developer home](Developer-Home.md)
+- [Architecture](Architecture.md)
+- [API contract](API-Contract.md)
+- [Testing](Testing.md)
+- [Milestones](Milestones.md)

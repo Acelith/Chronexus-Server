@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Push a multi-platform OCI image archive to the Forgejo container registry on github.com.
+"""Push a multi-platform OCI image archive to the GitHub Container Registry.
 
 usage: push-image.py ARCHIVE.tar REPOSITORY TAG [TAG...]
   ARCHIVE.tar  from `docker buildx build --platform ... --output type=oci,dest=ARCHIVE.tar`
@@ -8,12 +8,12 @@ usage: push-image.py ARCHIVE.tar REPOSITORY TAG [TAG...]
 Why: `docker push` from Docker Desktop timed out on large layers ("timeout awaiting response
 headers") while direct HTTPS uploads from the host work. Blobs are uploaded in 8 MiB chunks
 through the standard OCI distribution API; existing blobs are skipped; manifests are pushed by
-digest, then the index under each tag. Credentials come from the configured Git credential
-helper, in memory only, for github.com only.
+digest, then the index under each tag. Credentials come from the configured GitHub CLI, in memory only. The GitHub
+credential is used for the GHCR token exchange and never follows a redirect.
 """
-import base64, hashlib, json, os, subprocess, sys, tarfile, urllib.error, urllib.parse, urllib.request
+import base64, hashlib, json, re, subprocess, sys, tarfile, urllib.error, urllib.parse, urllib.request
 
-HOST = "github.com"
+HOST = "ghcr.io"
 CHUNK = 8 << 20
 
 
@@ -26,18 +26,16 @@ opener = urllib.request.build_opener(NoRedirect())
 
 
 def basic():
-    result = subprocess.run(["git", "-c", "credential.interactive=never", "credential", "fill"],
-                            input=f"url=https://{HOST}\n\n", text=True, capture_output=True,
-                            env={**os.environ, "GIT_TERMINAL_PROMPT": "0"})
-    f = dict(l.split("=", 1) for l in result.stdout.splitlines() if "=" in l)
-    if result.returncode or f.get("host") != HOST or not f.get("password"):
-        raise SystemExit("Git credentials for github.com are unavailable.")
-    return "Basic " + base64.b64encode(f"{f['username']}:{f['password']}".encode()).decode()
+    result = subprocess.run(["gh", "auth", "token", "--hostname", "github.com"], text=True, capture_output=True)
+    credential = result.stdout.strip()
+    if result.returncode or not credential or any(c.isspace() for c in credential):
+        raise SystemExit("GitHub credentials unavailable; gh needs write:packages for GHCR publication.")
+    return "Basic " + base64.b64encode(f"Acelith:{credential}".encode()).decode()
 
 
 def token(repo):
     scope = urllib.parse.quote(f"repository:{repo}:pull,push")
-    req = urllib.request.Request(f"https://{HOST}/v2/token?service=container_registry&scope={scope}",
+    req = urllib.request.Request(f"https://{HOST}/token?service=ghcr.io&scope={scope}",
                                  headers={"Authorization": basic()})
     with opener.open(req, timeout=60) as r:
         return "Bearer " + json.load(r)["token"]
@@ -46,7 +44,7 @@ def token(repo):
 def request(auth, method, url, data=None, headers=None, ok=(200, 201, 202, 204)):
     if not url.startswith("http"):
         url = f"https://{HOST}{url}"
-    if urllib.parse.urlsplit(url).netloc != HOST:
+    if urllib.parse.urlsplit(url).scheme != "https" or urllib.parse.urlsplit(url).netloc != HOST:
         raise SystemExit("Unexpected registry host.")
     req = urllib.request.Request(url, data=data, method=method, headers={"Authorization": auth, **(headers or {})})
     try:
@@ -77,6 +75,8 @@ def push_blob(auth, repo, digest, blob):
 
 def main():
     archive, repo, *tags = sys.argv[1:]
+    if repo not in {"acelith/chronexus-server", "acelith/chronexus-ci"} or not tags or any(not re.fullmatch(r"[A-Za-z0-9_][A-Za-z0-9_.-]{0,127}", tag) for tag in tags):
+        raise SystemExit("Only the Chronexus GHCR repositories and explicit tags are allowed.")
     with tarfile.open(archive) as tar:
         blob = lambda d: tar.extractfile(f"blobs/sha256/{d.split(':', 1)[1]}").read()
         index_desc = json.loads(tar.extractfile("index.json").read())["manifests"][0]

@@ -28,9 +28,10 @@ docker compose exec -T server chronexus-server invite
 `docker compose up -d --build`, and point your proxy at `127.0.0.1:8080` as described under
 *Production deployment*.
 
-To use a prebuilt image instead of building, set `CHRONEXUS_IMAGE` in `.env` and run
-`docker compose pull`, for example `CHRONEXUS_IMAGE=ghcr.io/acelith/chronexus-server:0.1.1` (linux/amd64 and linux/arm64). The domain, ports, network and image are
-all environment-driven, so the same checkout serves any deployment without editing files.
+Build from the checked-out GitHub source with `--build`. A GHCR image has not yet
+been published and verified; keep the local image default. `CHRONEXUS_IMAGE` remains
+available for an image you explicitly choose and verify. Ports, network and image
+are configured through `.env`.
 
 The `invite` command prints one server invitation, usable for 24 hours. Pass it to the intended
 account holder through a private channel; it is a credential, shown only by that command and not
@@ -233,7 +234,7 @@ load testing beyond the built-in limits, and real TLS/DNS.
 ## Development and checks
 
 See [DEVELOPMENT.md](DEVELOPMENT.md), [API.md](API.md) and [STATUS.md](STATUS.md).
-Release 0.1.1 ships `ghcr.io/acelith/chronexus-server:0.1.1` in the Forgejo registry; pin it by digest for production.
+GitHub release 0.1.1 contains Linux binaries. Container deployment currently builds locally; GHCR publication is pending.
 
 ## Operator commands for lifecycle and recovery (M25.6)
 
