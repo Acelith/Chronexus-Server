@@ -79,10 +79,14 @@ fn remove_with_companions(path: &Path) {
 /// The structure a database of the latest schema must have, built by running every
 /// migration on an empty file next to `near`.
 fn reference_structure(near: &Path) -> Result<Vec<(String, String, String)>, String> {
+    // Unique per call: two verifications in the same process and second must never share
+    // (and lock) one reference file.
+    static NEXT: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
     let path = near.join(format!(
-        ".reference-{}-{}.tmp",
+        ".reference-{}-{}-{}.tmp",
         std::process::id(),
-        crate::auth::now()
+        crate::auth::now(),
+        NEXT.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
     ));
     let result = Database::open(&path).and_then(|db| {
         let conn = db.0.lock().map_err(|_| "Database lock poisoned.")?;
