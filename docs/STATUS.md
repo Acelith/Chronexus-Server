@@ -1,6 +1,24 @@
 # Chronexus Server status
 
-Updated: 26 October 2026. Source 0.1.0, server schema 006. Not published.
+Updated: 27 October 2026. Source 0.1.0, server schema 006. Not published.
+
+## 27 October 2026: Docker deployment and desktop integration on macOS
+
+- Milestones renamed M25.0–M25.11 (were S0–S11).
+- `cargo test --locked`: 75 passed natively on macOS arm64 (Rust 1.97) after fixing
+  `backup`/`verify` (reference structure built in the symlinked macOS temp dir) and test
+  temp paths; clippy `-D warnings`, fmt and contract check passed (contract regenerated:
+  licence drift).
+- Compose `https` profile fixed (the server took the proxy's fixed IP) and run for real:
+  Docker 29.9.2 linux/arm64, Caddy local CA on `chronexus.localhost:8443`.
+- Desktop acceptance against this deployment: three real apps (macOS + two Linux arm64
+  containers) passed 37/37 steps of the app's `scripts/qa/sync` scenario, including role
+  changes, leaving and removal, a proxy stop/start; an installed Linux release build signed
+  in and downloaded a campaign over HTTPS. Not done: public TLS/DNS, Linux amd64, image
+  scan, release.
+- Wiki sources for operators and developers in `docs/wiki/` (application M41), not yet
+  pushed to the wiki repository.
+- Next: **M25.8** first release, after the user's go-ahead.
 
 ## Implemented server milestones M25.1 through M25.4
 
