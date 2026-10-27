@@ -33,3 +33,6 @@ Before a schema upgrade the server writes `<database>.pre-upgrade-v<N>`; migrati
 one transaction. Recommended: `backup`, pull or build the new image, `up -d`, watch
 `/health/ready`. To roll back, stop the service and run the **older** binary's `restore`
 with the pre-upgrade file. An older binary refuses a newer database.
+
+Which desktop versions work with which server, and the full upgrade checklist:
+[docs/COMPATIBILITY.md](https://github.com/Acelith/Chronexus-Server/blob/main/docs/COMPATIBILITY.md).

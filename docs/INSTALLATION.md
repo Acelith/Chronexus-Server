@@ -209,6 +209,9 @@ restore on a scratch instance before you need it.
 
 ## Upgrades and rollback
 
+Supported desktop versions per server release and step-by-step upgrades:
+[COMPATIBILITY.md](COMPATIBILITY.md).
+
 Before any schema upgrade the server copies the existing database to
 `<database>.pre-upgrade-v<N>` (a consistent, verifiable file) and does not start the upgrade if
 that copy cannot be written. Migrations run in one transaction: a failed upgrade rolls back and
