@@ -49,3 +49,8 @@ The audit proves removal from reachable repository history and published metadat
 It cannot erase previously downloaded clones, installers or GitHub's cached views
 of unreachable object IDs. GitHub documents those separate retention limits in
 [Removing sensitive data from a repository](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/removing-sensitive-data-from-a-repository).
+
+On 27 October 2026, fresh public mirror clones passed the complete reachable-object
+scan and Git integrity check. GitHub still resolved the previous main commit by SHA;
+that cached-object retention is an observed outstanding limitation. An offline support
+request was prepared privately, without contacting GitHub or deleting either repository.

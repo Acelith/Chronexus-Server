@@ -2,11 +2,12 @@
 
 Updated: 27 October 2026. Source 0.1.1, server schema 006. GitHub release published.
 
-## 27 October 2026: GitHub migration prepared
+## 27 October 2026: GitHub migration — reachable history sanitized
 
 - GitHub is the canonical fetch/push and release destination. The owner authorized
   the one-time complete history cleanup; external recovery bundles are verified.
-  Rewritten-history publication and final remote audit are pending.
+  All 30 commits and both tags were retained, sanitized and published. A fresh GitHub
+  mirror passed the complete reachable-object audit and git fsck; origin is GitHub only.
 - Release publishing uses the GitHub API and verifies private draft/public downloads.
   Credentials stay on API/upload hosts. GHCR is the only registry publishing target;
   image publication is pending, so Compose defaults to building the local source.
@@ -15,7 +16,14 @@ Updated: 27 October 2026. Source 0.1.1, server schema 006. GitHub release publis
 - Validation: 75 Rust integration tests, rustfmt, Clippy with warnings denied,
   release build and contract/TypeScript drift check passed. Five Python transport/origin
   regressions passed. No server domain or schema change.
-- Procedure and limits: docs/GITHUB_MIGRATION.md. Next: M25.8 deployment acceptance.
+- GitHub CI reached Compose validation after its other checks passed; its required
+  domain fixture was missing. The workflow now sets the explicit test domain, and
+  Compose configuration passes with an empty environment file.
+- Both release descriptions are clean; historical binary assets are unchanged. Previous
+  main SHAs still resolve in GitHub's cache, outside published branches/tags. A private
+  support-request draft is prepared; no message was sent or repository deleted.
+- No specialized history-migration skill is installed; official GitHub/git-filter-repo
+  guidance was used. Procedure: docs/GITHUB_MIGRATION.md. Next: M25.8 deployment acceptance.
 
 ## 27 October 2026 (afternoon): release 0.1.1 and registry images (M25.8)
 
