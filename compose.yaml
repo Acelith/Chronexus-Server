@@ -76,3 +76,6 @@ networks:
       config:
         - subnet: ${CHRONEXUS_NETWORK_SUBNET:-172.30.253.0/24}
           gateway: ${CHRONEXUS_NETWORK_GATEWAY:-172.30.253.1}
+          # Dynamic addresses come from the upper half, so the server can never take the
+          # proxy's fixed address (CHRONEXUS_PROXY_IP) and block the https profile.
+          ip_range: ${CHRONEXUS_NETWORK_DYNAMIC_RANGE:-172.30.253.128/25}
