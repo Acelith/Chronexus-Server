@@ -26,9 +26,10 @@ def main():
         probe.bind(("127.0.0.1", 0))
         port = probe.getsockname()[1]
     origin = "https://sync.example.test:18443"
-    env = dict(os.environ, CHRONEXUS_PUBLIC_ORIGIN=origin,
+    env = dict(os.environ, CHRONEXUS_PUBLIC_ORIGIN=origin, CHRONEXUS_DOMAIN="chronexus.localhost",
                CHRONEXUS_BIND_ADDRESS="127.0.0.1", CHRONEXUS_HOST_PORT=str(port),
                CHRONEXUS_INTERNAL_PORT="8181", CHRONEXUS_NETWORK_SUBNET="172.30.252.0/24",
+               CHRONEXUS_NETWORK_DYNAMIC_RANGE="172.30.252.128/25",
                CHRONEXUS_NETWORK_GATEWAY="172.30.252.1", CHRONEXUS_TRUSTED_PROXIES="172.30.252.1/32")
     command = ["docker", "compose", "-p", project]
 
