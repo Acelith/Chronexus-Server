@@ -14,6 +14,11 @@ Updated: 27 October 2026. Source 0.1.0, server schema 006. Not published.
 - Fixed a race in backup verification (shared reference file name; recovery tests failed in
   2 of 3 runs, now 0 of 6). 75 tests pass on macOS and on emulated Linux amd64.
 - `.forgejo/workflows/ci.yml` added; no Forgejo runner is registered yet.
+- CI image `ghcr.io/acelith/chronexus-ci:2026.10.27` (amd64+arm64) pushed for the
+  application's Forgejo workflow.
+- GitHub mirror: main, tags and releases 0.1.0 and 0.1.1 with verified identical assets.
+  Container images are on github.com only.
+- Planned: application M42–M47 (virtual tabletop) server work, see ROADMAP.
 - Still open: a public deployment with real DNS/TLS, image/dependency scans in CI.
 
 ## 27 October 2026: Docker deployment and desktop integration on macOS
