@@ -5,3 +5,5 @@
 !src/**
 !migrations/
 !migrations/**
+!web/
+!web/**

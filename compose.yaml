@@ -20,6 +20,8 @@ services:
       CHRONEXUS_DATABASE: /var/lib/chronexus/chronexus.sqlite3
       # The host gateway (an existing proxy on this host) and the bundled proxy's fixed address.
       CHRONEXUS_TRUSTED_PROXIES: ${CHRONEXUS_TRUSTED_PROXIES:-172.30.253.1/32,172.30.253.2/32}
+      # User names allowed to see service status and account metadata in the web interface.
+      CHRONEXUS_OPERATORS: ${CHRONEXUS_OPERATORS:-}
     ports:
       - "${CHRONEXUS_BIND_ADDRESS:-127.0.0.1}:${CHRONEXUS_HOST_PORT:-8080}:${CHRONEXUS_INTERNAL_PORT:-8080}"
     volumes:

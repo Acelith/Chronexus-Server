@@ -66,7 +66,7 @@ The delivery goal:
 | **Desktop integration** | Tested synchronization with the original Chronexus app | M25.8 | Planned |
 | **Android access** | Same account and shared content, with read-only access first | M25.9 / app M27 | Planned |
 | **Local or server AI** | Explicit execution choice, scoped sources and citations, bounded server resource use | M25.10 | Planned |
-| **Web management** | Authenticated campaign, membership, storage and service management | M25.11 | Planned |
+| **Web management** | Authenticated campaign, membership, storage and service management | M25.11 | Implemented (web interface at the public origin) |
 
 ## Deployment and configuration
 

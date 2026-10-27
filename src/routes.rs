@@ -36,6 +36,7 @@ pub fn router(state: AppState) -> Router {
         .merge(crate::campaign_routes::router())
         .merge(crate::content_routes::router(state.clone()))
         .merge(crate::lifecycle::router())
+        .merge(crate::web::router())
         .route("/api/v1/meta", get(meta))
         .route("/api/v1/openapi.json", get(openapi))
         .route("/health/live", get(live))
@@ -151,14 +152,17 @@ async fn security(State(state): State<AppState>, request: Request, next: Next) -
         ("cache-control", "no-store"),
         ("x-content-type-options", "nosniff"),
         ("x-frame-options", "DENY"),
-        (
-            "content-security-policy",
-            "default-src 'none'; frame-ancestors 'none'",
-        ),
     ] {
         response
             .headers_mut()
             .insert(key, HeaderValue::from_static(value));
+    }
+    // The web pages set their own (still strict) policy; everything else allows nothing.
+    if !response.headers().contains_key("content-security-policy") {
+        response.headers_mut().insert(
+            "content-security-policy",
+            HeaderValue::from_static("default-src 'none'; frame-ancestors 'none'"),
+        );
     }
     if !state.config.loopback_http {
         response.headers_mut().insert(
@@ -328,7 +332,7 @@ async fn revoke_session(
     )),
     info(
         title = "Chronexus Server accounts API",
-        description = "M25.1-M25.4: accounts, campaigns, selective sharing, private content and attachments. No continuous desktop replication or browser UI yet."
+        description = "Accounts, campaigns, selective sharing, private content, attachments, continuous replication, deletion and the read-only overviews behind the web interface (M25.11)."
     )
 )]
 struct Contract;
@@ -337,6 +341,7 @@ pub fn contract() -> utoipa::openapi::OpenApi {
     api.merge(crate::campaign_routes::CampaignContract::openapi());
     api.merge(crate::content_routes::ContentContract::openapi());
     api.merge(crate::lifecycle::LifecycleContract::openapi());
+    api.merge(crate::web::WebContract::openapi());
     api.components.as_mut().unwrap().add_security_scheme(
         "bearer",
         SecurityScheme::Http(HttpBuilder::new().scheme(HttpAuthScheme::Bearer).build()),

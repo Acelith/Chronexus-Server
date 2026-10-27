@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="referrer" content="no-referrer" />
+    <title>Chronexus Server</title>
+    <link rel="stylesheet" href="/web/app.css" />
+    <script type="module" src="/web/app.js"></script>
+  </head>
+  <body>
+    <a class="skip" href="#main">Skip to content</a>
+    <header class="top">
+      <p class="brand">Chronexus Server</p>
+      <nav id="nav" aria-label="Sections" hidden></nav>
+    </header>
+    <main id="main" tabindex="-1">
+      <noscript>This page needs JavaScript. The desktop app works without it.</noscript>
+      <p role="status">Loading…</p>
+    </main>
+    <dialog id="confirm" aria-labelledby="confirm-title">
+      <form method="dialog">
+        <h2 id="confirm-title"></h2>
+        <div id="confirm-body"></div>
+        <div class="actions">
+          <button value="cancel" id="confirm-cancel">Cancel</button>
+          <button value="ok" id="confirm-ok" class="danger"></button>
+        </div>
+      </form>
+    </dialog>
+  </body>
+</html>

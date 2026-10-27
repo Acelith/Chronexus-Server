@@ -16,6 +16,6 @@ The server is application milestone **M25**; its steps are numbered M25.0–M25.
 | M25.8 | Desktop integration and first release | Next |
 | M25.9 | Android contract qualification | Planned |
 | M25.10 | Explicit local or self-hosted server AI | Planned |
-| M25.11 | Web campaign and server management | Planned |
+| M25.11 | Web campaign and server management | Implemented |
 
 Alongside M25.8: application **M41**, this wiki.

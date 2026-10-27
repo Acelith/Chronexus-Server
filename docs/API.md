@@ -130,6 +130,19 @@ originals (409). Remove image content references first. Uploads are atomic SQLit
 BLOBs, so interrupted uploads leave no partially stored file. Unreferenced completed
 uploads remain private and count towards quotas; deletion is explicit.
 
+## Web interface overviews (M25.11)
+
+| Endpoint | Who | Returns |
+| --- | --- | --- |
+| `GET /api/v1/account` | any signed-in account | id, user name, display name, creation time, `operator` flag |
+| `GET /api/v1/campaigns/{id}/overview` | members | role, member count, the caller's own items per kind (private/shared counts, bytes, highest revision), own images, last accepted save, recorded operations, count of items others share, server limits |
+| `GET /api/v1/operator/status` | operators | version, schema, database size, account/session/campaign/item/image counts, server AI state |
+| `GET /api/v1/operator/accounts` | operators | per account: user and display name, creation, state, active sessions, campaign count, stored bytes |
+
+The overview never reports campaign-wide totals, which would reveal how much other members
+keep private. Operator endpoints never return campaign names, members or content. All four
+are read-only; the web interface performs changes through the existing endpoints.
+
 ## Limits and errors
 
 Campaign content: 5000 rows (including tombstones), 64 MiB payload total, 2 MB per

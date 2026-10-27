@@ -114,6 +114,30 @@ Authenticated device management:
 | `DELETE /api/v1/auth/sessions` | Revoke all your sessions, including the current one |
 | `POST /api/v1/auth/logout` | Revoke the presented Bearer token |
 
+## Web interface (M25.11)
+
+Open the public origin (for example `https://sync.example.org/`) in a browser and sign in with
+a Chronexus account. Writing stays in the desktop app; the web interface manages what lives on
+the server:
+
+- **Campaigns**: your role, members, what you keep on the server (items per kind, highest
+  revision, last accepted save, images) and the server's limits. It cannot know changes a
+  device has not sent yet.
+- **Owners**: change members between player and reader, remove members, create and revoke
+  invitations, delete the campaign on the server (typing its exact name). Every destructive
+  action explains its effect on local copies, offline devices and existing backups first.
+- **Players and readers**: leave a campaign.
+- **Devices**: list signed-in devices and sign them out.
+- **Operators**: user names listed in `CHRONEXUS_OPERATORS` see service status and account
+  metadata (sessions, campaign counts, stored bytes). The role grants no access to campaign
+  content in the interface or the API; the host operator can still read the database file.
+
+Security: the pages are static files served by the server with a strict Content Security
+Policy (own scripts and styles only). They use the same JSON API and permission checks as the
+desktop with a Bearer token kept in the browser tab's session storage — no cookies, so no
+cross-site request forgery; requests from another origin are refused. Untrusted text is
+always shown as text. Close the tab or sign out to end the session.
+
 ## Storage and restart
 
 `server-data` persists one SQLite database (accounts, campaigns, content, change logs,

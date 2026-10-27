@@ -64,7 +64,7 @@ application M25.
 | M25.8 | Desktop integration and first server release | M25.7 and full desktop M24 acceptance | Planned |
 | M25.9 | Android contract qualification | M25.8 and application M27 | Planned |
 | M25.10 | Explicit local or self-hosted server AI | M25.8; independent of M25.9 | Planned |
-| M25.11 | Web campaign and server management | M25.8; independent of M25.9/M25.10 | Planned |
+| M25.11 | Web campaign and server management | M25.8; independent of M25.9/M25.10 | Implemented 27/10/2026 (tests/web.rs, browser-checked); spectator/operator actions beyond status out of scope |
 
 ## Chronexus Table — virtual tabletop (application M42–M47, planned)
 
@@ -386,6 +386,15 @@ campaign settings with synthetic data. Verify Compose runtime ports are not publ
 and document actual hardware, model, memory and latency results.
 
 ## M25.11 Web campaign and server management
+
+**Status (27 October 2026): implemented.** Static web interface at the public origin using
+the existing Bearer API (no cookies), read-only overviews (`/api/v1/account`,
+`/campaigns/{id}/overview`, `/operator/status`, `/operator/accounts`), operator role from
+`CHRONEXUS_OPERATORS`. Evidence: 5 tests in `tests/web.rs` (page policy, owner/player/
+outsider/operator matrix, no cross-account leaks, operator gets no campaign data, ended
+session, alternate port, foreign origin refused) and a real browser run on synthetic data
+(role change, invitation, cancelled and confirmed removal, devices, operator view at
+375 px width). English only; translations of the web interface are open.
 
 - Add an authenticated browser interface as a separate milestone, served through
   the same configured HTTPS origin and host port as the API.

@@ -10,6 +10,9 @@ pub struct Config {
     pub authority: String,
     pub trusted_proxies: Vec<IpNet>,
     pub loopback_http: bool,
+    /// User names with the operator role (service status and account metadata, never
+    /// campaign content). Set by whoever controls the host configuration.
+    pub operators: Vec<String>,
 }
 
 impl Config {
@@ -78,6 +81,21 @@ impl Config {
         }
         let public_origin = url.origin().ascii_serialization();
         let authority = public_origin.split_once("://").unwrap().1.to_string();
+        let operators: Vec<String> = get("CHRONEXUS_OPERATORS", "")
+            .split(',')
+            .map(|s| s.trim().to_ascii_lowercase())
+            .filter(|s| !s.is_empty())
+            .map(|s| {
+                let valid = (3..=64).contains(&s.len())
+                    && s.chars()
+                        .all(|c| c.is_ascii_alphanumeric() || ['.', '_', '-'].contains(&c));
+                if valid {
+                    Ok(s)
+                } else {
+                    Err("CHRONEXUS_OPERATORS must list user names separated by commas.".to_string())
+                }
+            })
+            .collect::<std::result::Result<_, _>>()?;
         Ok(Self {
             listen,
             database: get("CHRONEXUS_DATABASE", "data/chronexus.sqlite3").into(),
@@ -85,6 +103,7 @@ impl Config {
             authority,
             trusted_proxies,
             loopback_http,
+            operators,
         })
     }
 }

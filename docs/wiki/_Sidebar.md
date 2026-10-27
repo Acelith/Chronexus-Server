@@ -9,6 +9,7 @@
 - [Backups and upgrades](Backups-and-Upgrades.md)
 - [Security](Security.md)
 - [Operator commands](Operator-Commands.md)
+- [Web interface](Web-Interface.md)
 
 **For developers**
 - [Developer home](Developer-Home.md)

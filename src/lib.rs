@@ -12,6 +12,7 @@ mod events;
 pub mod lifecycle;
 pub mod payload;
 pub mod routes;
+mod web;
 
 use crate::{
     config::Config,

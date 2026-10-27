@@ -1,6 +1,34 @@
 {
   "components": {
     "schemas": {
+      "Account": {
+        "properties": {
+          "accountId": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "operator": {
+            "description": "Listed in CHRONEXUS_OPERATORS: may read service status and account metadata.",
+            "type": "boolean"
+          },
+          "username": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "accountId",
+          "username",
+          "displayName",
+          "createdAt",
+          "operator"
+        ],
+        "type": "object"
+      },
       "Attachment": {
         "properties": {
           "authorId": {
@@ -151,6 +179,86 @@
           "code",
           "role",
           "expiresAt"
+        ],
+        "type": "object"
+      },
+      "CampaignOverview": {
+        "properties": {
+          "accountAttachmentBytes": {
+            "description": "All this account's uploads on the server (the per-account limit).",
+            "format": "int64",
+            "type": "integer"
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "members": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "myAttachmentBytes": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "myAttachments": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "myContentBytes": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "myItems": {
+            "description": "What this account stored in the campaign, per item kind.",
+            "items": {
+              "$ref": "#/components/schemas/KindUsage"
+            },
+            "type": "array"
+          },
+          "myLastSavedAt": {
+            "description": "Latest save the server accepted from this account in this campaign.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "myRecordedOperations": {
+            "description": "Retry receipts kept for this account's operations in this campaign.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "quotas": {
+            "$ref": "#/components/schemas/Quotas"
+          },
+          "role": {
+            "type": "string"
+          },
+          "sharedByOthers": {
+            "description": "Items other members currently share with everyone.",
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "role",
+          "createdAt",
+          "members",
+          "myItems",
+          "myContentBytes",
+          "myAttachments",
+          "myAttachmentBytes",
+          "accountAttachmentBytes",
+          "myRecordedOperations",
+          "sharedByOthers",
+          "quotas"
         ],
         "type": "object"
       },
@@ -610,6 +718,37 @@
         ],
         "type": "object"
       },
+      "KindUsage": {
+        "properties": {
+          "bytes": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "highestRevision": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "privateItems": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "sharedItems": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "kind",
+          "privateItems",
+          "sharedItems",
+          "bytes",
+          "highestRevision"
+        ],
+        "type": "object"
+      },
       "LinkText": {
         "additionalProperties": false,
         "properties": {
@@ -722,6 +861,124 @@
         ],
         "type": "object"
       },
+      "OperatorAccount": {
+        "properties": {
+          "activeSessions": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "campaigns": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "deleted": {
+            "type": "boolean"
+          },
+          "disabled": {
+            "type": "boolean"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "storedBytes": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "username": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "username",
+          "displayName",
+          "createdAt",
+          "disabled",
+          "deleted",
+          "activeSessions",
+          "campaigns",
+          "storedBytes"
+        ],
+        "type": "object"
+      },
+      "OperatorStatus": {
+        "properties": {
+          "accounts": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "activeSessions": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "aiService": {
+            "description": "Server AI is a separate, optional milestone; reported so its absence is explicit.",
+            "type": "string"
+          },
+          "attachmentBytes": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "attachments": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "campaigns": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "contentBytes": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "contentItems": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "databaseBytes": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "deletedAccounts": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "deletedCampaigns": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "disabledAccounts": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "schema": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "serverVersion": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "serverVersion",
+          "schema",
+          "databaseBytes",
+          "accounts",
+          "disabledAccounts",
+          "deletedAccounts",
+          "activeSessions",
+          "campaigns",
+          "deletedCampaigns",
+          "contentItems",
+          "contentBytes",
+          "attachments",
+          "attachmentBytes",
+          "aiService"
+        ],
+        "type": "object"
+      },
       "Page": {
         "additionalProperties": false,
         "properties": {
@@ -802,6 +1059,39 @@
             "$ref": "#/components/schemas/Image"
           }
         ]
+      },
+      "Quotas": {
+        "description": "Limits the server enforces, shown so users understand a refused save.",
+        "properties": {
+          "accountAttachmentBytes": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "campaignAttachmentBytes": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "campaignAttachments": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "campaignContentBytes": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "campaignItems": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "campaignItems",
+          "campaignContentBytes",
+          "campaignAttachments",
+          "campaignAttachmentBytes",
+          "accountAttachmentBytes"
+        ],
+        "type": "object"
       },
       "Recover": {
         "additionalProperties": false,
@@ -1166,7 +1456,7 @@
     }
   },
   "info": {
-    "description": "M25.1-M25.4: accounts, campaigns, selective sharing, private content and attachments. No continuous desktop replication or browser UI yet.",
+    "description": "Accounts, campaigns, selective sharing, private content, attachments, continuous replication, deletion and the read-only overviews behind the web interface (M25.11).",
     "license": {
       "identifier": "Apache-2.0",
       "name": "Apache-2.0"
@@ -1176,6 +1466,41 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/api/v1/account": {
+      "get": {
+        "operationId": "account",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Account"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "accounts"
+        ]
+      }
+    },
     "/api/v1/auth/account/deletion": {
       "post": {
         "operationId": "delete_account",
@@ -3061,6 +3386,61 @@
         ]
       }
     },
+    "/api/v1/campaigns/{campaignId}/overview": {
+      "get": {
+        "operationId": "overview",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "campaignId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CampaignOverview"
+                }
+              }
+            },
+            "description": ""
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": ""
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "campaigns"
+        ]
+      }
+    },
     "/api/v1/campaigns/{campaignId}/own-content/deletion": {
       "post": {
         "operationId": "erase_own",
@@ -3207,6 +3587,79 @@
         },
         "tags": [
           "service"
+        ]
+      }
+    },
+    "/api/v1/operator/accounts": {
+      "get": {
+        "operationId": "operator_accounts",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/OperatorAccount"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": ""
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "operator"
+        ]
+      }
+    },
+    "/api/v1/operator/status": {
+      "get": {
+        "operationId": "operator_status",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperatorStatus"
+                }
+              }
+            },
+            "description": ""
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "operator"
         ]
       }
     },

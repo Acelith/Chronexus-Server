@@ -25,6 +25,25 @@ Updated: 27 October 2026. Source 0.1.1, server schema 006. GitHub release publis
 - No specialized history-migration skill is installed; official GitHub/git-filter-repo
   guidance was used. Procedure: docs/GITHUB_MIGRATION.md. Next: M25.8 deployment acceptance.
 
+## 27 October 2026 (evening): M25.11 web interface, M25.8 closure
+
+- **M25.11 implemented.** Static web interface at the public origin (`web/`, embedded in the
+  binary, strict CSP) using the existing Bearer API: no cookies, same permission checks, a
+  foreign origin is refused. New read-only endpoints: `/api/v1/account`,
+  `/campaigns/{id}/overview` (own usage only), `/operator/status`, `/operator/accounts`;
+  operator role from `CHRONEXUS_OPERATORS` (no campaign data). Evidence: 5 tests in
+  `tests/web.rs`; 80 tests, Clippy `-D warnings`, fmt, contract and public-origin audit pass;
+  a real browser run on a loopback server with synthetic data (sign-in, HTML-like campaign
+  name shown as text, role change, invitation, cancelled and confirmed removal, devices,
+  operator view at 375 px); the Docker image (needs `web/` in the build context, fixed)
+  served through Caddy over HTTPS with the existing data. English only.
+- **M25.8:** compatibility table and upgrade checklist (`docs/COMPATIBILITY.md`), versioned
+  contract attached to release 0.1.1, desktop proof of no network without a configured
+  server (application `scripts/qa/linux/no-network-check.sh`: 0 connections outside
+  loopback). Container images on GHCR still need a `write:packages` GitHub credential.
+- **M25.10 / M25.9** not started: server AI needs qualified GPU hardware and models; the
+  Android contract needs application M27 on a real device.
+
 ## 27 October 2026 (afternoon): release 0.1.1 and registry images (M25.8)
 
 - Release [0.1.1](https://github.com/Acelith/Chronexus-Server/releases/tag/v0.1.1) (tag on
