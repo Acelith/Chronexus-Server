@@ -1,4 +1,4 @@
-//! S7: authorization matrix, malformed and hostile inputs, resource limits and leakage checks.
+//! M25.7: authorization matrix, malformed and hostile inputs, resource limits and leakage checks.
 //! Synthetic fixtures only.
 mod common;
 use axum::{

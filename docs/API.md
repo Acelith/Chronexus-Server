@@ -1,10 +1,10 @@
 # Implemented API and desktop compatibility
 
-Source version 0.1.0 implements server milestones S1–S4, schema 004. This is not a
+Source version 0.1.0 implements server milestones M25.1–M25.4, schema 004. This is not a
 published release. The original Chronexus source 0.8.1 has an M24 sharing client;
 server delivery is application M25 and Android M27. The server now implements its
 account, campaign and four-kind sharing protocol, plus explicit private-content,
-selected-sheet and image extensions. Continuous desktop replication remains S5.
+selected-sheet and image extensions. Continuous desktop replication remains M25.5.
 
 - [Generated OpenAPI](../api/openapi.json), also `GET /api/v1/openapi.json`.
 - [Generated TypeScript schemas](../api/types.ts).
@@ -140,10 +140,10 @@ bytes and 256 MiB per author. See INSTALLATION for membership/invitation/session
 inaccessible content, 409 stale revisions/referenced originals, 410 unavailable
 invitation, 413 oversized body, 429 quota/attempt limits, 503 worker/transfer saturation,
 500 safe storage failure. Ordinary errors use an English error field; the app maps
-status codes to localized text. Complete production security/recovery is still S7.
+status codes to localized text. Complete production security/recovery is still M25.7.
 
 
-## S5 server contract: incremental sync, idempotent mutations, notifications
+## M25.5 server contract: incremental sync, idempotent mutations, notifications
 
 Capabilities in `GET /api/v1/meta`: `idempotent-content-saves`, `idempotent-mutations`,
 `incremental-sync`, `change-notifications`. Schema 005.
@@ -219,9 +219,9 @@ Frames coalesce, a slow reader just receives `changed`, a keepalive comment arri
 the stream within about 25 seconds). Limits: 3 streams per account, 64 total (429
 beyond that). Clients must keep a polling fallback: poll `/sync` about every 30 seconds
 while offline-push is unavailable, and always poll once after every (re)connection.
-Membership removal does not yet push a hint; polling covers it until S6.
+Membership removal does not yet push a hint; polling covers it until M25.6.
 
-## S6 revocation, deletion and recovery boundaries
+## M25.6 revocation, deletion and recovery boundaries
 
 Schema 006, capability `deletion`.
 
@@ -229,7 +229,7 @@ Schema 006, capability `deletion`.
 
 | Action | Effect on the server |
 | --- | --- |
-| Unshare an item, or remove a member (S4) | Projections become tombstones for the other members; the author's **private original stays**. Removal is immediate: the old session can neither read nor write. Rejoining by a new invitation never republishes anything; a stale offline write conflicts (409). |
+| Unshare an item, or remove a member (M25.4) | Projections become tombstones for the other members; the author's **private original stays**. Removal is immediate: the old session can neither read nor write. Rejoining by a new invitation never republishes anything; a stale offline write conflicts (409). |
 | `POST /campaigns/{id}/own-content/deletion` `{confirm:true}` | Any member: every item they synchronized to this campaign becomes a tombstone (for members who saw it) and their uploads are deleted. Other members' content and the membership stay. Idempotency receipts are kept, so a lost-response retry is acknowledged and never brings the item back. Returns `{items, attachments}`. |
 | `POST /campaigns/{id}/deletion` `{confirmName}` | Owner only, exact campaign name required (400 otherwise). Removes every payload, upload, change-log row, receipt and invitation. The campaign id, deletion time and inactive membership rows stay. Former members (and the owner) then get **404 "This campaign was deleted."** on every campaign call; outsiders still get 403. |
 | `POST /auth/account/deletion` `{password, deleteOwnedCampaigns}` | The account holder, password checked (5 attempts per 15 minutes). Owning a campaign other members use returns 409 unless `deleteOwnedCampaigns` is true (there is no ownership transfer: the last owner cannot leave; delete the campaign or invite a replacement and delete the account later). Memberships end, authored content is erased as above, sessions are revoked, and the account becomes an anonymous stub (`deleted-…`, "Deleted account", disabled) that content-free history still references. The user name becomes available again. |
@@ -253,5 +253,5 @@ time a device may stay offline.
   (the desktop client clears received copies then and keeps its own originals).
 - Server backups keep deleted data until the operator's retention drops them. A restored
   backup brings back the memberships, sessions and content it contained; the operator
-  should run `revoke-sessions` and re-apply deletions the backup predates (S7 documents the
+  should run `revoke-sessions` and re-apply deletions the backup predates (M25.7 documents the
   restore procedure). Revocations recorded after the backup are not in it.

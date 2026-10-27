@@ -1,6 +1,6 @@
-//! S6: revocation, deletion and recovery boundaries.
+//! M25.6: revocation, deletion and recovery boundaries.
 //!
-//! * Removing a member or unsharing an item (S4) never touches the author's private original.
+//! * Removing a member or unsharing an item (M25.4) never touches the author's private original.
 //! * An author may erase everything they synchronized to one campaign.
 //! * An owner may delete a campaign; an account may delete itself.
 //! * Operators may purge old tombstones and revoke every session after restoring a backup.

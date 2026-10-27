@@ -328,7 +328,7 @@ async fn revoke_session(
     )),
     info(
         title = "Chronexus Server accounts API",
-        description = "S1-S4: accounts, campaigns, selective sharing, private content and attachments. No continuous desktop replication or browser UI yet."
+        description = "M25.1-M25.4: accounts, campaigns, selective sharing, private content and attachments. No continuous desktop replication or browser UI yet."
     )
 )]
 struct Contract;

@@ -2,16 +2,16 @@
 
 Updated: 26 October 2026. Source 0.1.0, server schema 006. Not published.
 
-## Implemented server milestones S1 through S4
+## Implemented server milestones M25.1 through M25.4
 
-- S1/S2: Rust/axum, independent SQLite WAL/full durability, transactional migrations,
+- M25.1/M25.2: Rust/axum, independent SQLite WAL/full durability, transactional migrations,
   health/configuration/proxy gates, minimal Compose with safe defaults and adjustable
   ports; invitation-only accounts, Argon2id, hashed secrets, persistent attempt
   limits, session expiry/device revocation and operator-assisted recovery.
-- S3: campaign creation/listing, owner/player/reader roles, one-use campaign invites
+- M25.3: campaign creation/listing, owner/player/reader roles, one-use campaign invites
   for new/existing accounts, owner-only invitation/role administration and member
   removal/self-leave. Monotonic membership revisions reject stale leave/rejoin actions.
-- S4: typed private-by-default content and explicit member projections for pages,
+- M25.4: typed private-by-default content and explicit member projections for pages,
   sessions, relationships, party, selected sheet fields and images. Only authors
   edit content; owners may withdraw published projections but cannot read another
   author's private originals. References never implicitly publish their targets.
@@ -35,7 +35,7 @@ accepts `CHRONEXUS_IMAGE`, and offers a `https` profile with a bundled Caddy (`d
 automatic certificates, fixed trusted address). The compose and Caddy files were reviewed by hand
 but never run; verify with `docker compose config` and a real start before relying on them.
 
-## S7 security and recovery implemented (Windows)
+## M25.7 security and recovery implemented (Windows)
 
 - `tests/security.rs` (6 tests): role matrix over every campaign route and five principals, credential
   header and scheme abuse, hostile identifiers, malformed/oversized/nesting-bomb bodies, hostile
@@ -51,9 +51,9 @@ but never run; verify with `docker compose config` and a real start before relyi
   tests, rustfmt and Clippy `-D warnings` pass on Windows x64.
 - Not done: Docker/Linux amd64 execution, `cargo audit`/image scans (not available offline), remote CI,
   third-party penetration test, load testing, real TLS. Hosting and licence decisions remain open.
-- Next: **S8**, the full M24 acceptance with 2-3 users against a deployment and the first release.
+- Next: **M25.8**, the full M24 acceptance with 2-3 users against a deployment and the first release.
 
-## S6 lifecycle implemented (schema 006)
+## M25.6 lifecycle implemented (schema 006)
 
 - Campaign deletion (owner, exact name), erasing one's own server copy, account deletion
   (password, explicit flag for shared owned campaigns, anonymous stub), former members told
@@ -64,7 +64,7 @@ but never run; verify with `docker compose config` and a real start before relyi
 - Limits (see docs/API.md): exported or offline copies cannot be recalled; backups keep
   deleted data until the operator drops them; no ownership transfer.
 
-## S5 implemented (server contract; desktop client in the application repository)
+## M25.5 implemented (server contract; desktop client in the application repository)
 
 - Schema 005: payload-free change log, `/sync` incremental reads of the caller's current
   authorized state with tombstones, bounded pages (500 log rows / 6 MiB), cursor floor with
@@ -88,7 +88,7 @@ but never run; verify with `docker compose config` and a real start before relyi
 - Not done: a membership-removal push hint (polling covers it, the stream closes at its next
   keepalive check), production TLS/DNS, Linux/macOS, long soak.
 
-## Earlier S4 checks and evidence
+## Earlier M25.4 checks and evidence
 
 macOS arm64, Rust 1.97:
 
@@ -109,7 +109,7 @@ macOS arm64, Rust 1.97:
 Docker/Compose:
 
 - `docker compose config --quiet` with an explicit HTTPS origin: passed.
-- Linux arm64 S4 image build and updated isolated Compose acceptance: passed.
+- Linux arm64 M25.4 image build and updated isolated Compose acceptance: passed.
   Checks covered health, non-root/read-only execution, alternate internal/external
   ports, proxy header gates, auth, private content, explicit sharing/withdrawal,
   original image checksums/bytes and persistence after container recreation. Logs
@@ -119,20 +119,20 @@ Docker/Compose:
   diagnostics separate. TLS headers are simulated; public certificates/DNS were
   not tested. Linux amd64, native Windows and minimum Rust 1.88 remain unverified.
 - CI workflow exists but remote CI has not run. Dependency licenses checked;
-  full vulnerability/image and production security review remain S7 work.
+  full vulnerability/image and production security review remain M25.7 work.
 
 ## Next step and explicit limits
 
-Next: **S8** (first release after full M24 acceptance). Open decisions: production hosting and the
+Next: **M25.8** (first release after full M24 acceptance). Open decisions: production hosting and the
 server code license.
 
-The application repository now holds the S5 desktop client (schema 020, commit 7bf720e) and
-the S6 access-loss handling; its legacy storage identifiers and personal data were not
+The application repository now holds the M25.5 desktop client (schema 020, commit 7bf720e) and
+the M25.6 access-loss handling; its legacy storage identifiers and personal data were not
 touched. Real hosting/operator policy and the server code license remain open before
 production distribution. No production deployment, publication or release.
 
-Skills applied in the S5/S6 slices: `rust-best-practices` (ownership, error and test
+Skills applied in the M25.5/M25.6 slices: `rust-best-practices` (ownership, error and test
 patterns, Clippy discipline) and `sqlite-expert` (short atomic transactions, indexed
-lookups, FULL durability kept). The earlier S4 delivery
+lookups, FULL durability kept). The earlier M25.4 delivery
 recorded `pages:write-page`; the current environment additionally provides Rust and
 SQLite skills.

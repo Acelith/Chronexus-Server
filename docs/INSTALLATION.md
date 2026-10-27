@@ -216,7 +216,7 @@ the database stays at its old schema. To roll back after a bad upgrade, stop the
 and start it. Recommended procedure: `backup`, pull the new image, `up -d`, watch
 `/health/ready`, keep the previous image until the new one has served real traffic.
 
-## Security summary (S7)
+## Security summary (M25.7)
 
 Tested on Windows x64 in `tests/security.rs` and `tests/recovery.rs` with synthetic data:
 every campaign route against anonymous, outsider, reader, player and owner principals (refusals
@@ -235,7 +235,7 @@ load testing beyond the built-in limits, and real TLS/DNS.
 See [DEVELOPMENT.md](DEVELOPMENT.md), [API.md](API.md) and [STATUS.md](STATUS.md).
 No registry image or server release has been published by this change.
 
-## Operator commands for lifecycle and recovery (S6)
+## Operator commands for lifecycle and recovery (M25.6)
 
 Run with the same database environment as `invite` and `recover`:
 

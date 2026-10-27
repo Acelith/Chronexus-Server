@@ -1,6 +1,6 @@
 # Chronexus Server roadmap
 
-Updated: 26 October 2026. Status: S1–S4 server APIs implemented in source; campaign synchronization and release pending.
+Updated: 26 October 2026. Status: M25.1–M25.4 server APIs implemented in source; campaign synchronization and release pending.
 
 Chronexus Server will provide optional, self-hosted campaign synchronization and
 sharing between Chronexus players. Enabling synchronization for a campaign keeps
@@ -14,7 +14,7 @@ and Android clients.
 This roadmap implements the server side of the application's M24 contract. The
 current application records M23 as implemented and M24 as a client tested against
 a fake; server delivery is now application **M25**, and Android moved to **M27**.
-Server S0–S11 IDs remain unchanged. End-to-end campaign acceptance is still pending.
+Server M25.0–M25.11 IDs remain unchanged. End-to-end campaign acceptance is still pending.
 
 ## Product boundaries
 
@@ -45,30 +45,30 @@ Server S0–S11 IDs remain unchanged. End-to-end campaign acceptance is still pe
 
 ## Milestone sequence
 
-S1–S4 server APIs are implemented and verified natively and in a Linux arm64
-container. The S4 app selection extensions remain integration work. S0 core protocol choices are
-resolved; actual production hosting remains pending. S5 server contract is implemented (desktop queue pending); S6–S11 are planned. Each
-milestone needs focused tests and recorded evidence; this partial delivery is
-not a production deployment or a completed application M25.
+The server is application milestone **M25**, so its steps are numbered M25.0–M25.11
+(renamed from S0–S11 on 27 October 2026; older commits still say S). M25.1–M25.7 are
+implemented; M25.8 is the next step. Each milestone needs focused tests and recorded
+evidence; this partial delivery is not a production deployment or a completed
+application M25.
 
 | ID | Deliverable | Dependency | Status |
 | --- | --- | --- | --- |
-| S0 | Deployment and security decisions | Application M23 and user decisions | Core protocol confirmed; production hosting pending |
-| S1 | Persistent service foundation, Compose and versioned contract | S0 core decisions | Implemented; macOS native and Linux arm64 container verified |
-| S2 | Accounts, sessions and device access | S1 | Implemented; auth subset tested with original desktop client |
-| S3 | Campaign invitations and authorization | S2 | Implemented; original desktop membership calls verified |
-| S4 | Explicit selective sharing and managed attachments | S3 | Server implemented; new app selection/preview UI pending |
-| S5 | Continuous local and server saving with visible conflicts | S4 | Server contract implemented (receipts, incremental sync, notifications); desktop queue pending |
-| S6 | Revocation, deletion and recovery | S5 | Implemented (server and desktop client); Windows tested |
-| S7 | Security qualification and operational recovery | S6 | Implemented on Windows; Docker/Linux, scans, CI and TLS unverified |
-| S8 | Desktop integration and first server release | S7 and full desktop M24 acceptance | Planned |
-| S9 | Android contract qualification | S8 and application M27 | Planned |
-| S10 | Explicit local or self-hosted server AI | S8; independent of S9 | Planned |
-| S11 | Web campaign and server management | S8; independent of S9/S10 | Planned |
+| M25.0 | Deployment and security decisions | Application M23 and user decisions | Core protocol confirmed; production hosting pending |
+| M25.1 | Persistent service foundation, Compose and versioned contract | M25.0 core decisions | Implemented; macOS native and Linux arm64 container verified |
+| M25.2 | Accounts, sessions and device access | M25.1 | Implemented; auth subset tested with original desktop client |
+| M25.3 | Campaign invitations and authorization | M25.2 | Implemented; original desktop membership calls verified |
+| M25.4 | Explicit selective sharing and managed attachments | M25.3 | Server implemented; new app selection/preview UI pending |
+| M25.5 | Continuous local and server saving with visible conflicts | M25.4 | Server contract implemented (receipts, incremental sync, notifications); desktop queue pending |
+| M25.6 | Revocation, deletion and recovery | M25.5 | Implemented (server and desktop client); Windows tested |
+| M25.7 | Security qualification and operational recovery | M25.6 | Implemented on Windows; Docker/Linux, scans, CI and TLS unverified |
+| M25.8 | Desktop integration and first server release | M25.7 and full desktop M24 acceptance | Planned |
+| M25.9 | Android contract qualification | M25.8 and application M27 | Planned |
+| M25.10 | Explicit local or self-hosted server AI | M25.8; independent of M25.9 | Planned |
+| M25.11 | Web campaign and server management | M25.8; independent of M25.9/M25.10 | Planned |
 
-## S0 Deployment and security decisions
+## M25.0 Deployment and security decisions
 
-Core choices for S1/S2 are recorded in [docs/DECISIONS.md](docs/DECISIONS.md).
+Core choices for M25.1/M25.2 are recorded in [docs/DECISIONS.md](docs/DECISIONS.md).
 Confirm the remaining deployment-specific choices before production use:
 
 | Decision | Required outcome |
@@ -78,7 +78,7 @@ Confirm the remaining deployment-specific choices before production use:
 | Encryption | Confirmed HTTPS and server-readable v1 content; no end-to-end encryption in v1 |
 | Persistence | SQLite WAL selected for a single small-group service; PostgreSQL deferred |
 | Account security | Argon2id passwords and operator-assisted recovery implemented; no email service or passkeys |
-| Retention | S2 session and attempt-window defaults implemented; campaign deletion, backup retention and offline-device policy remain S5–S7 work |
+| Retention | M25.2 session and attempt-window defaults implemented; campaign deletion, backup retention and offline-device policy remain M25.5–M25.7 work |
 | Server AI | Confirm available CPU/GPU/RAM, qualified models and licenses, resource quotas, inference retention and the encrypted-content access policy |
 
 Record decisions and reasons in `docs/DECISIONS.md`. V1 deliberately uses
@@ -91,10 +91,10 @@ Any proposed implementation dependencies need current
 compatibility and license verification before adoption.
 
 Acceptance for production: confirm hosting and operator policy, extend the
-authentication threat boundaries to campaigns and complete S7 security/recovery
+authentication threat boundaries to campaigns and complete M25.7 security/recovery
 qualification. No production deployment or publication in this server delivery.
 
-## S1 Persistent service foundation and versioned contract
+## M25.1 Persistent service foundation and versioned contract
 
 Implemented in source. See [docs/STATUS.md](docs/STATUS.md) for executed checks
 and [docs/INSTALLATION.md](docs/INSTALLATION.md) for the source-build quick start.
@@ -125,7 +125,7 @@ The generated contract covers the implemented account, campaign, content and ima
   named volumes, health checks and resource limits. Do not mount the Docker socket,
   run privileged containers or expose secrets in the checked-in configuration.
 
-The implemented S1 configuration is documented in `.env.example` and
+The implemented M25.1 configuration is documented in `.env.example` and
 `docs/INSTALLATION.md`. Remaining configuration goals for later milestones:
 
 | Setting | Default or requirement |
@@ -136,8 +136,8 @@ The implemented S1 configuration is documented in `.env.example` and
 | Trusted proxies | Native service trusts none without configuration; Compose trusts its documented host bridge gateway only |
 | Session and invitation secrets | Generated securely on demand; no manual secret or default credential required |
 | Database and storage | Persistent managed SQLite volume; external database support deferred |
-| AI and GPU profile | S10, not shipped yet; off by default and explicit setup when implemented |
-| Limits and retention | Fixed bounded S2 defaults; campaign quotas/retention overrides belong to later milestones |
+| AI and GPU profile | M25.10, not shipped yet; off by default and explicit setup when implemented |
+| Limits and retention | Fixed bounded M25.2 defaults; campaign quotas/retention overrides belong to later milestones |
 
 Acceptance: clean startup and restart preserve a synthetic database; migrations,
 configuration failures, health checks and contract generation are tested. Record
@@ -145,14 +145,14 @@ the first supported app/server version range, without inventing released version
 Validate Compose configuration, minimal setup and an alternate host port; inspect
 actual exposed ports, persistent data after recreation and failed insecure startup.
 
-## S2 Accounts and sessions
+## M25.2 Accounts and sessions
 
 Implemented in source: invite redemption, login/logout, persistent attempt limits,
 expiring sessions, own-device listing/revocation and operator-assisted recovery.
 The original desktop HTTP client passed meta/redeem/login/logout acceptance; no
 claim of full GUI, campaign-sharing or production TLS acceptance.
 
-- Implement the S0 registration and recovery policy, credential protection,
+- Implement the M25.0 registration and recovery policy, credential protection,
   authentication attempt limits and expiring/revocable sessions.
 - Support distinct devices and revoking one device or all sessions. Store no raw
   reusable credentials in logs; server secrets stay outside Git and images.
@@ -166,7 +166,7 @@ Acceptance: synthetic accounts cover registration, login, expiration, logout,
 revocation, recovery and invalid credentials. Replay and brute-force tests enforce
 the selected policy; one user's session cannot access another user's resources.
 
-## S3 Campaign membership and authorization
+## M25.3 Campaign membership and authorization
 
 Implemented: owner/player/reader membership, one-use campaign invitations,
 registration with an invitation, role revision checks, self-leave/member removal
@@ -185,13 +185,13 @@ Acceptance: two or three synthetic users exercise role changes, expired/reused
 invitations, removal and cross-campaign access attempts. Read-only users cannot
 write; list endpoints and error messages do not disclose private item metadata.
 
-## S4 Selective sharing and attachments
+## M25.4 Selective sharing and attachments
 
 Server implemented in schema 003: private-by-default typed content, explicit member
 projections, legacy-compatible sharing/feed, relationship dependencies, selected
 sheet sections and byte-preserving owned images. The original HTTP client passes
 four-kind sharing acceptance; image/section/private-copy selection and preview UI
-remain desktop integration work for S5/S8. Docker S4 acceptance passed on Linux arm64; public TLS and other platforms
+remain desktop integration work for M25.5/M25.8. Docker M25.4 acceptance passed on Linux arm64; public TLS and other platforms
 remain unverified.
 
 - Define explicit shareable projections for pages, sessions, relationships, parties,
@@ -213,7 +213,7 @@ content remains unavailable to other members. Sharing one page or sheet section
 exposes only the chosen projection. Attachment corruption, invalid formats and
 unauthorized access fail safely.
 
-## S5 Continuous local and server saving
+## M25.5 Continuous local and server saving
 
 Server side implemented (schema 005): UUIDv7 operation IDs with durable receipts for
 saves, deletions, withdrawals and legacy writes (30-day retry horizon, compacted), content
@@ -256,7 +256,7 @@ latency. A server outage must leave recoverable local changes that appear on the
 server after reconnection. Test the actual desktop integration. The two live copies
 are replicas: deletion can propagate, so independent versioned backups remain required.
 
-## S6 Revocation and deletion
+## M25.6 Revocation and deletion
 
 Implemented in schema 006 (26 October 2026): see [docs/API.md](docs/API.md) for what each
 action removes and the limits that remain. Server acceptance is in `tests/lifecycle.rs`; the
@@ -278,7 +278,7 @@ Acceptance: offline recipient, returning former member, pending edits and stale
 cursor scenarios cannot restore revoked items. Backup restore preserves revocations
 and does not silently grant old sessions access again.
 
-## S7 Security and operational recovery
+## M25.7 Security and operational recovery
 
 Implemented 26 October 2026 (Windows x64): `tests/security.rs`, `tests/recovery.rs`, the
 `backup`/`verify`/`restore` commands, automatic pre-upgrade copies and the operator guide in
@@ -301,7 +301,7 @@ Acceptance: documented security results and limitations; successful restore of
 synthetic campaigns, permissions, attachments and revocations; logs contain no
 tokens or campaign content. Record tested host architectures separately.
 
-## S8 Desktop integration and first release
+## M25.8 Desktop integration and first release
 
 - Complete application M24 acceptance with two or three users: invitations, partial
   sharing, offline edits, conflicts, revocation and reconnection.
@@ -319,7 +319,7 @@ Acceptance: reproducible installation from the documented release, verified
 container digests, end-to-end desktop evidence and no unresolved release-blocking
 data-loss or authorization defects. Record supported versions and upgrade steps.
 
-## S9 Android contract qualification
+## M25.9 Android contract qualification
 
 - Reuse the desktop account and scoped API for application M27. Start with campaign
   lists and read-only shared content, bounded offline caching and incremental updates.
@@ -331,7 +331,7 @@ data-loss or authorization defects. Record supported versions and upgrade steps.
 Acceptance: application M27 real-device evidence, compatible API versions and no
 additional private desktop content uploaded to enable mobile access.
 
-## S10 Local or self-hosted server AI
+## M25.10 Local or self-hosted server AI
 
 - Provide an explicit per-campaign execution choice: disabled, local device or the
   selected self-hosted server. Local inference retains its fixed-loopback and
@@ -361,7 +361,7 @@ consent, citations, cancellation, queue exhaustion, offline failure and independ
 campaign settings with synthetic data. Verify Compose runtime ports are not public
 and document actual hardware, model, memory and latency results.
 
-## S11 Web campaign and server management
+## M25.11 Web campaign and server management
 
 - Add an authenticated browser interface as a separate milestone, served through
   the same configured HTTPS origin and host port as the API.
@@ -391,5 +391,5 @@ For each milestone, update `docs/STATUS.md` with what works, exact executed chec
 remaining limitations and the next step. Review the diff and whitespace, run the
 relevant Rust, contract, security and integration checks, then commit only relevant
 files with an English Conventional Commit and specific validation evidence.
-S1–S4 server APIs do not count as completed application M25 or M27. Advance milestone status
+M25.1–M25.4 server APIs do not count as completed application M25 or M27. Advance milestone status
 only with corresponding implementation and acceptance evidence.

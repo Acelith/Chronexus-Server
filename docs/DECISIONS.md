@@ -1,11 +1,11 @@
 # Chronexus Server decisions
 
-## 26 October 2026 Initial implementation through S2
+## 26 October 2026 Initial implementation through M25.2
 
 The user authorized reading the current application and starting the server through
-the account/session milestone (S2, called M2 in the request). The current application
+the account/session milestone (M25.2, called M2 in the request). The current application
 documents M23 as implemented and M24 as a desktop client tested against a contract
-fake. Its server milestone is now **M25**; Android moved to **M27**. Server S0–S11
+fake. Its server milestone is now **M25**; Android moved to **M27**. Server M25.0–M25.11
 identifiers remain stable and are independent of application milestone numbers.
 
 The application's `docs/SERVER_NOTES.md`, `docs/SYNC_API.md` and `sync/api.rs` confirm
@@ -14,7 +14,7 @@ encryption, and human revision conflict resolution. These decisions supersede th
 previous unconfirmed registration/encryption rows in this repository's plan.
 
 The user's additional continuous private replication and self-hosted AI requirements
-extend the current client: they remain S5 and S10 work, not existing client behavior.
+extend the current client: they remain M25.5 and M25.10 work, not existing client behavior.
 Private owner replication and member sharing must remain separate permissions.
 
 ### Implementation choices
@@ -25,7 +25,7 @@ Private owner replication and member sharing must remain separate permissions.
   between service replicas. This is an engineering default, not a hosting purchase.
 - Generate OpenAPI and TypeScript schemas from implemented Rust types. Publish
   only the account/session subset locally. The desktop's remaining draft sharing
-  contract stays the reference for S3–S8; do not replace it with the partial schema.
+  contract stays the reference for M25.3–M25.8; do not replace it with the partial schema.
 - Use Argon2id PHC hashes with independent random salts, 256-bit opaque random
   Bearer tokens/codes and SHA-256 lookup hashes. Sessions expire after seven idle
   days or thirty absolute days; at most twenty active sessions per account.
@@ -52,12 +52,12 @@ Private owner replication and member sharing must remain separate permissions.
 
 Real domain, proxy address/topology, public exposure, recovery operator procedures
 and production retention/backup policy must be confirmed before production use.
-Campaign tombstone retention belongs to S5/S6, recoverable server backups to S7,
-server AI hardware/model qualification to S10 and web management to S11. The server
+Campaign tombstone retention belongs to M25.5/M25.6, recoverable server backups to M25.7,
+server AI hardware/model qualification to M25.10 and web management to M25.11. The server
 code's license remains to be established before distribution; dependency licenses
 are recorded separately in `DEPENDENCIES.md`.
 
-## 26 October 2026 S3 campaign access
+## 26 October 2026 M25.3 campaign access
 
 Schema 002 adds campaigns, versioned active memberships and separate hashed
 campaign invitations. Campaign members see their campaign name, membership roles
@@ -72,10 +72,10 @@ after seven days, are consumed once in the same transaction as registration/join
 and old invitation records can be purged after their expiry plus thirty days.
 Removal increments an inactive membership revision; rejoin increments it again,
 so an old role/removal request cannot affect a later membership accidentally.
-No campaign content is stored until S4; authored content withdrawal on removal
+No campaign content is stored until M25.4; authored content withdrawal on removal
 will be added atomically with that storage. No publication in this milestone.
 
-## 26 October 2026 S4 private originals and explicit projections
+## 26 October 2026 M25.4 private originals and explicit projections
 
 Schema 003 adds typed content, public legacy projections, dependencies and owned
 image originals. Per-item visibility defaults to private and only the author can
@@ -97,7 +97,7 @@ keyed by UUID/campaign/author with SHA-256 and dimensions. This preserves bytes 
 atomic quota/reference checks without accepting user paths or introducing a second
 filesystem writer. It is independent of the desktop's managed attachment folders.
 No partially committed file cleanup is needed; completed unreferenced uploads are
-private, quota-accounted and explicitly deletable. S7 backups must include these BLOBs.
+private, quota-accounted and explicitly deletable. M25.7 backups must include these BLOBs.
 
 Adopt the desktop's pinned image 0.25.10 with PNG/JPEG/WebP features only. Its Rust
 minimum raises the server manifest floor from 1.85 to 1.88; the verified toolchain
@@ -110,15 +110,15 @@ before modifying journal mode or migrating. A desktop/foreign archive with a sim
 version number is refused; schemas 001/002 upgrade additively and older server
 binaries refuse schema 003. No application storage identifiers or schemas change.
 
-S4 server APIs are implemented. The original app's sharing client is exercised for
+M25.4 server APIs are implemented. The original app's sharing client is exercised for
 four legacy kinds; private whole-campaign replication and image/section selection
-UI are not added to the desktop in this repository. S5/S8 must integrate and verify
+UI are not added to the desktop in this repository. M25.5/M25.8 must integrate and verify
 that explicit scope preview. Continuous save queues, idempotency keys and change
-notifications are S5 work; production recovery and full revocation lifecycle remain
-S6/S7. AI and web remain S10/S11. No production deployment or publication.
+notifications are M25.5 work; production recovery and full revocation lifecycle remain
+M25.6/M25.7. AI and web remain M25.10/M25.11. No production deployment or publication.
 
 
-## S5 save receipts (26 October 2026)
+## M25.5 save receipts (26 October 2026)
 
 Keep idempotency in the existing content transaction rather than HTTP response
 middleware: a durable acknowledgment and mutation must commit or roll back together.
@@ -131,13 +131,13 @@ Retain only request digests and revisions, without private response snapshots.
 Do not cache conflict bodies that may become unauthorized later. Initial bounded
 storage refuses new keyed operations at 10,000 receipts per account/campaign;
 never silently expire receipts and risk replaying an old creation after deletion.
-This limit is explicit and provisional; S5 must add an acknowledged compaction or
+This limit is explicit and provisional; M25.5 must add an acknowledged compaction or
 safe retry-horizon protocol before production continuous use. Existing unkeyed
 clients and legacy sharing routes remain compatible. Schema 004 is additive;
 previous server binaries must refuse the newer archive. No desktop changes,
-new dependencies, deployment, publication or complete S5 acceptance in this slice.
+new dependencies, deployment, publication or complete M25.5 acceptance in this slice.
 
-## S5 server contract: log, retry horizon, notifications (26 October 2026)
+## M25.5 server contract: log, retry horizon, notifications (26 October 2026)
 
 - **Feed = signal, state = truth.** Schema 005 adds a payload-free per-campaign change
   log. `/sync` reads the log only to learn which items to re-examine and always emits
@@ -167,12 +167,12 @@ new dependencies, deployment, publication or complete S5 acceptance in this slic
   binaries refuse the newer archive. No desktop change in this slice; the legacy four-kind
   client keeps its behavior.
 
-## S6 lifecycle: what deletion keeps (26 October 2026)
+## M25.6 lifecycle: what deletion keeps (26 October 2026)
 
 - **Separate, explicit actions.** Revocation (unshare, member removal) keeps the author's
   private original; erasing one's own server copy, deleting a campaign and deleting an
   account are three different confirmed actions, because the desktop treats the server copy
-  as a replica (S5) and must never lose it through a sharing change.
+  as a replica (M25.5) and must never lose it through a sharing change.
 - **A deleted campaign leaves a stub, not content.** Its id, deletion time and inactive
   membership rows remain so former members are told ("deleted", 404) instead of seeing a
   generic refusal; outsiders cannot tell it ever existed (403). All payloads, uploads, log
@@ -189,7 +189,7 @@ new dependencies, deployment, publication or complete S5 acceptance in this slic
 - **Restores are the operator's responsibility.** A backup contains only what existed when it
   was made; `revoke-sessions` removes the one thing that must not silently come back.
 
-## S7 backup, restore and upgrade policy (26 October 2026)
+## M25.7 backup, restore and upgrade policy (26 October 2026)
 
 - **One verified file.** Uploads live in the database, so `VACUUM INTO` gives a consistent,
   complete backup while the server runs, and verification re-reads everything it promises

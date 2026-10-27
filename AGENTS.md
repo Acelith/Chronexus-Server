@@ -9,7 +9,7 @@ English is the source language. Preserve the desktop's local-first behavior.
   transactions. Never write the desktop database or accept arbitrary file paths.
 - The current desktop reference is Chronexus docs/SYNC_API.md and sync/api.rs.
   Generate this repository's OpenAPI and TypeScript schemas from implemented code.
-  Never claim the full sharing contract works before S3–S8 acceptance.
+  Never claim the full sharing contract works before M25.3–M25.8 acceptance.
 - Registration is invitation-only. HTTPS is terminated by explicitly trusted
   proxies; direct HTTP is an explicit loopback-only development exception.
 - Hash passwords with Argon2id; persist only hashes of random tokens/codes.

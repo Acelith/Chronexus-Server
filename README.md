@@ -18,7 +18,7 @@ can see, and decide whether AI runs on your computer or your own server.
 </div>
 
 > [!NOTE]
-> The service foundation, accounts, campaign membership and selective-sharing APIs (S1–S4) are implemented in source.
+> The service foundation, accounts, campaign membership and selective-sharing APIs (M25.1–M25.4) are implemented in source.
 > Continuous desktop saving, new image/sheet selection UI, AI and web management remain planned.
 > Build locally with Compose; no server release has been published.
 
@@ -55,17 +55,17 @@ The delivery goal:
 
 | Feature | In short | Milestone | Status |
 | --- | --- | --- | --- |
-| **Accounts and devices** | Authentication, revocable sessions and account recovery under the selected registration policy | S2 | Implemented |
-| **Campaign membership** | Invitations, owner/player/read-only roles and authorization on every item | S3 | Implemented |
-| **Selective sharing** | Private owner copies, explicit member access, selected sheet sections and managed images | S4 | Server implemented; client extensions pending |
-| **Continuous saving** | Local autosave, automatic online replication, durable pending changes and visible save status | S5 | Implemented (server and desktop client); Windows tested |
-| **Conflict handling** | Both versions remain visible when concurrent edits need your decision | S5 | Implemented (server and desktop client); Windows tested |
-| **Revocation** | Remove member access and clear shared copies on their next synchronization | S6 | Implemented (server and desktop client); Windows tested |
-| **Backup and recovery** | Consistent server backups, integrity checks and documented restoration | S7 | Planned |
-| **Desktop integration** | Tested synchronization with the original Chronexus app | S8 | Planned |
-| **Android access** | Same account and shared content, with read-only access first | S9 / app M27 | Planned |
-| **Local or server AI** | Explicit execution choice, scoped sources and citations, bounded server resource use | S10 | Planned |
-| **Web management** | Authenticated campaign, membership, storage and service management | S11 | Planned |
+| **Accounts and devices** | Authentication, revocable sessions and account recovery under the selected registration policy | M25.2 | Implemented |
+| **Campaign membership** | Invitations, owner/player/read-only roles and authorization on every item | M25.3 | Implemented |
+| **Selective sharing** | Private owner copies, explicit member access, selected sheet sections and managed images | M25.4 | Server implemented; client extensions pending |
+| **Continuous saving** | Local autosave, automatic online replication, durable pending changes and visible save status | M25.5 | Implemented (server and desktop client); Windows tested |
+| **Conflict handling** | Both versions remain visible when concurrent edits need your decision | M25.5 | Implemented (server and desktop client); Windows tested |
+| **Revocation** | Remove member access and clear shared copies on their next synchronization | M25.6 | Implemented (server and desktop client); Windows tested |
+| **Backup and recovery** | Consistent server backups, integrity checks and documented restoration | M25.7 | Planned |
+| **Desktop integration** | Tested synchronization with the original Chronexus app | M25.8 | Planned |
+| **Android access** | Same account and shared content, with read-only access first | M25.9 / app M27 | Planned |
+| **Local or server AI** | Explicit execution choice, scoped sources and citations, bounded server resource use | M25.10 | Planned |
+| **Web management** | Authenticated campaign, membership, storage and service management | M25.11 | Planned |
 
 ## Deployment and configuration
 
@@ -87,20 +87,20 @@ ports, account policy and recovery. This build supports accounts, campaign roles
   Only the application port is published.
 - Public access requires a valid HTTPS origin and explicitly trusted TLS proxy.
   Credentials are generated securely; no default password.
-- AI/GPU services remain S10 work; no model is downloaded or runtime started.
-- The current S4 Linux arm64 image and Compose persistence/authorization checks
+- AI/GPU services remain M25.10 work; no model is downloaded or runtime started.
+- The current M25.4 Linux arm64 image and Compose persistence/authorization checks
   passed locally. Linux amd64 and native Windows remain unverified.
   No registry image is published.
 
 Confirmed protocol decisions and remaining hosting work are tracked in
-[roadmap S0](ROADMAP.md#s0-deployment-and-security-decisions) and
+[roadmap M25.0](ROADMAP.md#m250-deployment-and-security-decisions) and
 [docs/DECISIONS.md](docs/DECISIONS.md).
 
 ## Synchronization and backups
 
-S4 implements explicit per-item sharing and private-content APIs. The original app
+M25.4 implements explicit per-item sharing and private-content APIs. The original app
 can share pages, sessions, relationships and party members; new image/selected-sheet
-selection UI and continuous local/server saving remain S5/S8 client work.
+selection UI and continuous local/server saving remain M25.5/M25.8 client work.
 
 For an activated campaign, every autosave will persist locally before its change
 is sent to the server. The interface will distinguish local success from confirmed
@@ -114,7 +114,7 @@ and reach offline recipients when they reconnect; it cannot erase exported copie
 
 ## Local or server assistant
 
-Planned in S10.
+Planned in M25.10.
 
 AI will remain optional, with an explicit per-campaign choice of disabled, local
 device or the selected self-hosted server. Server mode will use your server's
@@ -125,7 +125,7 @@ No third-party cloud AI, automatic provider switch or implicit training is plann
 Server AI needs access to the submitted prompt and approved context; the encryption
 policy must make that disclosure explicit. Runtime installation, model download
 and campaign AI activation will remain separate actions. See
-[roadmap S10](ROADMAP.md#s10-local-or-self-hosted-server-ai).
+[roadmap M25.10](ROADMAP.md#m2510-local-or-self-hosted-server-ai).
 
 ## Privacy and data
 
@@ -140,9 +140,9 @@ and campaign AI activation will remain separate actions. See
 
 ## Roadmap
 
-[ROADMAP.md](ROADMAP.md) defines S0–S11, dependencies and acceptance criteria.
+[ROADMAP.md](ROADMAP.md) defines M25.0–M25.11, dependencies and acceptance criteria.
 [docs/STATUS.md](docs/STATUS.md) records what exists, checks actually performed
-and the next step: **S8 desktop integration acceptance and the first release** (S7 is implemented on Windows). Production
+and the next step: **M25.8 desktop integration acceptance and the first release** (M25.7 is implemented on Windows). Production
 hosting and full campaign acceptance remain open.
 
 ## Development and contributing

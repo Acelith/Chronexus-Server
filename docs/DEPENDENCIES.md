@@ -40,6 +40,6 @@ Primary references: [axum](https://docs.rs/crate/axum/0.8.9),
 [utoipa](https://docs.rs/crate/utoipa/5.5.0),
 [image decoder limits](https://docs.rs/image/0.25.10/image/struct.Limits.html).
 SQLite is bundled through libsqlite3-sys; inspect that package's notices when
-preparing distribution. Review the complete transitive graph and advisories for S7.
+preparing distribution. Review the complete transitive graph and advisories for M25.7.
 Base Docker images are official Rust/Debian images pinned by content digest;
 operating-system packages and image security need separate release review.
