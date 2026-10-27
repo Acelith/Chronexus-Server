@@ -66,6 +66,14 @@ application M25.
 | M25.10 | Explicit local or self-hosted server AI | M25.8; independent of M25.9 | Planned |
 | M25.11 | Web campaign and server management | M25.8; independent of M25.9/M25.10 | Planned |
 
+**Next, alongside M25.8: application M41, the project wiki** (requested 27 October 2026).
+This repository's wiki on github.com gets an operator guide (what the server does and
+does not do, installation with Docker Compose and HTTPS, accounts and invitations, roles,
+the sharing model, backups and upgrades, security, CLI) and a developer part
+(architecture, API contract, tests, the M25.n milestones). Sources live in `docs/wiki/`
+and are pushed to `Chronexus-Server.wiki.git` only after the user's go-ahead. See the
+application ROADMAP, M41.
+
 ## M25.0 Deployment and security decisions
 
 Core choices for M25.1/M25.2 are recorded in [docs/DECISIONS.md](docs/DECISIONS.md).
