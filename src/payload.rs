@@ -16,6 +16,7 @@ pub enum Payload {
     Party(Party),
     SheetSection(SheetSection),
     Image(Image),
+    Clue(Clue),
 }
 #[derive(Clone, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -73,6 +74,25 @@ pub struct SheetField {
 pub struct Image {
     pub attachment_id: String,
     pub caption: String,
+}
+#[derive(Clone, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct Clue {
+    pub kind: String,
+    pub title: String,
+    pub details: String,
+    pub certainty: String,
+    pub status: String,
+    pub sources: Vec<ClueSource>,
+    pub page_ids: Vec<String>,
+    pub resolution_session_id: Option<String>,
+}
+#[derive(Clone, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ClueSource {
+    pub kind: String,
+    pub id: String,
+    pub block_id: Option<String>,
 }
 #[derive(Clone, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -279,6 +299,7 @@ impl Payload {
             Self::Party(_) => "party",
             Self::SheetSection(_) => "sheetSection",
             Self::Image(_) => "image",
+            Self::Clue(_) => "clue",
         }
     }
     pub fn validate(&self, kind: &str) -> Result<()> {
@@ -368,6 +389,52 @@ impl Payload {
                 identifier(&p.attachment_id)?;
                 note(&p.caption, 4000)?;
             }
+            Self::Clue(p) => {
+                choice(&p.kind, &["question", "lead", "suspicion", "rumour"])?;
+                text(&p.title, 1, 200)?;
+                note(&p.details, 8000)?;
+                choice(
+                    &p.certainty,
+                    &["confirmed", "suspected", "disproven", "unknown"],
+                )?;
+                choice(&p.status, &["open", "resolved", "disproven"])?;
+                if (p.status == "disproven" && p.certainty != "disproven")
+                    || (p.status == "open" && p.resolution_session_id.is_some())
+                    || p.sources.len() > 20
+                    || p.page_ids.len() > 20
+                {
+                    return Err(ApiError::invalid());
+                }
+                let mut pages = HashSet::new();
+                for id in &p.page_ids {
+                    identifier(id)?;
+                    if !pages.insert(id) {
+                        return Err(ApiError::invalid());
+                    }
+                }
+                let mut sources = HashSet::new();
+                for source in &p.sources {
+                    choice(&source.kind, &["page", "session"])?;
+                    identifier(&source.id)?;
+                    if source
+                        .block_id
+                        .as_ref()
+                        .is_some_and(|id| id.len() > 128 || id.contains('\0'))
+                    {
+                        return Err(ApiError::invalid());
+                    }
+                    if !sources.insert((
+                        &source.kind,
+                        &source.id,
+                        source.block_id.as_deref().unwrap_or(""),
+                    )) {
+                        return Err(ApiError::invalid());
+                    }
+                }
+                if let Some(id) = &p.resolution_session_id {
+                    identifier(id)?;
+                }
+            }
         }
         Ok(())
     }
@@ -375,6 +442,17 @@ impl Payload {
         match self {
             Self::Relationship(p) => vec![&p.from_page_id, &p.to_page_id],
             Self::Party(p) => vec![&p.page_id],
+            Self::Clue(p) => p
+                .page_ids
+                .iter()
+                .map(String::as_str)
+                .chain(
+                    p.sources
+                        .iter()
+                        .filter(|s| s.kind == "page")
+                        .map(|s| s.id.as_str()),
+                )
+                .collect(),
             _ => vec![],
         }
     }

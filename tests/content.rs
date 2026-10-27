@@ -102,6 +102,118 @@ fn page(title: &str) -> Value {
 fn relationship(a: &str, b: &str) -> Value {
     json!({"fromPageId":a,"toPageId":b,"label":"Knows","certainty":"suspected","evidence":"A player claim","notes":""})
 }
+fn clue(page_id: &str, session_id: &str) -> Value {
+    json!({"kind":"question","title":"Who took the seal?","details":"A witness may be mistaken.","certainty":"unknown","status":"open","sources":[{"kind":"session","id":session_id,"blockId":"block-1"}],"pageIds":[page_id],"resolutionSessionId":null})
+}
+#[tokio::test]
+async fn clues_require_explicitly_shared_sources_and_keep_player_claims_separate() {
+    let g = Group::new().await;
+    let page_id = Uuid::new_v4().to_string();
+    let session_id = Uuid::new_v4().to_string();
+    let clue_id = Uuid::new_v4().to_string();
+    assert_eq!(
+        g.save(
+            &g.owner,
+            "page",
+            &page_id,
+            page("Witness"),
+            Some("members"),
+            0
+        )
+        .await
+        .0,
+        StatusCode::OK
+    );
+    let session = json!({"sequence":1,"title":"Bridge","playedOn":null,"document":{"version":1,"blocks":[{"id":"block-1","type":"paragraph","props":{},"content":[],"children":[]}]}});
+    assert_eq!(
+        g.save(&g.owner, "session", &session_id, session.clone(), None, 0)
+            .await
+            .0,
+        StatusCode::OK
+    );
+    assert_eq!(
+        g.save(
+            &g.owner,
+            "clue",
+            &clue_id,
+            clue(&page_id, &session_id),
+            Some("members"),
+            0
+        )
+        .await
+        .0,
+        StatusCode::BAD_REQUEST
+    );
+    assert_eq!(
+        g.save(
+            &g.owner,
+            "session",
+            &session_id,
+            session,
+            Some("members"),
+            1
+        )
+        .await
+        .0,
+        StatusCode::OK
+    );
+    assert_eq!(
+        g.save(
+            &g.owner,
+            "clue",
+            &clue_id,
+            clue(&page_id, &session_id),
+            Some("members"),
+            0
+        )
+        .await
+        .0,
+        StatusCode::OK
+    );
+    let (_, visible) =
+        g.f.call(
+            "GET",
+            &g.path("clue", &clue_id),
+            Value::Null,
+            g.reader["token"].as_str(),
+        )
+        .await;
+    assert_eq!(visible["payload"]["title"], "Who took the seal?");
+    assert_eq!(visible["payload"]["sources"][0]["blockId"], "block-1");
+    assert_eq!(
+        g.f.call(
+            "GET",
+            &g.path("relationship", &clue_id),
+            Value::Null,
+            g.reader["token"].as_str()
+        )
+        .await
+        .0,
+        StatusCode::NOT_FOUND
+    );
+    assert_eq!(
+        g.f.call(
+            "DELETE",
+            &format!("{}/sharing?baseRevision=2", g.path("session", &session_id)),
+            Value::Null,
+            g.owner["token"].as_str()
+        )
+        .await
+        .0,
+        StatusCode::OK
+    );
+    assert_eq!(
+        g.f.call(
+            "GET",
+            &g.path("clue", &clue_id),
+            Value::Null,
+            g.reader["token"].as_str()
+        )
+        .await
+        .0,
+        StatusCode::NOT_FOUND
+    );
+}
 fn image_bytes(format: ImageFormat) -> Vec<u8> {
     let mut out = Cursor::new(Vec::new());
     DynamicImage::new_rgb8(2, 2)
@@ -1435,7 +1547,7 @@ fn content_schema_upgrade_adds_receipts_and_log_without_modifying_originals() {
     db.with(|conn| {
         assert_eq!(
             conn.pragma_query_value(None, "user_version", |r| r.get::<_, i64>(0))?,
-            6
+            7
         );
         assert_eq!(
             conn.query_row("SELECT state FROM content_log WHERE id='item'", [], |r| {

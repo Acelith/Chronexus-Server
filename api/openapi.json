@@ -467,6 +467,76 @@
         ],
         "type": "object"
       },
+      "Clue": {
+        "additionalProperties": false,
+        "properties": {
+          "certainty": {
+            "type": "string"
+          },
+          "details": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "pageIds": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "resolutionSessionId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "sources": {
+            "items": {
+              "$ref": "#/components/schemas/ClueSource"
+            },
+            "type": "array"
+          },
+          "status": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "title",
+          "details",
+          "certainty",
+          "status",
+          "sources",
+          "pageIds"
+        ],
+        "type": "object"
+      },
+      "ClueSource": {
+        "additionalProperties": false,
+        "properties": {
+          "blockId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "id"
+        ],
+        "type": "object"
+      },
       "ContentItem": {
         "allOf": [
           {
@@ -1223,6 +1293,9 @@
           },
           {
             "$ref": "#/components/schemas/Image"
+          },
+          {
+            "$ref": "#/components/schemas/Clue"
           }
         ]
       },

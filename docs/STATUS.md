@@ -1,6 +1,20 @@
 # Chronexus Server status
 
-Updated: 27 October 2026. Source 0.1.1 + unreleased M25.10, server schema 006 (unchanged).
+Updated: 27 October 2026. Source 0.1.1 + unreleased M25.10/M31 support, server schema 007.
+
+## 27 October 2026: M31 clue payload for the desktop board
+
+- Schema 007 widens the typed content kind to `clue` without changing existing
+  rows, after a pre-upgrade backup. Clues retain the author's status and source
+  IDs; the server validates linked page and session visibility before private
+  replication or sharing. Withdrawing a referenced page or session withdraws
+  public dependent clues. A claim never becomes a relationship.
+- OpenAPI and TypeScript contracts regenerated. Focused server tests cover private
+  source refusal, explicit sharing, attribution, no factual relationship and
+  source revocation. The desktop client's real-server test copied a clue to a
+  second local device with the block ID intact. Windows `cargo test --locked`,
+  Clippy with warnings denied, rustfmt and the release build passed.
+  This server change is not a public deployment or a published image.
 
 ## 27 October 2026 (night): M25.10 server AI without GPU qualification
 

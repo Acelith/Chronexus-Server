@@ -22,7 +22,7 @@ pub struct Database(
 );
 pub(crate) const SERVER_ID: i64 = 0x43584e53;
 /// The newest schema this binary can run; an older binary refuses a newer archive.
-pub const LATEST_SCHEMA: u32 = 6;
+pub const LATEST_SCHEMA: u32 = 7;
 
 /// Rejects parent traversal and symbolic links in every existing component of `path`,
 /// including the file itself, and returns it as an absolute path.
@@ -34,6 +34,10 @@ pub(crate) fn safe_path(path: &Path) -> std::result::Result<std::path::PathBuf, 
             return Err("Database path must not contain parent traversal.".into());
         }
         current.push(component);
+        // A Windows drive/extended-path prefix alone is not a path that can be inspected.
+        if matches!(component, Component::Prefix(_)) {
+            continue;
+        }
         match fs::symlink_metadata(&current) {
             Ok(meta) if meta.file_type().is_symlink() => {
                 return Err("Database path must not traverse symbolic links.".into());
@@ -165,6 +169,10 @@ impl Database {
                 let _ = fs::set_permissions(&backup, fs::Permissions::from_mode(0o600));
             }
         }
+        if before < 7 {
+            conn.pragma_update(None, "foreign_keys", "OFF")
+                .map_err(|_| "Cannot prepare content migration.")?;
+        }
         let tx = conn
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| "Cannot lock database migration.")?;
@@ -206,7 +214,25 @@ impl Database {
             tx.pragma_update(None, "user_version", 6)
                 .map_err(|_| "Cannot record schema version.")?;
         }
+        if version < 7 {
+            tx.execute_batch(include_str!("../migrations/007_clues.sql"))
+                .map_err(|_| "Clue migration failed; transaction rolled back.")?;
+            tx.pragma_update(None, "user_version", 7)
+                .map_err(|_| "Cannot record schema version.")?;
+        }
         tx.commit().map_err(|_| "Cannot commit schema migration.")?;
+        if before < 7 {
+            conn.pragma_update(None, "foreign_keys", "ON")
+                .map_err(|_| "Cannot restore foreign key enforcement.")?;
+            let violations: i64 = conn
+                .query_row("SELECT count(*) FROM pragma_foreign_key_check", [], |r| {
+                    r.get(0)
+                })
+                .map_err(|_| "Cannot validate migrated foreign keys.")?;
+            if violations != 0 {
+                return Err("Migrated database has invalid references.".into());
+            }
+        }
         Ok(Self(Mutex::new(conn), broadcast::channel(64).0))
     }
     pub fn with<T>(&self, operation: impl FnOnce(&mut Connection) -> Result<T>) -> Result<T> {

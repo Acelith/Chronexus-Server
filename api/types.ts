@@ -114,6 +114,23 @@ export type Citation = {
   "title": string;
 };
 
+export type Clue = {
+  "certainty": string;
+  "details": string;
+  "kind": string;
+  "pageIds": Array<string>;
+  "resolutionSessionId"?: string | null;
+  "sources": Array<ClueSource>;
+  "status": string;
+  "title": string;
+};
+
+export type ClueSource = {
+  "blockId"?: string | null;
+  "id": string;
+  "kind": string;
+};
+
 export type ContentItem = Item & {
   "visibility": Visibility;
 };
@@ -308,7 +325,7 @@ export type Party = {
   "status": string;
 };
 
-export type Payload = Page | Session | Relationship | Party | SheetSection | Image;
+export type Payload = Page | Session | Relationship | Party | SheetSection | Image | Clue;
 
 export type Question = {
   "locale"?: string | null;

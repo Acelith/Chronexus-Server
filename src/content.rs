@@ -22,7 +22,7 @@ pub const LOG_KEEP: i64 = 100_000;
 const SYNC_ROWS: i64 = 500;
 const SYNC_BYTES: usize = 6 * 1024 * 1024;
 
-const LEGACY: &[&str] = &["page", "session", "relationship", "party"];
+const LEGACY: &[&str] = &["page", "session", "relationship", "party", "clue"];
 #[derive(Clone, Copy, Default, Serialize, Deserialize, ToSchema, PartialEq)]
 #[serde(rename_all = "lowercase")]
 pub enum Visibility {
@@ -225,6 +225,47 @@ fn dependencies(
             ));
         }
     }
+    if let Payload::Clue(clue) = &input.payload {
+        conn.execute(
+            "DELETE FROM clue_session_dependencies WHERE campaign_id=?1 AND clue_id=?2",
+            params![campaign, id],
+        )?;
+        for source in &clue.sources {
+            if source.kind != "session" {
+                continue;
+            }
+            let session = stored(conn, campaign, "session", &source.id)?.ok_or_else(missing)?;
+            if session.deleted
+                || (session.visibility == Visibility::Private && session.author != author)
+            {
+                return Err(missing());
+            }
+            if input.visibility == Visibility::Members && session.visibility != Visibility::Members
+            {
+                return Err(ApiError(
+                    StatusCode::BAD_REQUEST,
+                    "Share the referenced sessions explicitly first.",
+                ));
+            }
+            conn.execute("INSERT OR IGNORE INTO clue_session_dependencies(campaign_id,clue_id,session_id) VALUES(?1,?2,?3)", params![campaign,id,source.id])?;
+        }
+        if let Some(session_id) = &clue.resolution_session_id {
+            let session = stored(conn, campaign, "session", session_id)?.ok_or_else(missing)?;
+            if session.deleted
+                || (session.visibility == Visibility::Private && session.author != author)
+            {
+                return Err(missing());
+            }
+            if input.visibility == Visibility::Members && session.visibility != Visibility::Members
+            {
+                return Err(ApiError(
+                    StatusCode::BAD_REQUEST,
+                    "Share the referenced sessions explicitly first.",
+                ));
+            }
+            conn.execute("INSERT OR IGNORE INTO clue_session_dependencies(campaign_id,clue_id,session_id) VALUES(?1,?2,?3)", params![campaign,id,session_id])?;
+        }
+    }
     if let Payload::Party(p) = &input.payload
         && p.page_id != id
     {
@@ -282,6 +323,20 @@ pub(crate) fn withdraw_dependents(conn: &Connection, campaign: &str, page: &str)
     }
     Ok(rows.len())
 }
+pub(crate) fn withdraw_session_dependents(
+    conn: &Connection,
+    campaign: &str,
+    session: &str,
+) -> Result<usize> {
+    let mut q = conn.prepare("SELECT c.id FROM content c JOIN clue_session_dependencies d ON d.campaign_id=c.campaign_id AND d.clue_id=c.id WHERE c.campaign_id=?1 AND c.kind='clue' AND d.session_id=?2 AND c.visibility='members' AND c.deleted=0")?;
+    let ids = q
+        .query_map(params![campaign, session], |r| r.get::<_, String>(0))?
+        .collect::<std::result::Result<Vec<_>, _>>()?;
+    for id in &ids {
+        withdraw(conn, campaign, "clue", id)?;
+    }
+    Ok(ids.len())
+}
 pub(crate) fn withdraw_author(conn: &Connection, campaign: &str, account: &str) -> Result<()> {
     let mut q=conn.prepare("SELECT kind,id FROM content WHERE campaign_id=?1 AND author_id=?2 AND visibility='members' AND deleted=0")?;
     let rows = q
@@ -296,6 +351,8 @@ pub(crate) fn withdraw_author(conn: &Connection, campaign: &str, account: &str) 
         }
         if kind == "page" {
             withdraw_dependents(conn, campaign, &id)?;
+        } else if kind == "session" {
+            withdraw_session_dependents(conn, campaign, &id)?;
         }
     }
     Ok(())
@@ -474,6 +531,7 @@ impl Database {
             if input.visibility==Visibility::Members {publish(&tx,campaign,kind_name,id,revision,false)?;}
             else if old.as_ref().is_some_and(|o|o.visibility==Visibility::Members && !o.deleted) {publish(&tx,campaign,kind_name,id,revision,true)?;}
             if kind_name=="page" && input.visibility==Visibility::Private {withdraw_dependents(&tx,campaign,id)?;}
+            if kind_name=="session" && input.visibility==Visibility::Private {withdraw_session_dependents(&tx,campaign,id)?;}
             let was_public = old.as_ref().is_some_and(|o| o.visibility == Visibility::Members && !o.deleted);
             let state = match (input.visibility, was_public) {
                 (Visibility::Members, _) => "members",
@@ -535,6 +593,7 @@ impl Database {
             if legacy {
                 let revision=withdraw(&tx,campaign,kind_name,id)?;
                 if kind_name=="page"{withdraw_dependents(&tx,campaign,id)?;}
+                if kind_name=="session"{withdraw_session_dependents(&tx,campaign,id)?;}
                 if let Some(keyed) = &keyed { keyed.remember(&tx, revision)?; }
                 tx.commit()?;
                 self.notify(campaign, &identity.account_id, true);
@@ -542,9 +601,10 @@ impl Database {
             }
             tx.execute("UPDATE content SET deleted=1,payload=NULL,revision=?1,updated_at=?2 WHERE campaign_id=?3 AND kind=?4 AND id=?5",params![revision,now(),campaign,kind_name,id])?;
             for table in ["content_dependencies","content_attachments"] {tx.execute(&format!("DELETE FROM {table} WHERE campaign_id=?1 AND kind=?2 AND item_id=?3"),params![campaign,kind_name,id])?;}
+            if kind_name=="clue" {tx.execute("DELETE FROM clue_session_dependencies WHERE campaign_id=?1 AND clue_id=?2",params![campaign,id])?;}
             if was_public{publish(&tx,campaign,kind_name,id,revision,true)?;}
             // Other members hear about the deletion only if something they could see changed.
-            let withdrawn = if kind_name=="page"{withdraw_dependents(&tx,campaign,id)?}else{0};
+            let withdrawn = if kind_name=="page"{withdraw_dependents(&tx,campaign,id)?}else if kind_name=="session"{withdraw_session_dependents(&tx,campaign,id)?}else{0};
             let public = log_change(&tx, campaign, kind_name, id, &identity.account_id, if was_public { "deleted" } else { "deleted-private" })?
                 || withdrawn > 0;
             if let Some(keyed) = &keyed { keyed.remember(&tx, revision)?; }
@@ -610,6 +670,8 @@ impl Database {
             let revision = withdraw(&tx, campaign, kind_name, id)?;
             if kind_name == "page" {
                 withdraw_dependents(&tx, campaign, id)?;
+            } else if kind_name == "session" {
+                withdraw_session_dependents(&tx, campaign, id)?;
             }
             if let Some(keyed) = &keyed {
                 keyed.remember(&tx, revision)?;

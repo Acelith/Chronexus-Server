@@ -32,3 +32,12 @@ then re-evaluates the item from its current state.
 
 Bounded page sizes, payload sizes, image sizes (8 MiB per original for sharing) and
 storage quotas protect the server. See `docs/API.md` for exact values.
+
+## Clue board items
+
+The desktop's M31 clue board sends a `clue` only after its author selects a
+private copy or shares that item. Its source page and session IDs must already
+be present for the same audience. The server validates the typed payload and
+keeps the item attributed to its author. Revoking a referenced page or session
+withdraws a publicly visible clue; it does not change the author's local note
+or create a factual relationship.

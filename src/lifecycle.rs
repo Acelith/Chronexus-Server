@@ -13,7 +13,7 @@ use crate::{
     AppState,
     auth::{digest, now, password_hash, verify},
     campaigns::{identifier, member, owner},
-    content::{log_change, publish, withdraw_dependents},
+    content::{log_change, publish, withdraw_dependents, withdraw_session_dependents},
     db::Database,
     error::{ApiError, ErrorBody, Result},
     routes::{body, token},
@@ -112,6 +112,8 @@ fn erase_own_content(tx: &Connection, campaign: &str, account: &str) -> Result<(
         )?;
         if kind == "page" {
             withdraw_dependents(tx, campaign, &id)?;
+        } else if kind == "session" {
+            withdraw_session_dependents(tx, campaign, &id)?;
         }
         items += 1;
     }

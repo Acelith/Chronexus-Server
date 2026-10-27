@@ -351,7 +351,7 @@ fn an_upgrade_first_copies_the_old_database_and_a_failed_one_changes_nothing() {
     drop(Database::open(&ok).unwrap());
     let copy = dir.path().join("ok.sqlite3.pre-upgrade-v5");
     assert_eq!(verify(&copy).unwrap().schema, 5);
-    assert_eq!(verify(&ok).unwrap().schema, 6);
+    assert_eq!(verify(&ok).unwrap().schema, 7);
 
     // Failed upgrade: the migration cannot run, the database is untouched, the copy restores it.
     let bad = dir.path().join("bad.sqlite3");
