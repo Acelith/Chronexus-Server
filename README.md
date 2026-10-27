@@ -13,7 +13,7 @@ can see, and decide whether AI runs on your computer or your own server.
 [![Deployment](https://img.shields.io/badge/deployment-Docker%20Compose-354b3e)](#deployment-and-configuration)
 [![Hosting](https://img.shields.io/badge/hosting-self--hosted-6c302b)](#privacy-and-data)
 
-[Chronexus](https://github.com/Acelith/Chronexus) · [Features and roadmap](#features-and-roadmap) · [Roadmap](ROADMAP.md) · [Status](docs/STATUS.md)
+[Chronexus](https://github.com/Acelith/Chronexus) · [Features and roadmap](#features-and-roadmap) · [Wiki](https://github.com/Acelith/Chronexus-Server/wiki) · [Roadmap](ROADMAP.md) · [Status](docs/STATUS.md)
 
 </div>
 
@@ -146,6 +146,9 @@ and the next step: **M25.8 desktop integration acceptance and the first release*
 hosting and full campaign acceptance remain open.
 
 ## Development and contributing
+
+The **[wiki](https://github.com/Acelith/Chronexus-Server/wiki)** has an operator guide (installation, accounts, roles, sharing,
+backups, security, CLI) and a developer section; its sources are in [docs/wiki](docs/wiki).
 
 The stack is Rust with axum, SQLite WAL and Docker Compose. The implemented
 [OpenAPI contract](api/openapi.json) and [TypeScript schemas](api/types.ts) are
