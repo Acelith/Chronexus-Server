@@ -66,13 +66,29 @@ application M25.
 | M25.10 | Explicit local or self-hosted server AI | M25.8; independent of M25.9 | Planned |
 | M25.11 | Web campaign and server management | M25.8; independent of M25.9/M25.10 | Planned |
 
-**Next, alongside M25.8: application M41, the project wiki** (requested 27 October 2026).
-This repository's wiki on github.com gets an operator guide (what the server does and
-does not do, installation with Docker Compose and HTTPS, accounts and invitations, roles,
-the sharing model, backups and upgrades, security, CLI) and a developer part
-(architecture, API contract, tests, the M25.n milestones). Sources live in `docs/wiki/`
-and are pushed to `Chronexus-Server.wiki.git` only after the user's go-ahead. See the
-application ROADMAP, M41.
+## Chronexus Table — virtual tabletop (application M42–M47, planned)
+
+Requested 27 October 2026; full requirements in the application's
+[docs/VTT.md](https://github.com/Acelith/Chronexus/blob/main/docs/VTT.md). Planning
+only. The server is the authority for tables; GM-only content is filtered here, never in a
+client.
+
+| ID | Server deliverables |
+| --- | --- |
+| M42 | GM capability (`invite --gm`), tables, seats (GM, player, spectator), table invitation codes with sign-up, the journal audience *shared with the GM too*; authorization matrix proving a GM reads no other journal item |
+| M43 | WebSocket `/api/v1/tables/{id}/live` with per-recipient views, presence, operation IDs and revisions, reconnection from a revision or snapshot; web interface for GMs (builds on M25.11) |
+| M44 | Scenes, map assets (larger image limits, Universal VTT import), grid settings, tokens with owner and visibility, server-validated movement and diagonal rule, rulers and area templates; distances stored in their rules unit |
+| M45 | Combat state: initiative, turn order, rounds, conditions with durations, combat log with GM-secret rolls; HP changes only by the token's owner or the GM for monsters |
+| M46 | Fog geometry, then walls, doors, lights and server-side line of sight per player |
+| M47 | Monster library (SRD 5.1 import with attribution, custom monsters), encounter presets |
+
+Acceptance highlights: hidden tokens, fog contents, GM notes and secret rolls never reach a
+player over HTTP or the live channel (automated matrix); a full combat with one GM on the web
+and three desktop players; table data in server backups, never in players' `.nodex`.
+
+**Application M41 (project wiki) is published** at
+https://github.com/Acelith/Chronexus-Server/wiki (sources in `docs/wiki/`). M25.8's first
+registry release is 0.1.1 (27 October 2026); a public deployment with real DNS/TLS remains.
 
 ## M25.0 Deployment and security decisions
 
