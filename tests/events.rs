@@ -31,7 +31,9 @@ async fn request(s: &AppState, path: &str, token: &str) -> axum::response::Respo
         .unwrap()
 }
 fn state() -> (tempfile::TempDir, AppState) {
-    let dir = tempfile::tempdir().unwrap();
+    let dir = tempfile::tempdir_in("/private/tmp")
+        .or_else(|_| tempfile::tempdir())
+        .unwrap();
     let config = Config::parse(HashMap::from([
         (
             "CHRONEXUS_DATABASE".into(),

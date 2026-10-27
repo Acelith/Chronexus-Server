@@ -1403,7 +1403,10 @@ async fn receipt_quota_preserves_existing_acknowledgments_without_partial_writes
 
 #[test]
 fn content_schema_upgrade_adds_receipts_and_log_without_modifying_originals() {
-    let dir = tempfile::tempdir().unwrap();
+    // The macOS temporary directory sits behind the /var symbolic link, which the server refuses.
+    let dir = tempfile::tempdir_in("/private/tmp")
+        .or_else(|_| tempfile::tempdir())
+        .unwrap();
     let path = dir.path().join("s4.sqlite3");
     let conn = rusqlite::Connection::open(&path).unwrap();
     for migration in [

@@ -1,4 +1,4 @@
-//! S7: consistent backups, integrity verification and restore of the server database.
+//! M25.7: consistent backups, integrity verification and restore of the server database.
 //!
 //! One SQLite file holds accounts, campaigns, content, change logs, receipts and every
 //! uploaded original, so one verified file is a complete backup. The server never encrypts
@@ -152,7 +152,10 @@ pub fn verify(path: &Path) -> Result<Report, String> {
     }
     // Older schemas are checked after migration, on the restore staging copy.
     if schema == LATEST_SCHEMA {
-        check_structure(&conn, &std::env::temp_dir())?;
+        // The reference copy goes to the resolved temporary directory: on macOS it sits
+        // behind the /var symbolic link, which database paths refuse.
+        let temp = std::env::temp_dir();
+        check_structure(&conn, &temp.canonicalize().unwrap_or(temp))?;
     }
     // Every upload is verified against the checksum it was stored with.
     let mut query = conn

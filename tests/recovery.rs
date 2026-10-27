@@ -1,4 +1,4 @@
-//! S7: backups, verification, restore on a clean instance and failed-upgrade recovery.
+//! M25.7: backups, verification, restore on a clean instance and failed-upgrade recovery.
 mod common;
 use axum::{
     body::Body,
@@ -148,7 +148,9 @@ fn corrupt(path: &Path) {
 #[tokio::test]
 async fn a_backup_taken_while_running_restores_on_a_clean_instance_with_revocations_intact() {
     let s = seeded().await;
-    let dir = tempfile::tempdir().unwrap();
+    let dir = tempfile::tempdir_in("/private/tmp")
+        .or_else(|_| tempfile::tempdir())
+        .unwrap();
     let file = dir.path().join("backup.sqlite3");
     let report = create(&database_path(&s), &file).unwrap();
     assert_eq!(
@@ -258,7 +260,9 @@ async fn a_backup_taken_while_running_restores_on_a_clean_instance_with_revocati
 #[tokio::test]
 async fn damaged_foreign_newer_or_tampered_backups_are_refused_and_never_replace_the_database() {
     let s = seeded().await;
-    let dir = tempfile::tempdir().unwrap();
+    let dir = tempfile::tempdir_in("/private/tmp")
+        .or_else(|_| tempfile::tempdir())
+        .unwrap();
     let good = dir.path().join("good.sqlite3");
     create(&database_path(&s), &good).unwrap();
     let bytes = |name: &str| dir.path().join(name);
@@ -338,7 +342,9 @@ fn schema_five(path: &Path) {
 
 #[test]
 fn an_upgrade_first_copies_the_old_database_and_a_failed_one_changes_nothing() {
-    let dir = tempfile::tempdir().unwrap();
+    let dir = tempfile::tempdir_in("/private/tmp")
+        .or_else(|_| tempfile::tempdir())
+        .unwrap();
     // Successful upgrade: a verified copy of schema 5 exists next to the upgraded database.
     let ok = dir.path().join("ok.sqlite3");
     schema_five(&ok);
@@ -393,7 +399,9 @@ fn an_upgrade_first_copies_the_old_database_and_a_failed_one_changes_nothing() {
 
 #[test]
 fn an_incomplete_or_failing_restore_never_replaces_the_active_database() {
-    let dir = tempfile::tempdir().unwrap();
+    let dir = tempfile::tempdir_in("/private/tmp")
+        .or_else(|_| tempfile::tempdir())
+        .unwrap();
     let live = dir.path().join("live").join("server.sqlite3");
     let good = dir.path().join("good.sqlite3");
     schema_five(&good);
