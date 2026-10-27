@@ -6,8 +6,9 @@ server, a NAS or a small VPS with Docker Compose. It lets a player keep a campai
 several computers and share chosen items with the party. Chronexus works fully without
 it.
 
-> **Status:** implemented and tested in source (milestones M25.1–M25.7); **no release has
-> been published yet**. Read [Security](Security) before exposing it to anyone.
+> **Status:** release [0.1.1](https://github.com/Acelith/Chronexus-Server/releases/tag/v0.1.1) is published with container images
+> (`ghcr.io/acelith/chronexus-server:0.1.1`, linux/amd64 and linux/arm64). Read [Security](Security) before exposing it
+> to anyone.
 
 ## For operators and players
 

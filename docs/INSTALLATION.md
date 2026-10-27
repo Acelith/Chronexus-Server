@@ -29,7 +29,7 @@ docker compose exec -T server chronexus-server invite
 *Production deployment*.
 
 To use a prebuilt image instead of building, set `CHRONEXUS_IMAGE` in `.env` and run
-`docker compose pull` (no image has been published yet). The domain, ports, network and image are
+`docker compose pull`, for example `CHRONEXUS_IMAGE=ghcr.io/acelith/chronexus-server:0.1.1` (linux/amd64 and linux/arm64). The domain, ports, network and image are
 all environment-driven, so the same checkout serves any deployment without editing files.
 
 The `invite` command prints one server invitation, usable for 24 hours. Pass it to the intended
@@ -233,7 +233,7 @@ load testing beyond the built-in limits, and real TLS/DNS.
 ## Development and checks
 
 See [DEVELOPMENT.md](DEVELOPMENT.md), [API.md](API.md) and [STATUS.md](STATUS.md).
-No registry image or server release has been published by this change.
+Release 0.1.1 ships `ghcr.io/acelith/chronexus-server:0.1.1` in the Forgejo registry; pin it by digest for production.
 
 ## Operator commands for lifecycle and recovery (M25.6)
 

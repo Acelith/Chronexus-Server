@@ -38,7 +38,7 @@ Examples are in `docs/INSTALLATION.md`.
 | `CHRONEXUS_HTTP_PORT` / `CHRONEXUS_HTTPS_PORT` | `80` / `443` | Bundled proxy ports |
 | `CHRONEXUS_NETWORK_SUBNET`, `…_GATEWAY`, `CHRONEXUS_PROXY_IP`, `CHRONEXUS_NETWORK_DYNAMIC_RANGE` | `172.30.253.0/24`… | Change together if the subnet is taken |
 | `CHRONEXUS_TRUSTED_PROXIES` | gateway and bundled proxy | Never `0.0.0.0/0` |
-| `CHRONEXUS_IMAGE` | built locally | Use a published image instead (none published yet) |
+| `CHRONEXUS_IMAGE` | built locally | Use the published image, e.g. `ghcr.io/acelith/chronexus-server:0.1.1`, then `docker compose pull` |
 
 ## First account
 

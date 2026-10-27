@@ -18,9 +18,10 @@ can see, and decide whether AI runs on your computer or your own server.
 </div>
 
 > [!NOTE]
-> The service foundation, accounts, campaign membership and selective-sharing APIs (M25.1–M25.4) are implemented in source.
-> Continuous desktop saving, new image/sheet selection UI, AI and web management remain planned.
-> Build locally with Compose; no server release has been published.
+> **[Release 0.1.1](https://github.com/Acelith/Chronexus-Server/releases/tag/v0.1.1)** is published, with container images for Linux amd64 and arm64 in
+> the Forgejo registry (`ghcr.io/acelith/chronexus-server:0.1.1`). Accounts, membership, selective sharing, continuous
+> synchronization, deletion and recovery are implemented (M25.1–M25.7); server AI and web
+> management remain planned. See the [wiki](https://github.com/Acelith/Chronexus-Server/wiki).
 
 ## What is Chronexus Server
 
@@ -88,9 +89,9 @@ ports, account policy and recovery. This build supports accounts, campaign roles
 - Public access requires a valid HTTPS origin and explicitly trusted TLS proxy.
   Credentials are generated securely; no default password.
 - AI/GPU services remain M25.10 work; no model is downloaded or runtime started.
-- The current M25.4 Linux arm64 image and Compose persistence/authorization checks
-  passed locally. Linux amd64 and native Windows remain unverified.
-  No registry image is published.
+- Images `ghcr.io/acelith/chronexus-server:0.1.1` (and `:latest`) for linux/amd64 and linux/arm64 are in the Forgejo
+  registry; set `CHRONEXUS_IMAGE` and run `docker compose pull`. Tests pass on macOS and
+  Linux amd64; a public deployment with real DNS/TLS is still unverified.
 
 Confirmed protocol decisions and remaining hosting work are tracked in
 [roadmap M25.0](ROADMAP.md#m250-deployment-and-security-decisions) and

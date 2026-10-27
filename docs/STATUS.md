@@ -2,6 +2,20 @@
 
 Updated: 27 October 2026. Source 0.1.0, server schema 006. Not published.
 
+## 27 October 2026 (afternoon): release 0.1.1 and registry images (M25.8)
+
+- Release [0.1.1](https://github.com/Acelith/Chronexus-Server/releases/tag/v0.1.1) (tag on
+  0e8faf1) with Linux amd64/arm64 binaries and SHA256SUMS.txt, verified anonymously.
+- Images `ghcr.io/acelith/chronexus-server:0.1.1` and `:latest` (index
+  `sha256:ce86254e…`, linux/amd64 + linux/arm64) pushed with `scripts/push-image.py`:
+  `docker push` from Docker Desktop timed out on large layers. Pulled back by digest; both
+  platforms report 0.1.1; the HTTPS test deployment now runs that image and kept its data.
+  Binaries extracted from the registry image match the local build byte for byte.
+- Fixed a race in backup verification (shared reference file name; recovery tests failed in
+  2 of 3 runs, now 0 of 6). 75 tests pass on macOS and on emulated Linux amd64.
+- `.forgejo/workflows/ci.yml` added; no Forgejo runner is registered yet.
+- Still open: a public deployment with real DNS/TLS, image/dependency scans in CI.
+
 ## 27 October 2026: Docker deployment and desktop integration on macOS
 
 - Milestones renamed M25.0–M25.11 (were S0–S11).
