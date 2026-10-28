@@ -4,6 +4,14 @@ Open your server's address (for example `https://sync.example.org/`) in a browse
 with your Chronexus account. Notes are written in the desktop app; the web interface manages
 what lives on the server.
 
+Campaigns have separate sections for server usage, members, invitations (owners)
+and deletion or leaving. Each section has a bookmarkable address. On wide screens,
+global navigation stays in a sidebar; on phones it appears above the content.
+Wide tables scroll horizontally and can be focused with the keyboard.
+
+Virtual tabletop features remain planned. The current campaign pages manage journal
+synchronization and sharing; they do not grant a game master access to player journals.
+
 ## What you can do
 
 | Who | Can |

@@ -1,5 +1,33 @@
 # Chronexus Server status
 
+## 28 October 2026: web interface refinement (source only)
+
+- Retained the existing parchment/leather identity; added responsive sidebar/top
+  navigation, focused sign-in layout, readable campaign rows, keyboard-scrollable
+  tables and campaign subpages for usage, members, invitations and deletion/leave.
+  Campaign navigation remains selected; invitations load only on their own page.
+- Fixed memory-only login when sessionStorage is blocked, stale response navigation,
+  non-JSON 401 logout handling and the skip link accidentally changing the hash route.
+  Names remain inert text; API permissions, database schema and confirmations unchanged.
+- Five jsdom regression tests and `node --check web/app.js` pass; all five tests
+  fail when run against the previous committed script. Browser review with
+  a synthetic HTTP fixture covered sign-in, campaign pages, members, invitations,
+  devices, operator status and cancelling typed-name deletion, at 375, 736 and 1440 CSS pixels.
+  This is frontend review, not new real-server acceptance. Rust fmt, Clippy, tests,
+  release build and contract generation were attempted but blocked: `cargo` is not
+  available in this environment. No binary was rebuilt or published.
+- `pnpm i18n:check` passed in the desktop checkout (zero missing registered UI
+  translations); it does not scan this repository. Server English-only localization
+  remains open. No new visible copy was introduced; complete ten-language server
+  acceptance is not claimed. Native browser/OS coverage and RTL translations pending.
+- Skills: Impeccable and Frontend Design for visual hierarchy and responsive review;
+  Systematic Debugging for navigation/session causes. Webapp Testing guidance informed
+  regression coverage; its Python Playwright runtime was unavailable, so browser
+  checks used the supported computer-use browser tools and DOM regressions used jsdom.
+- `docs/WEB_DESIGN.md` records boundaries for a separate future Tables workspace;
+  M42–M47 remain unimplemented. Next milestone remains M25 completion (GPU/model
+  qualification, GHCR and public deployment; Android acceptance depends on M27).
+
 Updated: 27 October 2026. Source 0.1.1 + unreleased M25.10/M31 support, server schema 007.
 
 ## 27 October 2026: M31 clue payload for the desktop board
