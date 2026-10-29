@@ -27,6 +27,7 @@ use utoipa::{OpenApi, ToSchema};
 
 const INDEX: &str = include_str!("../web/index.html");
 const SCRIPT: &str = include_str!("../web/app.js");
+const TRANSLATIONS: &str = include_str!("../web/i18n.js");
 const STYLE: &str = include_str!("../web/app.css");
 /// Only the page's own files; no inline code, no third-party origin, no framing.
 const PAGE_POLICY: &str = "default-src 'none'; script-src 'self'; style-src 'self'; \
@@ -133,6 +134,10 @@ pub(crate) fn router() -> Router<AppState> {
         .route(
             "/web/app.js",
             get(|| async { page(SCRIPT, "text/javascript; charset=utf-8") }),
+        )
+        .route(
+            "/web/i18n.js",
+            get(|| async { page(TRANSLATIONS, "text/javascript; charset=utf-8") }),
         )
         .route(
             "/web/app.css",

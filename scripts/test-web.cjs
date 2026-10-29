@@ -7,11 +7,14 @@ const { join } = require('node:path');
 const { JSDOM } = require('jsdom');
 const html = readFileSync(join(__dirname, '../web/index.html'), 'utf8');
 const script = readFileSync(process.env.CHRONEXUS_WEB_SCRIPT || join(__dirname, '../web/app.js'), 'utf8');
+const translations = readFileSync(join(__dirname, '../web/i18n.js'), 'utf8');
 const settle = () => new Promise(resolve => setTimeout(resolve, 20));
-function fixture(fetcher) {
+function fixture(fetcher, options = {}) {
   const dom = new JSDOM(html, { url: 'http://localhost/', runScripts: 'outside-only' });
   dom.window.fetch = fetcher;
   dom.window.HTMLElement.prototype.scrollIntoView = () => {};
+  if (options.locale) dom.window.localStorage.setItem('chronexus-web-locale', options.locale);
+  dom.window.eval(translations);
   dom.window.eval(script);
   return dom;
 }
@@ -89,5 +92,37 @@ test('skip to content does not navigate away from the current subpage', async ()
   await settle();
   assert.equal(w.location.hash, '#/devices');
   assert.equal(w.document.activeElement.id, 'main');
+  dom.window.close();
+});
+
+test('every message has ten translations and placeholders survive', () => {
+  const dom = fixture(async () => response(account));
+  const i18n = dom.window.ChronexusI18n;
+  assert.equal(i18n.missing().length, 0, i18n.missing().join(', '));
+  const english = /\{(\w+)\}/g;
+  for (const [code] of i18n.locales) {
+    i18n.setLocale(code);
+    assert.match(i18n.t('campaignMeta', { role: 'R', members: 3, date: 'D' }), /R.*3|3.*R/s);
+    assert.doesNotMatch(i18n.t('limits', { items: 1, text: 2, images: 3, imageBytes: 4, account: 5, used: 6 }), english);
+  }
+  dom.window.close();
+});
+
+test('a saved language is used, Arabic is right-to-left and the menu switches back', async () => {
+  const dom = fixture(async () => response(account), { locale: 'ar' });
+  const { window: w } = dom;
+  await settle();
+  assert.equal(w.document.documentElement.dir, 'rtl');
+  assert.equal(w.document.documentElement.lang, 'ar');
+  assert.equal(w.document.querySelector('h1').textContent, 'تسجيل الدخول');
+  const menu = w.document.querySelector('#language');
+  assert.equal(menu.value, 'ar');
+  menu.value = 'it';
+  menu.dispatchEvent(new w.Event('change'));
+  await settle();
+  assert.equal(w.document.documentElement.dir, 'ltr');
+  assert.equal(w.document.querySelector('h1').textContent, 'Accedi');
+  assert.equal(w.document.querySelector('.skip').textContent, 'Vai al contenuto');
+  assert.equal(w.localStorage.getItem('chronexus-web-locale'), 'it');
   dom.window.close();
 });

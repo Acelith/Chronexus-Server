@@ -125,6 +125,11 @@ async fn pages_are_served_with_a_strict_policy_and_no_cookie() {
         !script.contains("innerHTML"),
         "untrusted text must never become HTML"
     );
+    let (status, headers, translations) = raw(&f, "/web/i18n.js", "127.0.0.1:8080").await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(headers["content-type"].starts_with("text/javascript"));
+    assert!(translations.contains("ChronexusI18n") && !translations.contains("innerHTML"));
+    assert!(body.find("/web/i18n.js") < body.find("/web/app.js"));
     let (status, _, _) = raw(&f, "/web/app.css", "127.0.0.1:8080").await;
     assert_eq!(status, StatusCode::OK);
     // The API keeps the policy that allows nothing.

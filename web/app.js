@@ -5,8 +5,24 @@
 // untrusted and never interpreted as HTML.
 
 const TOKEN_KEY = "chronexus-web-session";
+const { t } = window.ChronexusI18n;
 const main = document.getElementById("main");
 const nav = document.getElementById("nav");
+const language = document.getElementById("language");
+/** Static page text and the language menu; called again after a language change. */
+function staticText() {
+  document.querySelector(".skip").textContent = t("skip");
+  nav.setAttribute("aria-label", t("sections"));
+  document.getElementById("language-label").textContent = t("language");
+  document.getElementById("confirm-cancel").textContent = t("cancel");
+}
+language.replaceChildren(...window.ChronexusI18n.locales.map(([code, name]) =>
+  el("option", { value: code, lang: code, selected: code === window.ChronexusI18n.locale, text: name })));
+language.addEventListener("change", () => {
+  window.ChronexusI18n.setLocale(language.value);
+  staticText();
+  route();
+});
 document.querySelector(".skip").addEventListener("click", (event) => {
   event.preventDefault();
   main.focus();
@@ -33,8 +49,9 @@ function el(tag, attrs = {}, ...children) {
 }
 const bytes = (n) =>
   n < 1024 ? `${n} B` : n < 1048576 ? `${(n / 1024).toFixed(1)} KiB` : `${(n / 1048576).toFixed(1)} MiB`;
-const when = (iso) => (iso ? new Date(iso).toLocaleString() : "never");
-const roleName = (role) => ({ owner: "Owner", player: "Player", reader: "Reader" })[role] ?? role;
+const when = (iso) => (iso ? new Date(iso).toLocaleString(window.ChronexusI18n.locale) : t("never"));
+const roleName = (role) => (["owner", "player", "reader"].includes(role) ? t(`role.${role}`) : role);
+const kindName = (kind) => (window.ChronexusI18n.has(`kind.${kind}`) ? t(`kind.${kind}`) : kind);
 function token() {
   try { return sessionStorage.getItem(TOKEN_KEY) ?? memoryToken; } catch { return memoryToken; }
 }
@@ -58,12 +75,12 @@ async function api(method, path, body) {
   if (response.status === 401 && auth && auth === token()) {
     setToken(null); me = null;
     route();
-    throw new ApiError(401, "Your session ended. Sign in again.");
+    throw new ApiError(401, t("sessionEnded"));
   }
   let value;
   try { value = text ? JSON.parse(text) : null; }
-  catch { throw new ApiError(response.status, `Request failed (HTTP ${response.status}).`); }
-  if (!response.ok) throw new ApiError(response.status, value?.error ?? `Request failed (HTTP ${response.status}).`);
+  catch { throw new ApiError(response.status, t("requestFailed", { status: response.status })); }
+  if (!response.ok) throw new ApiError(response.status, value?.error ?? t("requestFailed", { status: response.status }));
   return value;
 }
 function show(...nodes) {
@@ -75,7 +92,7 @@ function show(...nodes) {
 function errorBox(error) {
   return el("p", { class: "error", role: "alert", text: error.message || String(error) });
 }
-function loading(text = "Loading…") {
+function loading(text = t("loading")) {
   show(el("p", { role: "status", text }));
 }
 /** Accessible confirmation with an explanation; resolves true only on the explicit button. */
@@ -89,7 +106,7 @@ function confirmAction(title, paragraphs, okLabel, typedName) {
   let input = null;
   if (typedName) {
     input = el("input", { id: "confirm-name", autocomplete: "off" });
-    body.append(el("label", { for: "confirm-name", text: `Type the exact name: ${typedName}` }), input);
+    body.append(el("label", { for: "confirm-name", text: t("typeName", { name: typedName }) }), input);
     ok.disabled = true;
     input.addEventListener("input", () => { ok.disabled = input.value !== typedName; });
   } else {
@@ -104,10 +121,10 @@ function confirmAction(title, paragraphs, okLabel, typedName) {
 /** Runs an action with a busy state; shows the error in place without losing the page. */
 async function act(button, status, action) {
   button.disabled = true;
-  status.replaceChildren(el("span", { role: "status", text: "Working…" }));
+  status.replaceChildren(el("span", { role: "status", text: t("working") }));
   try {
     const message = await action();
-    status.replaceChildren(el("span", { role: "status", text: message ?? "Done." }));
+    status.replaceChildren(el("span", { role: "status", text: message ?? t("done") }));
   } catch (error) {
     status.replaceChildren(errorBox(error));
   } finally {
@@ -122,12 +139,12 @@ function renderNav(current) {
   const link = (hash, label) =>
     el("a", { href: hash, "aria-current": current === hash ? "page" : undefined, text: label });
   const items = [
-    link("#/campaigns", "Campaigns"),
-    link("#/devices", "Devices"),
-    me.operator ? link("#/operator", "Operator") : null,
+    link("#/campaigns", t("nav.campaigns")),
+    link("#/devices", t("nav.devices")),
+    me.operator ? link("#/operator", t("nav.operator")) : null,
     el("button", {
       type: "button",
-      text: `Sign out (${me.displayName})`,
+      text: t("signOutAs", { name: me.displayName }),
       class: "sign-out",
       onclick: async () => {
         try { await api("POST", "/api/v1/auth/logout"); } catch { /* already ended */ }
@@ -151,7 +168,7 @@ async function route() {
     }
   } catch (error) {
     if (!token() || version !== viewVersion) return;
-    return show(errorBox(error), el("a", { href: "#/campaigns", text: "Campaigns" }));
+    return show(errorBox(error), el("a", { href: "#/campaigns", text: t("nav.campaigns") }));
   }
   if (version !== viewVersion) return;
   const [, section, id, panel] = hash.split("/");
@@ -172,7 +189,7 @@ function signIn() {
   const status = el("div");
   const username = el("input", { id: "username", autocomplete: "username", required: true });
   const password = el("input", { id: "password", type: "password", autocomplete: "current-password", required: true });
-  const submit = el("button", { class: "primary", type: "submit", text: "Sign in" });
+  const submit = el("button", { class: "primary", type: "submit", text: t("signIn") });
   const form = el("form", {
     onsubmit: (event) => {
       event.preventDefault();
@@ -184,18 +201,18 @@ function signIn() {
         setToken(signed.token);
         location.hash = "#/campaigns";
         await route();
-        return "Signed in.";
+        return t("signedIn");
       });
     },
   },
-    el("label", { for: "username", text: "User name" }), username,
-    el("label", { for: "password", text: "Password" }), password,
+    el("label", { for: "username", text: t("username") }), username,
+    el("label", { for: "password", text: t("password") }), password,
     el("div", { class: "actions" }, submit), status);
   show(
-    el("h1", { text: "Sign in" }),
-    el("p", { class: "muted", text: "Manage your shared campaigns, members, invitations and devices. Writing notes happens in the Chronexus desktop app." }),
+    el("h1", { text: t("signIn") }),
+    el("p", { class: "muted", text: t("signInIntro") }),
     el("div", { class: "card" }, form),
-    el("p", { class: "note", text: "The session is kept only in this browser tab and ends when you sign out or close it." }),
+    el("p", { class: "note", text: t("signInNote") }),
   );
   username.focus();
 }
@@ -210,9 +227,9 @@ async function campaignsView() {
       ? el("ul", { class: "plain" }, campaigns.map((c) =>
           el("li", { class: "campaign-row" }, el("a", { href: `#/campaign/${encodeURIComponent(c.id)}`, text: c.name }),
             el("span", { class: "role", text: roleName(c.role) }))))
-      : el("p", { class: "muted", text: "No shared campaign yet. Create one from the Sharing view of a campaign in the desktop app, or join with an invitation." });
-    show(el("h1", { text: "Your campaigns on this server" }), list,
-      el("p", { class: "note", text: "This page shows what the server holds. Changes a device has not sent yet are only known to that device." }));
+      : el("p", { class: "muted", text: t("campaignsEmpty") });
+    show(el("h1", { text: t("campaignsTitle") }), list,
+      el("p", { class: "note", text: t("campaignsNote") }));
   } catch (error) { if (version === viewVersion) show(errorBox(error)); }
 }
 
@@ -225,7 +242,7 @@ async function campaignView(id, notice, selectedPanel = location.hash.split("/")
       api("GET", `/api/v1/campaigns/${encodeURIComponent(id)}/overview`),
       api("GET", `/api/v1/campaigns/${encodeURIComponent(id)}/members`),
     ]);
-  } catch (error) { if (version === viewVersion) show(el("p", {}, el("a", { href: "#/campaigns", text: "← Campaigns" })), errorBox(error)); return; }
+  } catch (error) { if (version === viewVersion) show(el("p", {}, el("a", { href: "#/campaigns", text: t("backCampaigns") })), errorBox(error)); return; }
   if (version !== viewVersion) return;
   const owner = overview.role === "owner";
   const q = overview.quotas;
@@ -233,35 +250,35 @@ async function campaignView(id, notice, selectedPanel = location.hash.split("/")
   const status = el("div");
   if (notice) status.append(el("p", { class: "note", role: "status", text: notice }));
   const header = [
-    el("p", {}, el("a", { href: "#/campaigns", text: "← Campaigns" })),
+    el("p", {}, el("a", { href: "#/campaigns", text: t("backCampaigns") })),
     el("h1", { text: overview.name }),
-    el("p", { class: "muted", text: `Your role: ${roleName(overview.role)} · ${overview.members} members · created ${when(overview.createdAt)}` }),
+    el("p", { class: "muted", text: t("campaignMeta", { role: roleName(overview.role), members: overview.members, date: when(overview.createdAt) }) }),
     status,
   ];
   const summary = [
-    el("h2", { text: "What you keep on the server" }),
+    el("h2", { text: t("keepTitle") }),
     el("div", { class: "grid" },
-      el("div", { class: "stat" }, el("b", { text: bytes(overview.myContentBytes) }), "your items"),
-      el("div", { class: "stat" }, el("b", { text: `${overview.myAttachments} · ${bytes(overview.myAttachmentBytes)}` }), "your images here"),
-      el("div", { class: "stat" }, el("b", { text: when(overview.myLastSavedAt) }), "last save accepted"),
-      el("div", { class: "stat" }, el("b", { text: String(overview.sharedByOthers) }), "items others share")),
+      el("div", { class: "stat" }, el("b", { text: bytes(overview.myContentBytes) }), t("statItems")),
+      el("div", { class: "stat" }, el("b", { text: `${overview.myAttachments} · ${bytes(overview.myAttachmentBytes)}` }), t("statImages")),
+      el("div", { class: "stat" }, el("b", { text: when(overview.myLastSavedAt) }), t("statLastSave")),
+      el("div", { class: "stat" }, el("b", { text: String(overview.sharedByOthers) }), t("statShared"))),
     kinds.length
       ? el("div", { class: "table-wrap", tabindex: 0 }, el("table", {},
-          el("caption", { class: "muted", text: "Your items by kind (server revisions)" }),
-          el("thead", {}, el("tr", {}, ["Kind", "Private copies", "Shared", "Size", "Highest revision"].map((h) => el("th", { scope: "col", text: h })))),
+          el("caption", { class: "muted", text: t("kindsCaption") }),
+          el("thead", {}, el("tr", {}, [t("thKind"), t("thPrivate"), t("thShared"), t("thSize"), t("thRevision")].map((h) => el("th", { scope: "col", text: h })))),
           el("tbody", {}, kinds.map((u) => el("tr", {},
-            el("th", { scope: "row", text: u.kind }), el("td", { text: String(u.privateItems) }),
+            el("th", { scope: "row", text: kindName(u.kind) }), el("td", { text: String(u.privateItems) }),
             el("td", { text: String(u.sharedItems) }), el("td", { text: bytes(u.bytes) }),
             el("td", { text: String(u.highestRevision) }))))))
-      : el("p", { class: "muted", text: "You have not synchronized anything to this campaign." }),
-    el("p", { class: "note", text: `The server cannot know changes still waiting on a device. Limits for the whole campaign: ${q.campaignItems} items and ${bytes(q.campaignContentBytes)} of text; ${q.campaignAttachments} images and ${bytes(q.campaignAttachmentBytes)}; ${bytes(q.accountAttachmentBytes)} of images per account (you use ${bytes(overview.accountAttachmentBytes)}).` }),
+      : el("p", { class: "muted", text: t("kindsEmpty") }),
+    el("p", { class: "note", text: t("limits", { items: q.campaignItems, text: bytes(q.campaignContentBytes), images: q.campaignAttachments, imageBytes: bytes(q.campaignAttachmentBytes), account: bytes(q.accountAttachmentBytes), used: bytes(overview.accountAttachmentBytes) }) }),
   ];
   const panels = [
-    ["overview", "What you keep on the server", () => summary],
-    ["members", "Members", () => [el("h2", { text: "Members" }), membersTable(id, overview, members, status)]],
+    ["overview", t("keepTitle"), () => summary],
+    ["members", t("members"), () => [el("h2", { text: t("members") }), membersTable(id, overview, members, status)]],
   ];
-  if (owner) panels.push(["invitations", "Invitations", () => invitesSection(id, status)]);
-  panels.push(["access", owner ? "Delete" : "Leave", () => [owner ? dangerSection(id, overview, status) : leaveSection(id, members, status)]]);
+  if (owner) panels.push(["invitations", t("invitations"), () => invitesSection(id, status)]);
+  panels.push(["access", owner ? t("deletePanel") : t("leavePanel"), () => [owner ? dangerSection(id, overview, status) : leaveSection(id, members, status)]]);
   const active = panels.find(([key]) => key === selectedPanel) ?? panels[0];
   const panelNav = el("nav", { class: "panel-nav", "aria-label": overview.name },
     panels.map(([key, label]) => el("a", {
@@ -274,16 +291,16 @@ async function campaignView(id, notice, selectedPanel = location.hash.split("/")
 function membersTable(id, overview, members, status) {
   const owner = overview.role === "owner";
   return el("div", { class: "table-wrap", tabindex: 0 }, el("table", {},
-    el("thead", {}, el("tr", {}, ["Name", "Role", "Joined", owner ? "Actions" : null].filter(Boolean).map((h) => el("th", { scope: "col", text: h })))),
+    el("thead", {}, el("tr", {}, [t("thName"), t("thRole"), t("thJoined"), owner ? t("thActions") : null].filter(Boolean).map((h) => el("th", { scope: "col", text: h })))),
     el("tbody", {}, members.map((m) => {
       const isSelf = m.accountId === me.accountId;
-      const cells = [el("th", { scope: "row" }, m.displayName, isSelf ? el("span", { class: "muted", text: " (you)" }) : null)];
+      const cells = [el("th", { scope: "row" }, m.displayName, isSelf ? el("span", { class: "muted", text: t("you") }) : null)];
       if (owner && m.role !== "owner") {
-        const select = el("select", { "aria-label": `Role of ${m.displayName}` },
+        const select = el("select", { "aria-label": t("roleOf", { name: m.displayName }) },
           ["player", "reader"].map((r) => el("option", { value: r, selected: r === m.role, text: roleName(r) })));
         select.addEventListener("change", () => act(select, status, async () => {
           await api("PATCH", `/api/v1/campaigns/${encodeURIComponent(id)}/members/${encodeURIComponent(m.accountId)}`, { role: select.value, baseRevision: m.revision });
-          await campaignView(id, `${m.displayName} is now ${roleName(select.value).toLowerCase()}.`);
+          await campaignView(id, t("roleChanged", { name: m.displayName, role: roleName(select.value) }));
         }));
         cells.push(el("td", {}, select));
       } else {
@@ -293,15 +310,12 @@ function membersTable(id, overview, members, status) {
       if (owner) {
         if (m.role === "owner") cells.push(el("td"));
         else {
-          const remove = el("button", { type: "button", text: "Remove" });
+          const remove = el("button", { type: "button", text: t("remove") });
           remove.addEventListener("click", async () => {
-            const ok = await confirmAction(`Remove ${m.displayName}?`, [
-              "They lose access to this campaign. What they shared is withdrawn for everyone, and their devices clear what others shared at their next synchronization.",
-              "They keep everything on their own computer. Devices that are offline learn it when they reconnect.",
-            ], "Remove");
+            const ok = await confirmAction(t("removeTitle", { name: m.displayName }), [t("removeP1"), t("removeP2")], t("remove"));
             if (ok) act(remove, status, async () => {
               await api("DELETE", `/api/v1/campaigns/${encodeURIComponent(id)}/members/${encodeURIComponent(m.accountId)}?baseRevision=${m.revision}`);
-              await campaignView(id, `${m.displayName} was removed.`);
+              await campaignView(id, t("removed", { name: m.displayName }));
             });
           });
           cells.push(el("td", {}, remove));
@@ -312,72 +326,66 @@ function membersTable(id, overview, members, status) {
 }
 
 function invitesSection(id, status) {
-  const list = el("div", {}, el("p", { role: "status", class: "muted", text: "Loading invitations…" }));
+  const list = el("div", {}, el("p", { role: "status", class: "muted", text: t("loadingInvites") }));
   const codeBox = el("div", { "aria-live": "polite" });
   const load = async () => {
     try {
       const invites = (await api("GET", `/api/v1/campaigns/${encodeURIComponent(id)}/invites`)).filter((i) => i.status === "pending");
       list.replaceChildren(invites.length
         ? el("ul", { class: "plain" }, invites.map((i) => {
-            const revoke = el("button", { type: "button", text: "Revoke" });
+            const revoke = el("button", { type: "button", text: t("revoke") });
             revoke.addEventListener("click", () => act(revoke, status, async () => {
               await api("DELETE", `/api/v1/campaigns/${encodeURIComponent(id)}/invites/${encodeURIComponent(i.id)}`);
               await load();
-              return "Invitation revoked.";
+              return t("inviteRevoked");
             }));
-            return el("li", {}, `${roleName(i.role)} · valid until ${when(i.expiresAt)} `, revoke);
+            return el("li", {}, t("inviteLine", { role: roleName(i.role), date: when(i.expiresAt) }), revoke);
           }))
-        : el("p", { class: "muted", text: "No pending invitation." }));
+        : el("p", { class: "muted", text: t("noInvites") }));
     } catch (error) { list.replaceChildren(errorBox(error)); }
   };
   const create = (role) => {
-    const button = el("button", { type: "button", text: `Invite a ${roleName(role).toLowerCase()}` });
+    const button = el("button", { type: "button", text: role === "reader" ? t("inviteReader") : t("invitePlayer") });
     button.addEventListener("click", () => act(button, status, async () => {
       const invite = await api("POST", `/api/v1/campaigns/${encodeURIComponent(id)}/invites`, { role });
       codeBox.replaceChildren(el("p", { class: "note" },
-        `Invitation code for a ${roleName(invite.role).toLowerCase()} (works once, until ${when(invite.expiresAt)}): `,
+        t("inviteCode", { role: roleName(invite.role), date: when(invite.expiresAt) }),
         el("code", { class: "secret", text: invite.code }),
-        el("br"), "Send it privately; it is shown only now."));
+        el("br"), t("inviteSecret")));
       await load();
-      return "Invitation created.";
+      return t("inviteCreated");
     }));
     return button;
   };
   load();
-  return [el("h2", { text: "Invitations" }), el("div", { class: "actions" }, create("player"), create("reader")), codeBox, list];
+  return [el("h2", { text: t("invitations") }), el("div", { class: "actions" }, create("player"), create("reader")), codeBox, list];
 }
 
 function leaveSection(id, members, status) {
   const mine = members.find((m) => m.accountId === me.accountId);
-  const leave = el("button", { type: "button", class: "danger", text: "Leave the campaign" });
+  const leave = el("button", { type: "button", class: "danger", text: t("leaveButton") });
   leave.addEventListener("click", async () => {
-    const ok = await confirmAction("Leave this shared campaign?", [
-      "What the other players shared is cleared from your devices at their next synchronization, and the items you shared are withdrawn.",
-      "Everything you wrote stays on your computer. You can join again only with a new invitation.",
-    ], "Leave");
+    const ok = await confirmAction(t("leaveTitle"), [t("leaveP1"), t("leaveP2")], t("leavePanel"));
     if (ok && mine) act(leave, status, async () => {
       await api("DELETE", `/api/v1/campaigns/${encodeURIComponent(id)}/members/${encodeURIComponent(me.accountId)}?baseRevision=${mine.revision}`);
       location.hash = "#/campaigns";
-      return "You left the campaign.";
+      return t("left");
     });
   });
-  return el("div", {}, el("h2", { text: "Leave" }), el("div", { class: "actions" }, leave));
+  return el("div", {}, el("h2", { text: t("leavePanel") }), el("div", { class: "actions" }, leave));
 }
 
 function dangerSection(id, overview, status) {
-  const remove = el("button", { type: "button", class: "danger", text: "Delete the campaign on the server" });
+  const remove = el("button", { type: "button", class: "danger", text: t("deleteButton") });
   remove.addEventListener("click", async () => {
-    const ok = await confirmAction("Delete the campaign on the server?", [
-      "Every private and shared copy, upload and invitation of this campaign is deleted on the server, for every member. It cannot be undone.",
-      "Each player keeps what is on their own computer. Server backups made earlier still contain the campaign until the operator removes them.",
-    ], "Delete on the server", overview.name);
+    const ok = await confirmAction(t("deleteTitle"), [t("deleteP1"), t("deleteP2")], t("deleteOk"), overview.name);
     if (ok) act(remove, status, async () => {
       await api("POST", `/api/v1/campaigns/${encodeURIComponent(id)}/deletion`, { confirmName: overview.name });
       location.hash = "#/campaigns";
-      return "Campaign deleted on the server.";
+      return t("deleted");
     });
   });
-  return el("div", {}, el("h2", { text: "Delete" }), el("div", { class: "actions" }, remove));
+  return el("div", {}, el("h2", { text: t("deletePanel") }), el("div", { class: "actions" }, remove));
 }
 
 async function devicesView() {
@@ -387,19 +395,19 @@ async function devicesView() {
   try {
     const sessions = await api("GET", "/api/v1/auth/sessions");
     if (version !== viewVersion) return;
-    show(el("h1", { text: "Devices signed in" }), status,
+    show(el("h1", { text: t("devicesTitle") }), status,
       el("ul", { class: "plain" }, sessions.map((s) => {
-        const revoke = el("button", { type: "button", text: s.current ? "Sign out here" : "Sign out this device" });
+        const revoke = el("button", { type: "button", text: s.current ? t("signOutHere") : t("signOutDevice") });
         revoke.addEventListener("click", () => act(revoke, status, async () => {
           await api("DELETE", `/api/v1/auth/sessions/${encodeURIComponent(s.id)}`);
-          if (s.current) { setToken(null); me = null; await route(); return "Signed out."; }
+          if (s.current) { setToken(null); me = null; await route(); return t("signedOut"); }
           await devicesView();
-          return "Device signed out.";
+          return t("deviceSignedOut");
         }));
-        return el("li", {}, el("strong", { text: s.device }), s.current ? el("span", { class: "muted", text: " (this browser)" }) : null,
-          el("div", { class: "muted", text: `Last used ${when(s.lastUsedAt)} · expires ${when(s.expiresAt)}` }), revoke);
+        return el("li", {}, el("strong", { text: s.device }), s.current ? el("span", { class: "muted", text: t("thisBrowser") }) : null,
+          el("div", { class: "muted", text: t("deviceLine", { used: when(s.lastUsedAt), expires: when(s.expiresAt) }) }), revoke);
       })),
-      el("p", { class: "note", text: "A device signed out keeps its local data; it stops synchronizing until someone signs in there again." }));
+      el("p", { class: "note", text: t("devicesNote") }));
   } catch (error) { if (version === viewVersion) show(errorBox(error)); }
 }
 
@@ -410,23 +418,24 @@ async function operatorView() {
     const [s, accounts] = await Promise.all([api("GET", "/api/v1/operator/status"), api("GET", "/api/v1/operator/accounts")]);
     if (version !== viewVersion) return;
     const stat = (value, label) => el("div", { class: "stat" }, el("b", { text: String(value) }), label);
-    show(el("h1", { text: "Service" }),
-      el("p", { class: "note", text: "The operator role shows service health and account metadata only. It grants no access to campaign content through this interface or the API." }),
+    show(el("h1", { text: t("service") }),
+      el("p", { class: "note", text: t("operatorNote") }),
       el("div", { class: "grid" },
-        stat(s.serverVersion, "server version"), stat(s.schema, "database schema"), stat(bytes(s.databaseBytes), "database size"),
-        stat(s.accounts, "accounts"), stat(s.activeSessions, "active sessions"), stat(s.campaigns, "campaigns"),
-        stat(`${s.contentItems} · ${bytes(s.contentBytes)}`, "items stored"), stat(`${s.attachments} · ${bytes(s.attachmentBytes)}`, "images stored"),
-        stat(s.aiService, "server AI")),
-      el("h2", { text: "Accounts" }),
+        stat(s.serverVersion, t("statVersion")), stat(s.schema, t("statSchema")), stat(bytes(s.databaseBytes), t("statDbSize")),
+        stat(s.accounts, t("statAccounts")), stat(s.activeSessions, t("statSessions")), stat(s.campaigns, t("statCampaigns")),
+        stat(`${s.contentItems} · ${bytes(s.contentBytes)}`, t("statItemsStored")), stat(`${s.attachments} · ${bytes(s.attachmentBytes)}`, t("statImagesStored")),
+        stat(window.ChronexusI18n.has(`ai.${s.aiService}`) ? t(`ai.${s.aiService}`) : s.aiService, t("statAi"))),
+      el("h2", { text: t("accounts") }),
       el("div", { class: "table-wrap", tabindex: 0 }, el("table", {},
-        el("thead", {}, el("tr", {}, ["User", "Created", "State", "Sessions", "Campaigns", "Stored"].map((h) => el("th", { scope: "col", text: h })))),
+        el("thead", {}, el("tr", {}, [t("thUser"), t("thCreated"), t("thState"), t("thSessions"), t("thCampaigns"), t("thStored")].map((h) => el("th", { scope: "col", text: h })))),
         el("tbody", {}, accounts.map((a) => el("tr", {},
           el("th", { scope: "row" }, a.displayName, el("div", { class: "muted", text: a.username })),
           el("td", { text: when(a.createdAt) }),
-          el("td", { text: a.deleted ? "deleted" : a.disabled ? "disabled" : "active" }),
+          el("td", { text: a.deleted ? t("state.deleted") : a.disabled ? t("state.disabled") : t("state.active") }),
           el("td", { text: String(a.activeSessions) }), el("td", { text: String(a.campaigns) }),
           el("td", { text: bytes(a.storedBytes) })))))));
   } catch (error) { if (version === viewVersion) show(errorBox(error)); }
 }
 
+staticText();
 route();
