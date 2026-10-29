@@ -1,6 +1,5 @@
 # Standalone LAN stack: copy only this file to the server, then
 # `docker compose -f compose.lan-standalone.yaml pull && ... up -d`.
-# Requires Docker Compose 2.23.1+ for the inline Caddy configuration.
 # The host must own 192.168.162.16. This file does not read .env.
 services:
   server:
@@ -15,10 +14,10 @@ services:
     mem_limit: 512m
     cpus: 2
     environment:
-      CHRONEXUS_PUBLIC_ORIGIN: https://192.168.162.16
+      CHRONEXUS_PUBLIC_ORIGIN: https://192.168.162.16:10050
       CHRONEXUS_LISTEN: 0.0.0.0:8080
       CHRONEXUS_DATABASE: /var/lib/chronexus/chronexus.sqlite3
-      CHRONEXUS_TRUSTED_PROXIES: 172.30.253.2/32
+      CHRONEXUS_TRUSTED_PROXIES: 10.203.162.2/32
       # Operator accounts (comma-separated); takes effect once the account exists.
       CHRONEXUS_OPERATORS: acelith
     volumes:
@@ -43,10 +42,32 @@ services:
     pids_limit: 128
     mem_limit: 256m
     ports:
-      - "192.168.162.16:443:443"
-    configs:
-      - source: lan_caddyfile
-        target: /etc/caddy/Caddyfile
+      - "192.168.162.16:10050:443"  # host port 443 belongs to Pi-hole
+    # Compose cannot inject inline configs into a read-only container, so the
+    # Caddyfile travels in the environment and is written to the /tmp tmpfs.
+    entrypoint: [/bin/sh, -c]
+    command: ['printf "%s" "$$CADDYFILE" > /tmp/Caddyfile && exec caddy run --config /tmp/Caddyfile --adapter caddyfile']
+    environment:
+      CADDYFILE: |
+        {
+            # Clients send no SNI for an IP address; pick the certificate anyway.
+            default_sni 192.168.162.16
+        }
+        192.168.162.16 {
+            tls internal
+            log {
+                output discard
+            }
+            reverse_proxy server:8080 {
+                flush_interval -1
+                transport http {
+                    read_timeout 15m
+                }
+                header_up Host {http.request.hostport}
+                header_up X-Forwarded-Proto https
+                header_up X-Forwarded-For {remote_host}
+            }
+        }
     volumes:
       - proxy-data:/data
       - proxy-config:/config
@@ -57,26 +78,7 @@ services:
         condition: service_healthy
     networks:
       backend:
-        ipv4_address: 172.30.253.2
-
-configs:
-  lan_caddyfile:
-    content: |
-      192.168.162.16 {
-          tls internal
-          log {
-              output discard
-          }
-          reverse_proxy server:8080 {
-              flush_interval -1
-              transport http {
-                  read_timeout 15m
-              }
-              header_up Host {http.request.hostport}
-              header_up X-Forwarded-Proto https
-              header_up X-Forwarded-For {remote_host}
-          }
-      }
+        ipv4_address: 10.203.162.2
 
 volumes:
   server-data:
@@ -87,6 +89,6 @@ networks:
   backend:
     ipam:
       config:
-        - subnet: 172.30.253.0/24
-          gateway: 172.30.253.1
-          ip_range: 172.30.253.128/25
+        - subnet: 10.203.162.0/24
+          gateway: 10.203.162.1
+          ip_range: 10.203.162.128/25
