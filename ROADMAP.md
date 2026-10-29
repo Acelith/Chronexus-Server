@@ -62,10 +62,10 @@ application M25.
 | M25.5 | Continuous local and server saving with visible conflicts | M25.4 | Server contract implemented (receipts, incremental sync, notifications); desktop queue pending |
 | M25.6 | Revocation, deletion and recovery | M25.5 | Implemented (server and desktop client); Windows tested |
 | M25.7 | Security qualification and operational recovery | M25.6 | Implemented on Windows; Docker/Linux, scans, CI and TLS unverified |
-| M25.8 | Desktop integration and first server release | M25.7 and full desktop M24 acceptance | Planned |
+| M25.8 | Desktop integration and first server release | M25.7 and full desktop M24 acceptance | Implemented; releases 0.1.0/0.1.1 |
 | M25.9 | Android contract qualification | — | **Removed** 29/10/2026 |
-| M25.10 | Explicit local or self-hosted server AI | M25.8 | Planned |
-| M25.11 | Web campaign and server management | M25.8; independent of M25.10 | Implemented 27/10/2026 (tests/web.rs, browser-checked); spectator/operator actions beyond status out of scope |
+| M25.10 | Explicit local or self-hosted server AI | M25.8 | Implemented; CPU run 29/10/2026 did not qualify qwen3:4b; larger models need more memory |
+| M25.11 | Web campaign and server management | M25.8; independent of M25.10 | Implemented 27/10/2026, ten languages 29/10/2026 (tests/web.rs, browser-checked); spectator/operator actions beyond status out of scope |
 
 ## Chronexus Table — virtual tabletop (application M42–M47, planned)
 
@@ -410,6 +410,10 @@ Acceptance: synthetic owner, member, read-only user and operator cover the web
 permission matrix, session expiry and confirmed destructive actions. Verify no
 cross-account campaign metadata leaks, API/web behavior agrees, alternate host
 ports work and the UI remains accessible at desktop and narrow widths.
+
+Translations (29 October 2026): the interface ships English plus the nine other desktop
+languages (`web/i18n.js`), follows the browser language, has a language menu and lays out
+Arabic right to left. Messages produced by the API itself stay in English.
 
 ## Delivery evidence
 

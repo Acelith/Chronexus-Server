@@ -13,9 +13,9 @@ The server is application milestone **M25**; its steps are numbered M25.0–M25.
 | M25.5 | Continuous saving with visible conflicts | Implemented |
 | M25.6 | Revocation, deletion, recovery | Implemented |
 | M25.7 | Security qualification and operational recovery | Implemented |
-| M25.8 | Desktop integration and first release | Next |
+| M25.8 | Desktop integration and first release | Implemented (0.1.0, 0.1.1) |
 | M25.9 | Android contract qualification | Removed 29/10/2026 |
-| M25.10 | Explicit local or self-hosted server AI | Implemented without GPU qualification |
-| M25.11 | Web campaign and server management | Implemented |
+| M25.10 | Explicit local or self-hosted server AI | Implemented; no model qualified (CPU run 29/10/2026) |
+| M25.11 | Web campaign and server management | Implemented, ten languages |
 
 Alongside M25.8: application **M41**, this wiki.

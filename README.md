@@ -20,8 +20,8 @@ can see, and decide whether AI runs on your computer or your own server.
 > [!NOTE]
 > **[Release 0.1.1](https://github.com/Acelith/Chronexus-Server/releases/tag/v0.1.1)** is published on GitHub with Linux amd64 and arm64 binaries.
 > Build the Docker image locally with `docker compose --profile https up -d --build`; GHCR publication is pending. Accounts, membership, selective sharing, continuous
-> synchronization, deletion and recovery are implemented (M25.1–M25.7); server AI and web
-> management remain planned. See the [wiki](https://github.com/Acelith/Chronexus-Server/blob/main/docs/wiki/Home.md).
+> synchronization, deletion and recovery (M25.1–M25.8), the web interface in ten languages
+> (M25.11) and optional server AI (M25.10, no model qualified yet) are implemented. See the [wiki](https://github.com/Acelith/Chronexus-Server/blob/main/docs/wiki/Home.md).
 
 ## What is Chronexus Server
 
@@ -62,10 +62,10 @@ The delivery goal:
 | **Continuous saving** | Local autosave, automatic online replication, durable pending changes and visible save status | M25.5 | Implemented (server and desktop client); Windows tested |
 | **Conflict handling** | Both versions remain visible when concurrent edits need your decision | M25.5 | Implemented (server and desktop client); Windows tested |
 | **Revocation** | Remove member access and clear shared copies on their next synchronization | M25.6 | Implemented (server and desktop client); Windows tested |
-| **Backup and recovery** | Consistent server backups, integrity checks and documented restoration | M25.7 | Planned |
-| **Desktop integration** | Tested synchronization with the original Chronexus app | M25.8 | Planned |
-| **Local or server AI** | Explicit execution choice, scoped sources and citations, bounded server resource use | M25.10 | Planned |
-| **Web management** | Authenticated campaign, membership, storage and service management | M25.11 | Implemented (web interface at the public origin) |
+| **Backup and recovery** | Consistent server backups, integrity checks and documented restoration | M25.7 | Implemented (`backup`, `verify`, `restore` commands) |
+| **Desktop integration** | Tested synchronization with the original Chronexus app | M25.8 | Implemented; releases 0.1.0 and 0.1.1 |
+| **Local or server AI** | Explicit execution choice, scoped sources and citations, bounded server resource use | M25.10 | Implemented; no model qualified yet ([docs/AI.md](docs/AI.md)) |
+| **Web management** | Authenticated campaign, membership, storage and service management | M25.11 | Implemented (web interface at the public origin, ten languages) |
 
 ## Deployment and configuration
 
@@ -83,11 +83,12 @@ The second command prints a private, one-use registration invitation. See the
 ports, account policy and recovery. This build supports accounts, campaign roles, explicit sharing and managed image APIs.
 
 - Host bind address, published port and internal API port are configurable.
-- The API uses one HTTPS origin; future web management will use the same origin.
+- The API and the web interface use one HTTPS origin.
   Only the application port is published.
 - Public access requires a valid HTTPS origin and explicitly trusted TLS proxy.
   Credentials are generated securely; no default password.
-- AI/GPU services remain M25.10 work; no model is downloaded or runtime started.
+- The optional AI runtime (`--profile ai`) has no published port and no internet route;
+  nothing is downloaded unless the operator pulls a model.
 - Build the container locally with `docker compose --profile https up -d --build`.
   GHCR image publication remains pending. Tests pass on macOS and Linux amd64;
   a public deployment with real DNS/TLS remains unverified.
@@ -100,13 +101,12 @@ Confirmed protocol decisions and remaining hosting work are tracked in
 ## Synchronization and backups
 
 M25.4 implements explicit per-item sharing and private-content APIs. The original app
-can share pages, sessions, relationships and party members; new image/selected-sheet
-selection UI and continuous local/server saving remain M25.5/M25.8 client work.
+shares pages, sessions, relationships, party members, clues, selected sheet sections and
+images, and keeps campaigns the user switched on synchronized continuously.
 
-For an activated campaign, every autosave will persist locally before its change
-is sent to the server. The interface will distinguish local success from confirmed
-online success, offline pending changes, failures and conflicts. A server outage
-must not stop local writing or discard pending edits.
+Every autosave persists locally before its change is sent to the server. The interface
+distinguishes local success from confirmed online success, offline pending changes,
+failures and conflicts. A server outage does not stop local writing or discard edits.
 
 The two synchronized copies do not replace independent backups: deletions can
 propagate. Server recovery and the desktop's existing `.nodex` backups have
@@ -115,14 +115,14 @@ and reach offline recipients when they reconnect; it cannot erase exported copie
 
 ## Local or server assistant
 
-Planned in M25.10.
+Implemented in M25.10; see [docs/AI.md](docs/AI.md). No model is qualified yet.
 
-AI will remain optional, with an explicit per-campaign choice of disabled, local
-device or the selected self-hosted server. Server mode will use your server's
-runtime and resources through an authenticated connection, with authorized
-campaign context and source citations. Local mode keeps its loopback-only adapter.
+AI stays optional, with an explicit per-campaign choice of local device or the
+selected self-hosted server. Server mode uses your server's runtime and resources
+through an authenticated connection, with authorized campaign context and source
+citations. Local mode keeps its loopback-only adapter.
 
-No third-party cloud AI, automatic provider switch or implicit training is planned.
+No third-party cloud AI, automatic provider switch or implicit training.
 Server AI needs access to the submitted prompt and approved context; the encryption
 policy must make that disclosure explicit. Runtime installation, model download
 and campaign AI activation will remain separate actions. See
@@ -143,8 +143,8 @@ and campaign AI activation will remain separate actions. See
 
 [ROADMAP.md](ROADMAP.md) defines M25.0–M25.11, dependencies and acceptance criteria.
 [docs/STATUS.md](docs/STATUS.md) records what exists, checks actually performed
-and the next step: **M25.8 desktop integration acceptance and the first release** (M25.7 is implemented on Windows). Production
-hosting and full campaign acceptance remain open.
+and the next step. Open: qualifying a server AI model on suitable hardware, GHCR images
+and a production deployment with real DNS/TLS.
 
 ## Development and contributing
 

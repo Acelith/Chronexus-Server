@@ -1,5 +1,28 @@
 # Chronexus Server status
 
+## 29 October 2026: M25 completion on local Docker (source only)
+
+- Android (M25.9) removed from the scope at the user's request.
+- Local test deployment: Compose `https` + `ai` profiles as project `chronexus-m25q` at
+  `https://chronexus.localhost:8443` (Caddy local CA), Ollama 0.40.10 on the internal network,
+  `qwen3:4b` copied by digest from an existing local volume (no download). Runtime port closed
+  on the host; no internet route from the `ai` network.
+- **Defect fixed:** the general 20 s request bound returned 408 for every AI answer longer than
+  20 s, so `CHRONEXUS_AI_TIMEOUT_SECONDS` never applied. AI answers now use only their own
+  deadline (unit test `only_ai_answers_skip_the_general_request_bound`).
+- `scripts/qualify-ai.py` (new, synthetic data): outsider refused, private note never cited,
+  instruction-like note never sent, median 28 s / max 76 s on CPU, runtime peak about 5 GiB.
+  Quality: **2 of 14** answers pass; qwen3:4b leaks its reasoning despite `think: false`. Not
+  qualified. Qwen3.8 27B and Gemma 4 12B do not fit this 8 GB Docker VM; GPU hosts untested.
+- Web interface translated into the ten desktop languages (`web/i18n.js`), browser-language
+  default, language menu, Arabic right to left; a right-to-left skip-link offset that scrolled
+  the page to an empty area was fixed. API messages stay English. Browser check at 375 px
+  (Arabic) and desktop width (Italian) with a synthetic account.
+- Checks: cargo fmt, clippy `-D warnings`, cargo test (90 passed), contract check, 7 web DOM
+  tests (jsdom from the desktop checkout), desktop `sync::tests::live` 5/5 against this source.
+- Still open: a qualified server AI model (needs more memory or a GPU), GHCR images (the GitHub
+  token lacks `write:packages`), a production deployment with real DNS/TLS. No release built.
+
 ## 28 October 2026: web interface refinement (source only)
 
 - Retained the existing parchment/leather identity; added responsive sidebar/top
