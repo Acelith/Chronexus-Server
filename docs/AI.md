@@ -74,15 +74,50 @@ explicit switch back to local AI; it never switches silently.
   are sent; generation is bounded (context 8192, 512 output tokens, temperature 0).
 - Citations that do not match a provided source make the answer "unverified".
 
-## Qualification (open)
+## Qualification
 
-Not done yet, because it needs the target hardware and model weights:
+`scripts/qualify-ai.py` runs the repeatable check against a running deployment with synthetic
+data only: three accounts, one campaign, a shared place, a shared rumour (a claim), the owner's
+private note and an instruction-like note. It asks 14 questions (all ten locales, a claim, a
+missing fact, a private fact and a translated name) and records citations, scoping, exclusion,
+latency and the runtime's peak memory. It downloads nothing.
 
-- answer quality, citation accuracy and refusal behaviour of each model on synthetic campaigns
-  in every supported locale;
-- latency and memory on CPU-only and GPU hosts, and the right `CONCURRENCY`/`QUEUE` for them;
-- a physical offline test of the running stack (the Docker network test only proves that the
-  container has no route).
+An answer passes only when it is verified (every `[S…]` key is a provided source, or it starts
+with the not-found sentence), stays within about three sentences and does not start with
+visible reasoning.
 
-Until then, the server AI is an experimental option for operators who accept running their
-own models.
+### 29 October 2026 — Docker Desktop on Apple silicon, CPU only
+
+Host: macOS arm64, Docker Desktop VM with 10 CPUs and 8 GB; runtime limit 6 GB; Ollama 0.40.10
+(pinned digest) on the internal network; `qwen3:4b` pinned by manifest digest `359d7dd4…`,
+copied from an existing local volume (no download). Deployment: bundled Caddy at
+`https://chronexus.localhost:8443`.
+
+| Check | Result |
+| --- | --- |
+| Outsider asks | refused (403/404) |
+| Owner's private note cited to a player | never |
+| Instruction-like note sent to the model | never (counted as excluded) |
+| Runtime port on the host / internet from the `ai` network | closed / no route (DNS fails) |
+| Latency per answer (wall, 1 at a time) | median 28 s, max 76 s (Arabic) |
+| Runtime memory | peak about 5.0 GiB |
+| Answers passing the quality check | **2 of 14**: the model writes its reasoning ("Okay, let's tackle…") in the answer despite `think: false`, ignores the length limit and often the language |
+
+**Verdict: `qwen3:4b` is not qualified** (consistent with the desktop's M18 retirement of the
+small Qwen models). The run found and fixed a server defect: the general 20-second request
+bound cut every answer longer than 20 s with 408, so `CHRONEXUS_AI_TIMEOUT_SECONDS` never
+took effect; AI answers now use only their own deadline.
+
+Retrieval is lexical: a question that translates a name ("Torre del Sale" for "Salt Tower")
+finds no source and returns the not-found answer. Ask with the names used in the notes.
+
+### Still open
+
+- Qwen3.8 27B (primary) and Gemma 4 12B need more memory than this Docker VM has (8 GB);
+  they are not qualified on any server host yet, CPU or GPU.
+- GPU hosts (NVIDIA with `compose.ai-gpu.yaml`) are untested.
+- A physical offline test (network cable removed) of the running stack; the Docker check only
+  proves that the container has no route.
+
+Until a model passes, the server AI is an experimental option for operators who accept running
+their own models.

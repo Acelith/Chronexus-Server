@@ -95,6 +95,18 @@ fn client_ip(state: &AppState, peer: IpAddr, headers: &HeaderMap) -> Result<IpAd
             "Reverse proxy must supply one client IP.",
         ))
 }
+/// Bound for ordinary API requests.
+const REQUEST_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(20);
+
+/// Server AI answers carry their own deadline (`CHRONEXUS_AI_TIMEOUT_SECONDS`, up to 900 s)
+/// and their own queue; the general bound would cut every generation longer than 20 s.
+fn request_timeout_applies(method: &axum::http::Method, path: &str) -> bool {
+    !(method == axum::http::Method::POST
+        && path.starts_with("/api/v1/campaigns/")
+        && path.ends_with("/ai/answers")
+        && path.matches('/').count() == 6)
+}
+
 async fn security(State(state): State<AppState>, request: Request, next: Next) -> Response {
     let result = (|| {
         let peer = request
@@ -137,14 +149,17 @@ async fn security(State(state): State<AppState>, request: Request, next: Next) -
             if let Some(ip) = ip {
                 request.extensions_mut().insert(ip);
             }
-            match tokio::time::timeout(std::time::Duration::from_secs(20), next.run(request)).await
-            {
-                Ok(reply) => reply,
-                Err(_) => ApiError(
-                    StatusCode::REQUEST_TIMEOUT,
-                    "Request timed out; check the outcome before retrying.",
-                )
-                .into_response(),
+            if !request_timeout_applies(request.method(), request.uri().path()) {
+                next.run(request).await
+            } else {
+                match tokio::time::timeout(REQUEST_TIMEOUT, next.run(request)).await {
+                    Ok(reply) => reply,
+                    Err(_) => ApiError(
+                        StatusCode::REQUEST_TIMEOUT,
+                        "Request timed out; check the outcome before retrying.",
+                    )
+                    .into_response(),
+                }
             }
         }
         Err(error) => error.into_response(),
@@ -354,4 +369,29 @@ pub fn contract() -> utoipa::openapi::OpenApi {
         SecurityScheme::Http(HttpBuilder::new().scheme(HttpAuthScheme::Bearer).build()),
     );
     api
+}
+
+#[cfg(test)]
+mod tests {
+    use super::request_timeout_applies;
+    use axum::http::Method;
+
+    #[test]
+    fn only_ai_answers_skip_the_general_request_bound() {
+        let id = "11111111-1111-4111-8111-111111111111";
+        assert!(!request_timeout_applies(
+            &Method::POST,
+            &format!("/api/v1/campaigns/{id}/ai/answers")
+        ));
+        assert!(request_timeout_applies(
+            &Method::GET,
+            &format!("/api/v1/campaigns/{id}/ai/answers")
+        ));
+        assert!(request_timeout_applies(&Method::GET, "/api/v1/ai/status"));
+        assert!(request_timeout_applies(
+            &Method::POST,
+            &format!("/api/v1/campaigns/{id}/content/page/x/ai/answers")
+        ));
+        assert!(request_timeout_applies(&Method::POST, "/api/v1/campaigns"));
+    }
 }
