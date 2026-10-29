@@ -1,10 +1,10 @@
-# Copy this file alongside Dockerfile and the source checkout on the LAN server.
+# Standalone LAN stack: copy only this file to the server, then
+# `docker compose -f compose.lan-standalone.yaml pull && ... up -d`.
 # Requires Docker Compose 2.23.1+ for the inline Caddy configuration.
 # The host must own 192.168.162.16. This file does not read .env.
 services:
   server:
-    image: chronexus-server:local
-    build: .
+    image: ghcr.io/acelith/chronexus-server:main
     restart: unless-stopped
     init: true
     read_only: true
@@ -19,6 +19,8 @@ services:
       CHRONEXUS_LISTEN: 0.0.0.0:8080
       CHRONEXUS_DATABASE: /var/lib/chronexus/chronexus.sqlite3
       CHRONEXUS_TRUSTED_PROXIES: 172.30.253.2/32
+      # Operator accounts (comma-separated); takes effect once the account exists.
+      CHRONEXUS_OPERATORS: acelith
     volumes:
       - server-data:/var/lib/chronexus
     tmpfs:
