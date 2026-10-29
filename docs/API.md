@@ -2,7 +2,7 @@
 
 Source version 0.1.0 implements server milestones M25.1–M25.4, schema 004. This is not a
 published release. The original Chronexus source 0.8.1 has an M24 sharing client;
-server delivery is application M25 and Android M27. The server now implements its
+server delivery is application M25. The server now implements its
 account, campaign and four-kind sharing protocol, plus explicit private-content,
 selected-sheet and image extensions. Continuous desktop replication remains M25.5.
 

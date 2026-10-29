@@ -33,8 +33,8 @@ control. The original desktop app remains usable without a server or account.
 
 The projects have separate repositories and releases: this repository owns the
 server and its versioned API; the [original Chronexus repository](https://github.com/acelith/Chronexus)
-owns the desktop app and planned Android client. Synchronization belongs to
-the M24 client contract; the server is application M25 and Android follows in M27.
+owns the desktop app. Synchronization belongs to the M24 client contract; the
+server is application M25. Android access was removed from the scope on 29 October 2026.
 
 ## Why Chronexus Server
 
@@ -64,7 +64,6 @@ The delivery goal:
 | **Revocation** | Remove member access and clear shared copies on their next synchronization | M25.6 | Implemented (server and desktop client); Windows tested |
 | **Backup and recovery** | Consistent server backups, integrity checks and documented restoration | M25.7 | Planned |
 | **Desktop integration** | Tested synchronization with the original Chronexus app | M25.8 | Planned |
-| **Android access** | Same account and shared content, with read-only access first | M25.9 / app M27 | Planned |
 | **Local or server AI** | Explicit execution choice, scoped sources and citations, bounded server resource use | M25.10 | Planned |
 | **Web management** | Authenticated campaign, membership, storage and service management | M25.11 | Implemented (web interface at the public origin) |
 
@@ -170,7 +169,7 @@ report desktop issues in [Chronexus](https://github.com/Acelith/Chronexus/issues
 - [Chronexus](https://github.com/acelith/Chronexus): original desktop application,
   campaign model, player knowledge principles and project identity.
 - [Chronexus roadmap](https://github.com/Acelith/Chronexus/blob/main/ROADMAP.md):
-  application milestones, including M24 client, M25 server and M27 Android.
+  application milestones, including M24 client and M25 server.
 - Logo and herald artwork: original Chronexus project assets, copied unchanged;
   see [asset provenance](assets/brand/README.md).
 - Chronexus and this server are licensed under the Apache License 2.0 ([LICENSE](LICENSE)),

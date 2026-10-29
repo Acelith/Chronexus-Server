@@ -5,7 +5,7 @@
 The user authorized reading the current application and starting the server through
 the account/session milestone (M25.2, called M2 in the request). The current application
 documents M23 as implemented and M24 as a desktop client tested against a contract
-fake. Its server milestone is now **M25**; Android moved to **M27**. Server M25.0–M25.11
+fake. Its server milestone is now **M25**; Android (M27/M25.9) was removed on 29 October 2026. Server M25.0–M25.11
 identifiers remain stable and are independent of application milestone numbers.
 
 The application's `docs/SERVER_NOTES.md`, `docs/SYNC_API.md` and `sync/api.rs` confirm

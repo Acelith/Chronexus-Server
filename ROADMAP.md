@@ -9,11 +9,12 @@ Sharing with other players is a separate explicit choice. Users may also explici
 select local AI or AI running on their own server. The desktop remains fully usable
 offline without an account or server. This repository owns the server, its HTTP
 contract, releases and container images; the Chronexus repository owns desktop
-and Android clients.
+client.
 
 This roadmap implements the server side of the application's M24 contract. The
 current application records M23 as implemented and M24 as a client tested against
-a fake; server delivery is now application **M25**, and Android moved to **M27**.
+a fake; server delivery is now application **M25**. Android (application M27, server M25.9)
+was removed on 29 October 2026.
 Server M25.0–M25.11 IDs remain unchanged. End-to-end campaign acceptance is still pending.
 
 ## Product boundaries
@@ -62,9 +63,9 @@ application M25.
 | M25.6 | Revocation, deletion and recovery | M25.5 | Implemented (server and desktop client); Windows tested |
 | M25.7 | Security qualification and operational recovery | M25.6 | Implemented on Windows; Docker/Linux, scans, CI and TLS unverified |
 | M25.8 | Desktop integration and first server release | M25.7 and full desktop M24 acceptance | Planned |
-| M25.9 | Android contract qualification | M25.8 and application M27 | Planned |
-| M25.10 | Explicit local or self-hosted server AI | M25.8; independent of M25.9 | Planned |
-| M25.11 | Web campaign and server management | M25.8; independent of M25.9/M25.10 | Implemented 27/10/2026 (tests/web.rs, browser-checked); spectator/operator actions beyond status out of scope |
+| M25.9 | Android contract qualification | — | **Removed** 29/10/2026 |
+| M25.10 | Explicit local or self-hosted server AI | M25.8 | Planned |
+| M25.11 | Web campaign and server management | M25.8; independent of M25.10 | Implemented 27/10/2026 (tests/web.rs, browser-checked); spectator/operator actions beyond status out of scope |
 
 ## Chronexus Table — virtual tabletop (application M42–M47, planned)
 
@@ -180,8 +181,7 @@ claim of full GUI, campaign-sharing or production TLS acceptance.
   authentication attempt limits and expiring/revocable sessions.
 - Support distinct devices and revoking one device or all sessions. Store no raw
   reusable credentials in logs; server secrets stay outside Git and images.
-- Document client credential storage requirements for desktop secure storage
-  and Android Keystore. Synchronization and server AI both disabled means no
+- Document client credential storage requirements for desktop secure storage. Synchronization and server AI both disabled means no
   server startup connection.
   After explicit campaign activation, remembered synchronization may reconnect
   automatically; this does not authorize startup inference.
@@ -343,17 +343,10 @@ Acceptance: reproducible installation from the documented release, verified
 container digests, end-to-end desktop evidence and no unresolved release-blocking
 data-loss or authorization defects. Record supported versions and upgrade steps.
 
-## M25.9 Android contract qualification
+## M25.9 Android contract qualification (removed)
 
-- Reuse the desktop account and scoped API for application M27. Start with campaign
-  lists and read-only shared content, bounded offline caching and incremental updates.
-- Validate session revocation, device management and logout cache deletion with
-  Android Keystore credentials on a real device.
-- Add mobile writes only after their conflict and permission behavior is tested.
-  Local AI, training and full desktop backup/import remain outside this milestone.
-
-Acceptance: application M27 real-device evidence, compatible API versions and no
-additional private desktop content uploaded to enable mobile access.
+Removed on 29 October 2026 at the user's request together with application M27:
+Chronexus targets desktop clients and this server only. The ID stays reserved.
 
 ## M25.10 Local or self-hosted server AI
 
@@ -424,5 +417,5 @@ For each milestone, update `docs/STATUS.md` with what works, exact executed chec
 remaining limitations and the next step. Review the diff and whitespace, run the
 relevant Rust, contract, security and integration checks, then commit only relevant
 files with an English Conventional Commit and specific validation evidence.
-M25.1–M25.4 server APIs do not count as completed application M25 or M27. Advance milestone status
+M25.1–M25.4 server APIs do not count as completed application M25. Advance milestone status
 only with corresponding implementation and acceptance evidence.
