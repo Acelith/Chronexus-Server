@@ -44,33 +44,34 @@ user name, display name and password.
 
 ### Local network by IP address
 
-For a server available only on your LAN, set `CHRONEXUS_DOMAIN` to the host's
-LAN IP address and `CHRONEXUS_PUBLIC_ORIGIN` to `https://` followed by that
-address. To bind the bundled proxy only to that interface, set
-`CHRONEXUS_HTTP_PORT=IP:80` and `CHRONEXUS_HTTPS_PORT=IP:443` in `.env` (replace
-`IP` with the same address). Leave the application port on `127.0.0.1`.
+For a separate LAN host at `192.168.162.16`, copy the source checkout (including
+`Dockerfile`) to that host and use `compose.lan-standalone.yaml`. It is a complete
+Compose stack: server, HTTPS proxy, inline Caddy configuration, network and
+persistent volumes. It does not need `.env` or another Compose/Caddy file.
+Docker Compose 2.23.1 or later is required for its inline configuration. Change
+the IP in the file if the host uses another address.
 
-Start the existing Compose stack with the LAN override:
+On that host, run:
 
 ```sh
-docker compose -f compose.yaml -f compose.lan.yaml --profile https config --quiet
-docker compose -f compose.yaml -f compose.lan.yaml --profile https up -d --build
+docker compose -f compose.lan-standalone.yaml config --quiet
+docker compose -f compose.lan-standalone.yaml up -d --build
 ```
 
-The override uses Caddy's internal CA. After the proxy starts, copy its **root
+This stack uses Caddy's internal CA. After the proxy starts, copy its **root
 certificate** to a safe location and install it as a trusted root on every
 desktop that will connect. The certificate is public; never export the CA's
 private key. Keep the `proxy-data` volume, which holds the CA, across restarts.
 
 ```sh
-docker compose -f compose.yaml -f compose.lan.yaml --profile https cp proxy:/data/caddy/pki/authorities/local/root.crt ./chronexus-lan-root.crt
+docker compose -f compose.lan-standalone.yaml cp proxy:/data/caddy/pki/authorities/local/root.crt ./chronexus-lan-root.crt
 ```
 
-Check `https://IP/api/v1/meta` from a client after trusting the certificate,
+Check `https://192.168.162.16/api/v1/meta` from a client after trusting the certificate,
 then use that exact HTTPS origin in Chronexus. A certificate warning means the
-client is not ready; do not bypass it. LAN firewall rules should allow TCP 80
-and TCP/UDP 443 only from the intended local network. If the host IP changes,
-update `.env` and trust the renewed certificate for the new address.
+client is not ready; do not bypass it. LAN firewall rules should allow TCP 443
+only from the intended local network. If the host IP changes, update the YAML
+and trust the renewed certificate for the new address.
 
 Defaults: `127.0.0.1:8080` on the host forwards to container port 8080. The bridge
 subnet is `172.30.253.0/24`; its gateway `172.30.253.1/32` is the only default trusted

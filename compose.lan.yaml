@@ -1,6 +1,0 @@
-# Use with compose.yaml for a LAN-only server reached by IP address.
-# The .env file binds Caddy's published ports to that LAN address.
-services:
-  proxy:
-    volumes:
-      - ./deploy/Caddyfile.lan:/etc/caddy/Caddyfile:ro

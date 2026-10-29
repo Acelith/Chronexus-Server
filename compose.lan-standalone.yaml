@@ -1,0 +1,90 @@
+# Copy this file alongside Dockerfile and the source checkout on the LAN server.
+# Requires Docker Compose 2.23.1+ for the inline Caddy configuration.
+# The host must own 192.168.162.16. This file does not read .env.
+services:
+  server:
+    image: chronexus-server:local
+    build: .
+    restart: unless-stopped
+    init: true
+    read_only: true
+    user: "10001:10001"
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 128
+    mem_limit: 512m
+    cpus: 2
+    environment:
+      CHRONEXUS_PUBLIC_ORIGIN: https://192.168.162.16
+      CHRONEXUS_LISTEN: 0.0.0.0:8080
+      CHRONEXUS_DATABASE: /var/lib/chronexus/chronexus.sqlite3
+      CHRONEXUS_TRUSTED_PROXIES: 172.30.253.2/32
+    volumes:
+      - server-data:/var/lib/chronexus
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=16m
+    healthcheck:
+      test: [CMD, chronexus-server, healthcheck]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+    networks: [backend]
+
+  proxy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    cap_add: [NET_BIND_SERVICE]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 128
+    mem_limit: 256m
+    ports:
+      - "192.168.162.16:443:443"
+    configs:
+      - source: lan_caddyfile
+        target: /etc/caddy/Caddyfile
+    volumes:
+      - proxy-data:/data
+      - proxy-config:/config
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=16m
+    depends_on:
+      server:
+        condition: service_healthy
+    networks:
+      backend:
+        ipv4_address: 172.30.253.2
+
+configs:
+  lan_caddyfile:
+    content: |
+      192.168.162.16 {
+          tls internal
+          log {
+              output discard
+          }
+          reverse_proxy server:8080 {
+              flush_interval -1
+              transport http {
+                  read_timeout 15m
+              }
+              header_up Host {http.request.hostport}
+              header_up X-Forwarded-Proto https
+              header_up X-Forwarded-For {remote_host}
+          }
+      }
+
+volumes:
+  server-data:
+  proxy-data:
+  proxy-config:
+
+networks:
+  backend:
+    ipam:
+      config:
+        - subnet: 172.30.253.0/24
+          gateway: 172.30.253.1
+          ip_range: 172.30.253.128/25
