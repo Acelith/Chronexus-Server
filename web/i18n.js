@@ -10,6 +10,18 @@
   const ORDER = LOCALES.map(([code]) => code);
   // One row per message: en, it, de, fr, es, pt-BR, ja, ko, zh-Hans, ar.
   const M = {
+    "nav.tables": ["Tables", "Tavoli", "Spieltische", "Tables de jeu", "Mesas", "Mesas", "卓", "테이블", "游戏桌", "الطاولات"],
+    tablesTitle: ["Your tables", "I tuoi tavoli", "Deine Spieltische", "Vos tables de jeu", "Tus mesas", "Suas mesas", "あなたの卓", "내 테이블", "你的游戏桌", "طاولاتك"],
+    tablesEmpty: ["No tables yet. Create one or join with an invitation code.", "Ancora nessun tavolo. Creane uno o entra con un codice d’invito.", "Noch keine Spieltische. Erstelle einen oder tritt mit einem Einladungscode bei.", "Aucune table pour le moment. Créez-en une ou utilisez un code d’invitation.", "Aún no hay mesas. Crea una o únete con un código de invitación.", "Ainda não há mesas. Crie uma ou entre com um código de convite.", "まだ卓がありません。作成するか招待コードで参加してください。", "아직 테이블이 없습니다. 만들거나 초대 코드로 참가하세요.", "还没有游戏桌。创建一个或使用邀请码加入。", "لا توجد طاولات بعد. أنشئ واحدة أو انضم برمز دعوة."],
+    createTable: ["Create table", "Crea tavolo", "Spieltisch erstellen", "Créer une table", "Crear mesa", "Criar mesa", "卓を作成", "테이블 만들기", "创建游戏桌", "إنشاء طاولة"],
+    tableName: ["Table name", "Nome del tavolo", "Name des Spieltischs", "Nom de la table", "Nombre de la mesa", "Nome da mesa", "卓の名前", "테이블 이름", "游戏桌名称", "اسم الطاولة"],
+    joinTable: ["Join table", "Entra nel tavolo", "Spieltisch beitreten", "Rejoindre une table", "Unirse a una mesa", "Entrar na mesa", "卓に参加", "테이블 참가", "加入游戏桌", "الانضمام إلى طاولة"],
+    inviteCode: ["Invitation code", "Codice d’invito", "Einladungscode", "Code d’invitation", "Código de invitación", "Código de convite", "招待コード", "초대 코드", "邀请码", "رمز الدعوة"],
+    invitePlayer: ["Invite player", "Invita giocatore", "Spieler einladen", "Inviter un joueur", "Invitar jugador", "Convidar jogador", "プレイヤーを招待", "플레이어 초대", "邀请玩家", "دعوة لاعب"],
+    inviteSpectator: ["Invite spectator", "Invita spettatore", "Zuschauer einladen", "Inviter un spectateur", "Invitar espectador", "Convidar espectador", "観戦者を招待", "관전자 초대", "邀请观众", "دعوة مشاهد"],
+    copyInvite: ["Copy this one-use code now:", "Copia ora questo codice monouso:", "Diesen einmaligen Code jetzt kopieren:", "Copiez ce code à usage unique maintenant :", "Copia ahora este código de un solo uso:", "Copie agora este código de uso único:", "この一回限りのコードを今コピーしてください:", "이 일회용 코드를 지금 복사하세요:", "请立即复制此一次性代码：", "انسخ هذا الرمز المستخدم مرة واحدة الآن:"],
+    "role.gm": ["GM", "GM", "Spielleitung", "MJ", "DJ", "Mestre", "GM", "GM", "主持人", "مدير اللعبة"],
+    "role.spectator": ["Spectator", "Spettatore", "Zuschauer", "Spectateur", "Espectador", "Espectador", "観戦者", "관전자", "观众", "مشاهد"],
     skip: ["Skip to content", "Vai al contenuto", "Zum Inhalt springen", "Aller au contenu", "Ir al contenido", "Ir para o conteúdo", "本文へ移動", "본문으로 건너뛰기", "跳到内容", "انتقل إلى المحتوى"],
     sections: ["Sections", "Sezioni", "Bereiche", "Sections", "Secciones", "Seções", "セクション", "섹션", "栏目", "الأقسام"],
     language: ["Language", "Lingua", "Sprache", "Langue", "Idioma", "Idioma", "言語", "언어", "语言", "اللغة"],

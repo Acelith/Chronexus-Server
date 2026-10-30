@@ -1,5 +1,19 @@
 # Chronexus Server status
 
+## 30 October 2026: M42 foundation in progress (source only)
+
+- Schema 008 adds tables, separate GM/player/spectator seats and one-use table invitations.
+  Account membership in a table grants no journal campaign access. The web interface
+  now lists, creates and joins tables and lets a GM issue player/spectator codes.
+- M42 is incomplete: GM enrollment policy, invitation sign-up, seat administration,
+  journal audience *shared with the GM too*, desktop UI and full authorization matrix
+  remain. M43 live channel and GM web workspace remain unimplemented.
+- JavaScript syntax, eight web DOM tests, ten-locale server catalog coverage,
+  desktop `pnpm i18n:check`, Impeccable detector and SQLite migration syntax passed.
+  Rust fmt, Clippy, tests, release build and generated
+  contract checks could not run because Cargo is unavailable on this machine.
+- No release or deployment from this partial slice.
+
 ## 29 October 2026: M25 completion on local Docker (source only)
 
 - Android (M25.9) removed from the scope at the user's request.

@@ -76,7 +76,7 @@ client.
 
 | ID | Server deliverables |
 | --- | --- |
-| M42 | GM capability (`invite --gm`), tables, seats (GM, player, spectator), table invitation codes with sign-up, the journal audience *shared with the GM too*; authorization matrix proving a GM reads no other journal item |
+| M42 | In progress: schema 008 tables, seats, one-use codes and web table administration; GM enrollment policy, invitation sign-up, journal audience and full matrix remain |
 | M43 | WebSocket `/api/v1/tables/{id}/live` with per-recipient views, presence, operation IDs and revisions, reconnection from a revision or snapshot; web interface for GMs (builds on M25.11) |
 | M44 | Scenes, map assets (larger image limits, Universal VTT import), grid settings, tokens with owner and visibility, server-validated movement and diagonal rule, rulers and area templates; distances stored in their rules unit |
 | M45 | Combat state: initiative, turn order, rounds, conditions with durations, combat log with GM-secret rolls; HP changes only by the token's owner or the GM for monsters |

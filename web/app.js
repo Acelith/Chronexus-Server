@@ -50,7 +50,7 @@ function el(tag, attrs = {}, ...children) {
 const bytes = (n) =>
   n < 1024 ? `${n} B` : n < 1048576 ? `${(n / 1024).toFixed(1)} KiB` : `${(n / 1048576).toFixed(1)} MiB`;
 const when = (iso) => (iso ? new Date(iso).toLocaleString(window.ChronexusI18n.locale) : t("never"));
-const roleName = (role) => (["owner", "player", "reader"].includes(role) ? t(`role.${role}`) : role);
+const roleName = (role) => (["owner", "player", "reader", "gm", "spectator"].includes(role) ? t(`role.${role}`) : role);
 const kindName = (kind) => (window.ChronexusI18n.has(`kind.${kind}`) ? t(`kind.${kind}`) : kind);
 function token() {
   try { return sessionStorage.getItem(TOKEN_KEY) ?? memoryToken; } catch { return memoryToken; }
@@ -140,6 +140,7 @@ function renderNav(current) {
     el("a", { href: hash, "aria-current": current === hash ? "page" : undefined, text: label });
   const items = [
     link("#/campaigns", t("nav.campaigns")),
+    link("#/tables", t("nav.tables")),
     link("#/devices", t("nav.devices")),
     me.operator ? link("#/operator", t("nav.operator")) : null,
     el("button", {
@@ -172,17 +173,66 @@ async function route() {
   }
   if (version !== viewVersion) return;
   const [, section, id, panel] = hash.split("/");
-  const current = `#/${section === "campaign" ? "campaigns" : section || "campaigns"}`;
+  const current = `#/${section === "campaign" ? "campaigns" : section === "table" ? "tables" : section || "campaigns"}`;
   renderNav(current);
   if (section === "campaign" && id) {
     try { return campaignView(decodeURIComponent(id), undefined, panel); }
     catch (error) { return show(errorBox(error)); }
   }
   if (section === "devices") return devicesView();
+  if (section === "tables") return tablesView();
+  if (section === "table" && id) return tableView(decodeURIComponent(id));
   if (section === "operator" && me.operator) return operatorView();
   return campaignsView();
 }
 window.addEventListener("hashchange", route);
+
+async function tablesView() {
+  const version = ++viewVersion;
+  loading();
+  try {
+    const tables = await api("GET", "/api/v1/tables");
+    if (version !== viewVersion) return;
+    const name = el("input", { required: true, maxlength: "200", id: "table-name" });
+    const code = el("input", { required: true, id: "table-code", autocomplete: "off" });
+    const status = el("div", { role: "status" });
+    const create = el("button", { class: "primary", type: "submit", text: t("createTable") });
+    const join = el("button", { type: "submit", text: t("joinTable") });
+    show(el("h1", { text: t("tablesTitle") }),
+      tables.length ? el("ul", { class: "plain" }, tables.map((table) => el("li", { class: "campaign-row" },
+        el("a", { href: `#/table/${encodeURIComponent(table.id)}`, text: table.name }),
+        el("span", { class: "role", text: roleName(table.role) })))) : el("p", { class: "muted", text: t("tablesEmpty") }),
+      el("div", { class: "table-actions" },
+        el("form", { class: "card", onsubmit: (event) => { event.preventDefault(); act(create, status, async () => { const table = await api("POST", "/api/v1/tables", { name: name.value.trim() }); location.hash = `#/table/${table.id}`; return t("done"); }); } },
+          el("h2", { text: t("createTable") }), el("label", { for: "table-name", text: t("tableName") }), name, create),
+        el("form", { class: "card", onsubmit: (event) => { event.preventDefault(); act(join, status, async () => { const table = await api("POST", "/api/v1/tables/join", { inviteCode: code.value.trim() }); location.hash = `#/table/${table.id}`; return t("done"); }); } },
+          el("h2", { text: t("joinTable") }), el("label", { for: "table-code", text: t("inviteCode") }), code, join)), status);
+  } catch (error) { if (version === viewVersion) show(errorBox(error)); }
+}
+
+async function tableView(id) {
+  const version = ++viewVersion;
+  loading();
+  try {
+    const table = await api("GET", `/api/v1/tables/${encodeURIComponent(id)}`);
+    if (version !== viewVersion) return;
+    const status = el("div", { role: "status" });
+    const invite = (role, label) => el("button", { type: "button", text: label, onclick: async (event) => {
+      const button = event.currentTarget;
+      button.disabled = true;
+      status.replaceChildren(el("span", { text: t("working") }));
+      try {
+        const result = await api("POST", `/api/v1/tables/${encodeURIComponent(id)}/invites`, { role });
+        status.replaceChildren(el("p", { text: t("copyInvite") }), el("code", { class: "secret", text: result.code }));
+      } catch (error) { status.replaceChildren(errorBox(error)); }
+      finally { button.disabled = false; }
+    } });
+    show(el("a", { href: "#/tables", text: t("nav.tables") }), el("h1", { text: table.name }),
+      el("p", { class: "muted", text: roleName(table.role) }),
+      table.role === "gm" ? el("div", { class: "actions" }, invite("player", t("invitePlayer")), invite("spectator", t("inviteSpectator"))) : null,
+      status);
+  } catch (error) { if (version === viewVersion) show(errorBox(error)); }
+}
 
 // ---------- views ----------
 function signIn() {

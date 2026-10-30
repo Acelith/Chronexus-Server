@@ -24,6 +24,20 @@ const overview = { name: '<img src=x onerror=alert(1)>', role: 'owner', members:
   myItems: [], myContentBytes: 0, myAttachments: 0, myAttachmentBytes: 0,
   sharedByOthers: 0, accountAttachmentBytes: 0, quotas: {} };
 
+test('tables page keeps names inert and links to table workspace', async () => {
+  const dom = fixture(async path => response(path.endsWith('/account') ? account :
+    path.endsWith('/tables') ? [{ id: 'synthetic-id', name: '<img src=x onerror=alert(1)>', role: 'gm' }] : []));
+  const { window: w } = dom;
+  w.sessionStorage.setItem('chronexus-web-session', 'synthetic');
+  w.location.hash = '#/tables';
+  w.dispatchEvent(new w.HashChangeEvent('hashchange'));
+  await settle();
+  assert.equal(w.document.querySelector('#main img'), null);
+  assert.equal(w.document.querySelector('#main a[href="#/table/synthetic-id"]').textContent, '<img src=x onerror=alert(1)>');
+  assert.equal(w.document.querySelector('#nav a[aria-current="page"]').textContent, 'Tables');
+  dom.window.close();
+});
+
 test('sign-in works in memory when tab storage is blocked', async () => {
   const dom = fixture(async (_, options) => response(options.method === 'POST' ? { token: 'synthetic' } : account));
   const { window: w } = dom;

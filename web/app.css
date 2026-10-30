@@ -73,6 +73,9 @@ button:disabled { opacity: 0.55; cursor: not-allowed; }
 ul.plain { list-style: none; padding: 0; margin: 0; }
 ul.plain li { padding: 20px 0; border-bottom: 1px solid #c8b083; }
 .campaign-row { display: flex; align-items: baseline; justify-content: space-between; gap: 24px; }
+.table-actions { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 20px; margin-top: 32px; }
+.table-actions .card { margin: 0; padding: 24px; }
+.table-actions h2 { margin-top: 0; }
 .campaign-row a { font-size: 1.25rem; padding-block: 10px; overflow-wrap: anywhere; }
 .role { color: var(--muted); flex-shrink: 0; }
 a { color: var(--burgundy); text-underline-offset: 0.2em; }
