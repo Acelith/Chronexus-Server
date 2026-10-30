@@ -9,8 +9,17 @@ and deletion or leaving. Each section has a bookmarkable address. On wide screen
 global navigation stays in a sidebar; on phones it appears above the content.
 Wide tables scroll horizontally and can be focused with the keyboard.
 
-Virtual tabletop features remain planned. The current campaign pages manage journal
-synchronization and sharing; they do not grant a game master access to player journals.
+The source includes a separate Tables workspace: authorized GMs create tables,
+invite players or spectators and manage seats. Campaign membership and table seats
+remain separate. GMs see only journal items explicitly granted by their authors,
+including items beyond the first 100; the workspace loads the paginated list.
+Desktop table integration, maps and combat remain unfinished.
+
+The live channel shows public activity and presence. After a connection interruption,
+it checks whether a pending message was already saved before retrying the same
+operation. Conflicts keep the draft for an explicit retry, and confirmations
+preserve newer text typed while waiting. These table features are source changes;
+published server release 0.1.1 predates them.
 
 ## What you can do
 
@@ -48,4 +57,5 @@ file; that is outside the application.)
   request forgery; requests from another origin are refused.
 - Names and other text from campaigns are always shown as plain text.
 
-The interface is in English for now.
+The interface supports English and the nine other desktop languages, including
+right-to-left Arabic. Campaign text remains unchanged.

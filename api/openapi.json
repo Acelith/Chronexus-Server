@@ -4575,6 +4575,15 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "description": "Exclusive campaignId/kind/itemId cursor from the last item; pages contain at most 100 items.",
+            "in": "query",
+            "name": "after",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {

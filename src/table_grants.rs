@@ -8,7 +8,7 @@ use crate::{
 };
 use axum::{
     Json, Router,
-    extract::{Path, State, rejection::JsonRejection},
+    extract::{Path, Query, State, rejection::JsonRejection},
     http::{HeaderMap, StatusCode},
     routing::post,
 };
@@ -32,6 +32,11 @@ pub struct GrantedItem {
     pub author_name: String,
     pub revision: i64,
     pub payload: crate::payload::Payload,
+}
+
+#[derive(Deserialize)]
+struct GrantQuery {
+    after: Option<String>,
 }
 
 impl Database {
@@ -76,14 +81,44 @@ impl Database {
             Ok(())
         })
     }
-    pub fn gm_items(&self, token: &str, table: &str) -> Result<Vec<GrantedItem>> {
+    pub fn gm_items(
+        &self,
+        token: &str,
+        table: &str,
+        after: Option<&str>,
+    ) -> Result<Vec<GrantedItem>> {
         identifier(table)?;
+        let (campaign, kind, item) = match after {
+            None => ("", "", ""),
+            Some(cursor) => {
+                let parts: Vec<_> = cursor.split('/').collect();
+                let [campaign, kind, item] = parts.as_slice() else {
+                    return Err(ApiError::invalid());
+                };
+                identifier(campaign)?;
+                identifier(item)?;
+                if ![
+                    "page",
+                    "session",
+                    "relationship",
+                    "party",
+                    "clue",
+                    "sheetSection",
+                    "image",
+                ]
+                .contains(kind)
+                {
+                    return Err(ApiError::invalid());
+                }
+                (*campaign, *kind, *item)
+            }
+        };
         let identity = self.identity(token)?;
         self.with(|conn| {
             let role:Option<String>=conn.query_row("SELECT role FROM table_seats WHERE table_id=?1 AND account_id=?2",params![table,identity.account_id],|r|r.get(0)).optional()?;
             if role.as_deref()!=Some("gm") { return Err(ApiError(StatusCode::FORBIDDEN,"GM seat required.")); }
-            let mut query=conn.prepare("SELECT g.campaign_id,g.kind,g.item_id,a.display_name,c.revision,c.payload FROM gm_item_grants g JOIN content c ON c.campaign_id=g.campaign_id AND c.kind=g.kind AND c.id=g.item_id AND c.author_id=g.author_id JOIN accounts a ON a.id=g.author_id JOIN members m ON m.campaign_id=g.campaign_id AND m.account_id=g.author_id JOIN table_seats s ON s.table_id=g.table_id AND s.account_id=g.author_id AND s.role='player' WHERE g.table_id=?1 AND c.visibility='members' AND c.deleted=0 AND m.active=1 AND a.disabled=0 ORDER BY g.granted_at,g.item_id LIMIT 100")?;
-            let rows=query.query_map([table],|r|Ok((r.get::<_,String>(0)?,r.get::<_,String>(1)?,r.get::<_,String>(2)?,r.get::<_,String>(3)?,r.get::<_,i64>(4)?,r.get::<_,String>(5)?)))?.collect::<std::result::Result<Vec<_>,_>>()?;
+            let mut query=conn.prepare("SELECT g.campaign_id,g.kind,g.item_id,a.display_name,c.revision,c.payload FROM gm_item_grants g JOIN content c ON c.campaign_id=g.campaign_id AND c.kind=g.kind AND c.id=g.item_id AND c.author_id=g.author_id JOIN accounts a ON a.id=g.author_id JOIN members m ON m.campaign_id=g.campaign_id AND m.account_id=g.author_id JOIN table_seats s ON s.table_id=g.table_id AND s.account_id=g.author_id AND s.role='player' WHERE g.table_id=?1 AND c.visibility='members' AND c.deleted=0 AND m.active=1 AND a.disabled=0 AND (g.campaign_id,g.kind,g.item_id)>(?2,?3,?4) ORDER BY g.campaign_id,g.kind,g.item_id LIMIT 100")?;
+            let rows=query.query_map(params![table,campaign,kind,item],|r|Ok((r.get::<_,String>(0)?,r.get::<_,String>(1)?,r.get::<_,String>(2)?,r.get::<_,String>(3)?,r.get::<_,i64>(4)?,r.get::<_,String>(5)?)))?.collect::<std::result::Result<Vec<_>,_>>()?;
             rows.into_iter().map(|(campaign_id,kind,item_id,author_name,revision,payload)|Ok(GrantedItem{campaign_id,kind,item_id,author_name,revision,payload:serde_json::from_str(&payload).map_err(|_|ApiError::internal())?})).collect()
         })
     }
@@ -122,15 +157,16 @@ async fn revoke(
         .await?;
     Ok(StatusCode::NO_CONTENT)
 }
-#[utoipa::path(get,path="/api/v1/tables/{tableId}/journal-grants",params(("tableId"=String,Path)),security(("bearer"=[])),responses((status=200,body=Vec<GrantedItem>),(status=403,body=ErrorBody)),tag="tables")]
+#[utoipa::path(get,path="/api/v1/tables/{tableId}/journal-grants",params(("tableId"=String,Path),("after"=Option<String>,Query,description="Exclusive campaignId/kind/itemId cursor from the last item; pages contain at most 100 items.")),security(("bearer"=[])),responses((status=200,body=Vec<GrantedItem>),(status=403,body=ErrorBody)),tag="tables")]
 async fn list(
     State(state): State<AppState>,
     headers: HeaderMap,
     Path(id): Path<String>,
+    Query(query): Query<GrantQuery>,
 ) -> Result<Json<Vec<GrantedItem>>> {
     let token = token(&headers)?;
     state
-        .blocking(move |db| db.gm_items(&token, &id))
+        .blocking(move |db| db.gm_items(&token, &id, query.after.as_deref()))
         .await
         .map(Json)
 }

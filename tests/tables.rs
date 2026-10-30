@@ -267,3 +267,158 @@ async fn table_code_registers_new_player_but_not_a_gm() {
         StatusCode::FORBIDDEN
     );
 }
+
+#[tokio::test]
+async fn gm_grants_paginate_without_skipping_after_revocation() {
+    let f = Fixture::new();
+    let code = f.state.database.issue_invite_with_gm(None, true).unwrap();
+    let (status, gm) = f
+        .call(
+            "POST",
+            "/api/v1/auth/redeem",
+            json!({
+                "inviteCode":code,"username":"paging-gm","displayName":"GM",
+                "password":"synthetic-password-123","device":"browser"
+            }),
+            None,
+        )
+        .await;
+    assert_eq!(status, StatusCode::OK);
+    let player = f.account("paging-player").await;
+    let outsider = f.account("paging-outsider").await;
+    let gt = gm["token"].as_str();
+    let pt = player["token"].as_str();
+    let (_, table) = f
+        .call("POST", "/api/v1/tables", json!({"name":"Paging table"}), gt)
+        .await;
+    let table_id = table["id"].as_str().unwrap();
+    let (_, invite) = f
+        .call(
+            "POST",
+            &format!("/api/v1/tables/{table_id}/invites"),
+            json!({"role":"player"}),
+            gt,
+        )
+        .await;
+    assert_eq!(
+        f.call(
+            "POST",
+            "/api/v1/tables/join",
+            json!({"inviteCode":invite["code"]}),
+            pt
+        )
+        .await
+        .0,
+        StatusCode::OK
+    );
+    let (_, campaign) = f
+        .call(
+            "POST",
+            "/api/v1/campaigns",
+            json!({"name":"Paging journal"}),
+            pt,
+        )
+        .await;
+    let cid = campaign["id"].as_str().unwrap();
+    let path = format!("/api/v1/tables/{table_id}/journal-grants");
+    let mut ids: Vec<_> = (0..101).map(|_| Uuid::new_v4().to_string()).collect();
+    ids.sort();
+    for id in &ids {
+        let payload = json!({"title":"Explicit grant","kind":"npc","status":"active","aliases":[],
+            "document":{"version":1,"blocks":[{"id":"block-1","type":"paragraph","props":{},"content":[],"children":[]}]}});
+        assert_eq!(
+            f.call(
+                "PUT",
+                &format!("/api/v1/campaigns/{cid}/content/page/{id}"),
+                json!({"baseRevision":0,"visibility":"members","payload":payload}),
+                pt
+            )
+            .await
+            .0,
+            StatusCode::OK
+        );
+        assert_eq!(
+            f.call(
+                "POST",
+                &path,
+                json!({"campaignId":cid,"kind":"page","itemId":id}),
+                pt
+            )
+            .await
+            .0,
+            StatusCode::NO_CONTENT
+        );
+    }
+    let (status, first) = f.call("GET", &path, Value::Null, gt).await;
+    assert_eq!(status, StatusCode::OK);
+    let first = first.as_array().unwrap();
+    assert_eq!(first.len(), 100);
+    for (item, expected) in first.iter().zip(&ids) {
+        assert_eq!(item["itemId"].as_str().unwrap(), expected);
+    }
+    let cursor = format!("{cid}/page/{}", ids[99]);
+    let next_path = format!("{path}?after={cursor}");
+    // Revocation of the cursor row must neither skip the next item nor restore access.
+    assert_eq!(
+        f.call(
+            "DELETE",
+            &path,
+            json!({"campaignId":cid,"kind":"page","itemId":ids[99]}),
+            pt
+        )
+        .await
+        .0,
+        StatusCode::NO_CONTENT
+    );
+    let (status, next) = f.call("GET", &next_path, Value::Null, gt).await;
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(next.as_array().unwrap().len(), 1);
+    assert_eq!(next[0]["itemId"], ids[100]);
+    assert_eq!(
+        f.call(
+            "GET",
+            &format!("{path}?after={cid}/page/{}", ids[100]),
+            Value::Null,
+            gt
+        )
+        .await
+        .1,
+        json!([])
+    );
+    for token in [pt, outsider["token"].as_str()] {
+        assert_eq!(
+            f.call("GET", &next_path, Value::Null, token).await.0,
+            StatusCode::FORBIDDEN
+        );
+    }
+    for cursor in [
+        "invalid".to_string(),
+        format!("{cid}/unknown/{}", ids[0]),
+        format!("{cid}/page/not-a-uuid"),
+    ] {
+        assert_eq!(
+            f.call("GET", &format!("{path}?after={cursor}"), Value::Null, gt)
+                .await
+                .0,
+            StatusCode::BAD_REQUEST
+        );
+    }
+    assert_eq!(
+        f.call(
+            "DELETE",
+            &format!(
+                "/api/v1/tables/{table_id}/seats/{}",
+                player["accountId"].as_str().unwrap()
+            ),
+            Value::Null,
+            gt
+        )
+        .await
+        .0,
+        StatusCode::NO_CONTENT
+    );
+    assert_eq!(
+        f.call("GET", &next_path, Value::Null, gt).await.1,
+        json!([])
+    );
+}

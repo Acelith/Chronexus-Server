@@ -70,6 +70,110 @@ test('Italian table workspace translates controls without changing the table nam
   dom.window.close();
 });
 
+for (const locale of ['en', 'it', 'ar']) {
+  for (const outcome of ['uncommitted', 'committed', 'conflict']) {
+    test(`${locale}: reconnect recovers a ${outcome} pending message`, async () => {
+      const dom = fixture(async path => response(path.endsWith('/account') ? account :
+        path.endsWith('/live-ticket') ? { ticket: 'synthetic' } :
+        path.endsWith('/seats') ? [] :
+        { id: 'synthetic-id', name: 'Table', role: 'player', revision: 1 }), { locale });
+      try {
+        const w = dom.window, sockets = [];
+        class Socket {
+          static OPEN = 1;
+          readyState = 1;
+          sent = [];
+          constructor() { sockets.push(this); }
+          send(value) { this.sent.push(JSON.parse(value)); }
+          close() {}
+        }
+        w.WebSocket = Socket;
+        const timeout = w.setTimeout.bind(w);
+        w.setTimeout = (fn, ms) => timeout(fn, ms === 2000 ? 1 : ms);
+        w.sessionStorage.setItem('chronexus-web-session', 'synthetic');
+        w.location.hash = '#/table/synthetic-id';
+        await settle();
+        const first = sockets.at(-1);
+        const state = (socket, revision, events = []) => socket.onmessage({ data: JSON.stringify({ type: 'state', revision, events, online: 1 }) });
+        const input = w.document.querySelector('#live-message');
+        const button = input.form.querySelector('button');
+        first.onopen();
+        assert.equal(button.disabled, true, 'wait for authoritative state');
+        state(first, 1);
+        input.value = 'Preserve this draft';
+        input.form.dispatchEvent(new w.Event('submit', { cancelable: true }));
+        const operation = first.sent[0];
+        assert.ok(operation.operationId);
+        // Enter cannot replace the pending operation while the button is disabled.
+        input.form.dispatchEvent(new w.Event('submit', { cancelable: true }));
+        assert.equal(first.sent.length, 1);
+        first.onclose();
+        await settle();
+        const second = sockets.at(-1);
+        assert.notEqual(second, first);
+        second.onopen();
+        const event = { ...operation, revision: 2, authorName: 'Player' };
+        state(second, outcome === 'uncommitted' ? 1 : 2, outcome === 'committed' ? [event] : []);
+        if (outcome === 'committed') {
+          assert.equal(second.sent.length, 0, 'already committed messages are not resent');
+          assert.equal(input.value, '');
+        } else {
+          assert.deepEqual(second.sent, [operation], 'retry exact ID, base revision and text');
+          state(second, 2);
+          assert.equal(second.sent.length, 1, 'retry once per connection');
+          if (outcome === 'conflict') {
+            second.onmessage({ data: JSON.stringify({ type: 'error', message: 'Revision conflict' }) });
+            assert.equal(input.value, operation.text);
+            assert.ok(w.document.querySelector('[role="alert"]'));
+          } else {
+            input.value = 'A newer draft typed while waiting';
+            second.onmessage({ data: JSON.stringify({ type: 'ack', revision: 3 }) });
+            assert.equal(input.value, 'A newer draft typed while waiting');
+          }
+        }
+        assert.equal(button.disabled, false);
+        first.onmessage({ data: JSON.stringify({ type: 'error' }) });
+        assert.equal(button.disabled, false, 'stale socket callbacks are ignored');
+        if (outcome === 'conflict') {
+          input.form.dispatchEvent(new w.Event('submit', { cancelable: true }));
+          assert.equal(second.sent.length, 2);
+          assert.notEqual(second.sent[1].operationId, operation.operationId);
+          assert.equal(second.sent[1].baseRevision, 2);
+        }
+        assert.equal(w.document.documentElement.dir, locale === 'ar' ? 'rtl' : 'ltr');
+      } finally { dom.window.close(); }
+    });
+  }
+}
+
+test('GM workspace loads grants beyond the first 100 without showing untrusted markup', async () => {
+  const requests = [];
+  const grants = Array.from({ length: 101 }, (_, i) => ({
+    campaignId: 'campaign', kind: 'page', itemId: String(i).padStart(3, '0'),
+    authorName: 'Player', payload: { title: i === 100 ? '<img src=x onerror=alert(1)>' : `Item ${i}` },
+  }));
+  const dom = fixture(async path => {
+    requests.push(path);
+    return response(path.endsWith('/account') ? { ...account, gmEnabled: true } :
+      path.includes('/journal-grants?after=') ? grants.slice(100) :
+      path.endsWith('/journal-grants') ? grants.slice(0, 100) :
+      path.endsWith('/seats') ? [] : path.endsWith('/live-ticket') ? { ticket: 'synthetic' } :
+      { id: 'synthetic-id', name: 'Table', role: 'gm', revision: 1 });
+  });
+  try {
+    const w = dom.window;
+    w.WebSocket = class { close() {} };
+    w.sessionStorage.setItem('chronexus-web-session', 'synthetic');
+    w.location.hash = '#/table/synthetic-id';
+    await settle();
+    assert.equal(w.document.querySelectorAll('.gm-shared li').length, 101);
+    assert.equal(w.document.querySelector('.gm-shared img'), null);
+    assert.equal(w.document.querySelector('.gm-shared li:last-child strong').textContent, grants[100].payload.title);
+    assert.equal(requests.filter(path => path.includes('/journal-grants')).length, 2);
+    assert.ok(requests.some(path => path.endsWith('?after=campaign%2Fpage%2F099')));
+  } finally { dom.window.close(); }
+});
+
 test('sign-in works in memory when tab storage is blocked', async () => {
   const dom = fixture(async (_, options) => response(options.method === 'POST' ? { token: 'synthetic' } : account));
   const { window: w } = dom;

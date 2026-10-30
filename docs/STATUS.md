@@ -1,5 +1,35 @@
 # Chronexus Server status
 
+## 30 October 2026: M42/M43 recovery and GM listing fixes (source only)
+
+- The web live channel waits for its initial state, reconciles an unacknowledged
+  message and retries its exact operation once per reconnection. Already committed
+  messages are not resent; conflicts keep the draft for an explicit retry. Newer
+  text typed while awaiting confirmation is preserved, and obsolete socket callbacks
+  cannot change the current view.
+- GM journal grants use an optional validated `after=campaignId/kind/itemId` cursor,
+  stable composite ordering and 100-item pages. The web workspace reads all pages.
+  Every page rechecks access; revoking a cursor row does not skip later grants.
+  The response remains an array and schema 010 is unchanged. OpenAPI regenerated.
+- Fixed the M43 unit-test temporary directory on macOS without relaxing the
+  production database's symlink checks.
+- macOS arm64: `cargo fmt --check`, Clippy `--all-targets -- -D warnings`,
+  `cargo test --locked` (95 passed), release build and contract drift check passed.
+  The full suite initially hit the restricted local-port environment in the fake
+  AI runtime tests; it passed when rerun with local listeners permitted.
+  Twenty web DOM tests passed, including reconnect outcomes in English, Italian
+  and Arabic/RTL, and loading 101 GM grants. All ten new web cases fail against
+  the previous script. JavaScript syntax checks passed.
+- Localization: no new visible strings; existing translated connection/error
+  messages reused. Server ten-language catalog/placeholder test and desktop
+  `pnpm i18n:check` passed (zero missing registered UI messages; the reported
+  existing candidate-catalog backlog remains). No layout change or new browser run.
+- Skill: UI/UX Pro Max, for error recovery, draft preservation and retry feedback.
+  No release, deployment or publication. Windows/Linux checks were not rerun.
+  Next: complete desktop M42/M43 integration; the next planned server feature is
+  M44 maps/grid/tokens. Server AI hardware qualification and production acceptance
+  remain separate open M25 work.
+
 ## 30 October 2026: M42/M43 server source implemented; no release
 
 - Operator `invite --gm` grants GM capability; ordinary accounts cannot create tables.
@@ -21,6 +51,8 @@
   production TLS remain unverified. No deployment, tag or release.
 
 ## 30 October 2026: M42 foundation in progress (source only)
+
+Historical checkpoint, superseded by the M42/M43 implementation and fixes above.
 
 - Schema 008 adds tables, separate GM/player/spectator seats and one-use table invitations.
   Account membership in a table grants no journal campaign access. The web interface

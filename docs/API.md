@@ -19,6 +19,14 @@ access. Existing table GMs from schema 008 retain capability during migration.
 | `POST /api/v1/tables/{tableId}/live-ticket` | Member obtains a 30-second, one-use ticket |
 | `GET /api/v1/tables/{tableId}/live?ticket=…&since=n` | WebSocket state, presence and public table activity |
 
+Journal grants are returned as an array of at most 100 items, ordered by
+`campaignId`, `kind`, then `itemId`. To read the next page, pass the last item's
+`campaignId/kind/itemId` as the URL-encoded `after` query parameter. Stop when a
+page has fewer than 100 items. Each page checks the GM seat and current grants;
+revoking the cursor item does not skip subsequent items. The cursor grants no
+access. This is a current listing, not a snapshot: concurrent new grants before
+the cursor appear on the next full refresh. The web workspace loads every page.
+
 The WebSocket accepts JSON `{operationId,baseRevision,text,audience:"public"}`.
 `operationId` is UUIDv7. The server validates current seat/session and revision,
 stores each operation once and sends an acknowledgment. `state` frames contain
@@ -26,6 +34,12 @@ revision, public events, online count and a reset flag for a stale cursor. The
 ticket is consumed at upgrade and is never a reusable account credential. Only
 public activity is accepted at present; secret combat data belongs to later
 milestones and never enters this event stream.
+
+The web client waits for the initial state before enabling sends. After a
+disconnect, it reconciles any unacknowledged message with that state and, if
+absent, retries the exact operation ID and payload once on the new connection.
+A revision conflict preserves the draft for an explicit new send; it never
+silently rebases the old operation. Acknowledgment does not erase a newer draft.
 
 The current source schema is 010. Published release 0.1.1 predates M42/M43;
 these table endpoints have not been published. This server retains the M25

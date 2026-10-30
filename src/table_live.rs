@@ -322,7 +322,9 @@ mod tests {
 
     #[test]
     fn ticket_and_operation_are_one_use_and_seat_scoped() {
-        let directory = tempfile::tempdir().unwrap();
+        let directory = tempfile::tempdir_in("/private/tmp")
+            .or_else(|_| tempfile::tempdir())
+            .unwrap();
         let db = Database::open(&directory.path().join("live.sqlite3")).unwrap();
         let gm_code = db.issue_invite_with_gm(None, true).unwrap();
         let gm = db

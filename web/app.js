@@ -217,9 +217,21 @@ async function tableView(id) {
   loading();
   try {
     const table = await api("GET", `/api/v1/tables/${encodeURIComponent(id)}`);
+    const loadGrants = async () => {
+      const items = [];
+      let after = "";
+      while (version === viewVersion) {
+        const page = await api("GET", `/api/v1/tables/${encodeURIComponent(id)}/journal-grants${after ? `?after=${encodeURIComponent(after)}` : ""}`);
+        items.push(...page);
+        if (page.length < 100) break;
+        const last = page.at(-1);
+        after = `${last.campaignId}/${last.kind}/${last.itemId}`;
+      }
+      return items;
+    };
     const [seats, grants] = await Promise.all([
       api("GET", `/api/v1/tables/${encodeURIComponent(id)}/seats`),
-      table.role === "gm" ? api("GET", `/api/v1/tables/${encodeURIComponent(id)}/journal-grants`) : Promise.resolve([]),
+      table.role === "gm" ? loadGrants() : Promise.resolve([]),
     ]);
     if (version !== viewVersion) return;
     const status = el("div", { role: "status" });
@@ -252,10 +264,18 @@ async function tableView(id) {
         url.protocol = location.protocol === "https:" ? "wss:" : "ws:";
         url.searchParams.set("ticket", ticket.ticket);
         url.searchParams.set("since", String(lastEvent));
-        socket = new WebSocket(url);
+        const connection = new WebSocket(url);
+        let ready = false;
+        socket = connection;
         activeTableSocket = socket;
-        socket.onopen = () => { liveStatus.textContent = t("liveConnected"); sendButton.disabled = table.role === "spectator" || !!pending; };
+        const current = () => version === viewVersion && socket === connection;
+        const acknowledge = () => {
+          if (message.value.trim() === pending.text) message.value = "";
+          pending = null;
+        };
+        socket.onopen = () => { if (current()) sendButton.disabled = true; };
         socket.onmessage = (event) => {
+          if (!current()) return;
           let data;
           try { data = JSON.parse(event.data); } catch { return; }
           if (data.type === "state") {
@@ -265,17 +285,23 @@ async function tableView(id) {
             for (const item of data.events ?? []) {
               if (seen.has(item.operationId)) continue;
               seen.add(item.operationId);
-              if (pending?.operationId === item.operationId) { message.value = ""; pending = null; sendButton.disabled = false; }
+              if (pending?.operationId === item.operationId) acknowledge();
               lastEvent = Math.max(lastEvent, item.revision);
               log.append(el("li", {}, el("strong", { text: item.authorName }), document.createTextNode(`: ${item.text}`)));
             }
+            // Reconcile committed events first, then retry the exact unacknowledged
+            // operation once per connection. The server checks its ID and revision.
+            if (!ready && pending) connection.send(JSON.stringify(pending));
+            ready = true;
+            liveStatus.textContent = t("liveConnected");
+            sendButton.disabled = table.role === "spectator" || !!pending;
           } else if (data.type === "presence") online.textContent = t("liveOnline", { count: data.online });
-          else if (data.type === "ack" && pending) { message.value = ""; pending = null; sendButton.disabled = false; }
-          else if (data.type === "error") { pending = null; sendButton.disabled = false; status.replaceChildren(el("p", { class: "error", role: "alert", text: t("liveSendFailed") })); }
+          else if (data.type === "ack" && pending) { revision = Math.max(revision, data.revision); acknowledge(); sendButton.disabled = table.role === "spectator" || !ready; }
+          else if (data.type === "error") { pending = null; sendButton.disabled = table.role === "spectator" || !ready; status.replaceChildren(el("p", { class: "error", role: "alert", text: t("liveSendFailed") })); }
         };
         socket.onclose = () => {
+          if (!current()) return;
           sendButton.disabled = true;
-          if (version !== viewVersion) return;
           liveStatus.textContent = t("liveReconnecting");
           setTimeout(connect, 2000);
         };
@@ -325,7 +351,7 @@ async function tableView(id) {
         log,
         table.role === "spectator" ? null : el("form", { class: "live-compose", onsubmit: event => {
           event.preventDefault();
-          if (socket?.readyState !== WebSocket.OPEN || !message.value.trim()) return;
+          if (sendButton.disabled || pending || socket?.readyState !== WebSocket.OPEN || !message.value.trim()) return;
           pending = { operationId: operationId(), baseRevision: revision, text: message.value.trim(), audience: "public" };
           socket.send(JSON.stringify(pending));
           sendButton.disabled = true;
