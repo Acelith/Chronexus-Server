@@ -41,6 +41,18 @@ export type Answer = {
   "verified": boolean;
 };
 
+export type AreaTemplate = {
+  "angle": number;
+  "coverage": string;
+  "hidden": boolean;
+  "id": string;
+  "origin": Point;
+  "ownerId": string;
+  "sceneId": string;
+  "shape": string;
+  "size": Distance;
+};
+
 export type Attachment = {
   "authorId": string;
   "byteLength": number;
@@ -69,6 +81,68 @@ export type BlockProps = {
   "start"?: number | null;
   "textAlignment"?: string | null;
   "textColor"?: string | null;
+};
+
+export type BoardAck = {
+  "revision": number;
+};
+
+export type BoardAction = {
+  "template": AreaTemplate;
+  "type": "saveTemplate";
+} | {
+  "template_id": string;
+  "type": "removeTemplate";
+} | {
+  "scene": Scene;
+  "type": "saveScene";
+} | {
+  "geometry": string;
+  "scene": Scene;
+  "type": "importScene";
+} | {
+  "scene_id": string;
+  "type": "activateScene";
+} | {
+  "token": BoardToken;
+  "type": "saveToken";
+} | {
+  "token_id": string;
+  "type": "removeToken";
+} | {
+  "path": Array<Point>;
+  "token_id": string;
+  "type": "move";
+};
+
+export type BoardOperation = {
+  "baseRevision": number;
+  "command": BoardAction;
+  "operationId": string;
+};
+
+export type BoardToken = {
+  "characterId"?: string | null;
+  "diagonals": number;
+  "hidden": boolean;
+  "id": string;
+  "name": string;
+  "ownerId": string;
+  "portraitId"?: string | null;
+  "position": Point;
+  "sceneId": string;
+  "size": number;
+  "speed": Distance;
+  "spent": number;
+};
+
+export type BoardView = {
+  "activeScene"?: string | null;
+  "geometry"?: Array<SceneGeometry> | null;
+  "revision": number;
+  "scenes": Array<Scene>;
+  "templates": Array<AreaTemplate>;
+  "tokens": Array<BoardToken>;
 };
 
 export type CampaignInvite = {
@@ -174,10 +248,15 @@ export type DeviceSession = {
   "lastUsedAt": string;
 };
 
-export type Document = {
-  "blocks": Array<Block>;
-  "importedFrom"?: string | null;
-  "version": number;
+export type Distance = {
+  "unit": string;
+  "value": number;
+};
+
+export type Document = Geometry & {
+  "format": number;
+  "image": string;
+  "resolution": Resolution;
 };
 
 export type EraseOwnContent = {
@@ -191,6 +270,13 @@ export type Erased = {
 
 export type ErrorBody = {
   "error": string;
+};
+
+export type Geometry = {
+  "lights"?: Array<Light>;
+  "line_of_sight"?: Array<Array<Point>>;
+  "objects_line_of_sight"?: Array<Array<Point>>;
+  "portals"?: Array<Portal>;
 };
 
 export type GrantKey = {
@@ -208,6 +294,17 @@ export type GrantedItem = {
   "revision": number;
 };
 
+export type Grid = {
+  "color": string;
+  "conversion": string;
+  "diagonal": string;
+  "distance": Distance;
+  "kind": string;
+  "offset": Point;
+  "opacity": number;
+  "pixels": number;
+};
+
 export type Health = {
   "status": string;
 };
@@ -215,6 +312,14 @@ export type Health = {
 export type Image = {
   "attachmentId": string;
   "caption": string;
+};
+
+export type Import = {
+  "baseRevision": number;
+  "document": Document;
+  "name": string;
+  "operationId": string;
+  "sceneId": string;
 };
 
 export type Inline = {
@@ -277,6 +382,14 @@ export type KindUsage = {
   "sharedItems": number;
 };
 
+export type Light = {
+  "color"?: string;
+  "intensity"?: number;
+  "position": Point;
+  "range": number;
+  "shadows"?: boolean;
+};
+
 export type LinkText = {
   "styles": Styles;
   "text": string;
@@ -302,6 +415,14 @@ export type Login = {
   "device": string;
   "password": string;
   "username": string;
+};
+
+export type MapAsset = {
+  "height": number;
+  "id": string;
+  "mime": string;
+  "sha256": string;
+  "width": number;
 };
 
 export type Member = {
@@ -370,6 +491,17 @@ export type Party = {
 
 export type Payload = Page | Session | Relationship | Party | SheetSection | Image | Clue;
 
+export type Point = {
+  "x": number;
+  "y": number;
+};
+
+export type Portal = {
+  "bounds": Array<Point>;
+  "closed"?: boolean;
+  "position": Point;
+};
+
 export type Question = {
   "locale"?: string | null;
   "model": string;
@@ -413,6 +545,12 @@ export type RemoteCampaign = {
   "role": string;
 };
 
+export type Resolution = {
+  "map_origin": Point;
+  "map_size": Point;
+  "pixels_per_grid": number;
+};
+
 export type Revision = {
   "revision": number;
 };
@@ -422,6 +560,22 @@ export type RevisionQuery = {
 };
 
 export type SaveConflict = Current | ErrorBody;
+
+export type Scene = {
+  "difficult": Array<Point>;
+  "freeMove": boolean;
+  "grid": Grid;
+  "height": number;
+  "id": string;
+  "mapId"?: string | null;
+  "name": string;
+  "width": number;
+};
+
+export type SceneGeometry = {
+  "data": string;
+  "sceneId": string;
+};
 
 export type Session = {
   "document": Document;

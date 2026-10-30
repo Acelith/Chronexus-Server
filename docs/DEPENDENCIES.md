@@ -11,6 +11,9 @@ audit or a grant of a license for this repository's own code.
 | `axum` | 0.8.9 | MIT | Typed HTTP routing |
 | `chrono` | 0.4.45 | MIT OR Apache-2.0 | UTC timestamps |
 | `getrandom` | 0.4.3 | MIT OR Apache-2.0 | Operating-system random bytes |
+| `base64` | 0.22.1 | MIT OR Apache-2.0 | Bounded decoding of embedded Universal VTT PNG data (already locked via axum) |
+| `tokio-tungstenite` | 0.29.0 | MIT | Existing axum WebSocket implementation; direct dev dependency for live privacy tests |
+| `futures-util` | 0.3.34 | MIT OR Apache-2.0 | Existing stream/sink utilities for WebSocket tests |
 | `bytes` | 1.12.1 | MIT | Request body for the optional AI runtime call |
 | `http-body-util` | 0.1.5 | MIT | Bounded body collection (AI runtime responses, tests) |
 | `hyper` | 1.12.0 | MIT | HTTP/1 client for the optional AI runtime (M25.10) |

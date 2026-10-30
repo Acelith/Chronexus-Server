@@ -117,3 +117,5 @@ pub async fn call(
 pub fn request_id() -> String {
     uuid::Uuid::now_v7().to_string()
 }
+
+pub mod table;

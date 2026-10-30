@@ -1,5 +1,29 @@
 # Chronexus Server status
 
+## 30 October 2026: M44 server and web board (schema 011, source only)
+
+- Persistent scene/map/grid, owned and hidden tokens, square/axial hex/gridless
+  movement, difficult terrain, alternating diagonals, rulers, shared area templates
+  and labelled ft/m conversion. GM activation is explicit; prepared scenes, hidden
+  objects and UVTT geometry are filtered on the server for HTTP and live snapshots.
+- Maps retain validated original PNG/JPEG/WebP bytes; UVTT 0.2/0.3 embeds PNG,
+  grid, walls, doors and lights as inert GM preparation data. Vision remains M46.
+  No journal/sheet/AI writes. Backups preserve table state and original map bytes.
+- macOS arm64: full Rust suite (101 tests), fmt, Clippy with warnings denied,
+  release build and generated contract check passed. Twenty existing web DOM
+  tests and five board tests passed, including conversions/decimal formatting in
+  ten locales, both hex grids, keyboard movement and disconnected write gating.
+  Server catalog checks and desktop pnpm i18n:check passed; existing candidate
+  catalog backlog unchanged. Browser check on a real isolated server: Italian
+  board rendered, keyboard move persisted and its dual-unit spent budget updated.
+- Limits/architecture are in docs/API.md and docs/DECISIONS.md. Conservative area
+  overlap is explicitly labelled; templates do not apply game effects. Native
+  Windows/Linux, three-desktop scenario and LAN latency target remain unverified;
+  desktop M42/M43/M44 integration is still pending. No release or deployment.
+- Skills: Frontend Design (existing palette, map-led layout) and UI/UX Pro Max
+  (keyboard/single-pointer alternatives and recovery). Next authorized work: M45
+  combat tracker; then planned M46 fog/vision.
+
 ## 30 October 2026: M42/M43 recovery and GM listing fixes (source only)
 
 - The web live channel waits for its initial state, reconciles an unacknowledged

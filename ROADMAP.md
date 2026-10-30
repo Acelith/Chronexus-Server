@@ -78,7 +78,7 @@ client.
 | --- | --- |
 | M42 | Server implemented in source (schemas 008–009): operator-issued GM capability, tables/seats, one-use invitation sign-up, removal and explicit per-item GM journal grants; desktop audience controls remain in the app repository |
 | M43 | Server implemented in source (schema 010): one-use WebSocket tickets, bounded live public messages, presence, revisions, idempotent operation IDs and reconnect snapshots; GM/player web table workspace. Maps and secret combat data begin M44–M45 |
-| M44 | Scenes, map assets (larger image limits, Universal VTT import), grid settings, tokens with owner and visibility, server-validated movement and diagonal rule, rulers and area templates; distances stored in their rules unit |
+| M44 | Implemented in server/web source (schema 011): scenes, validated original maps/UVTT, square/hex/gridless calibration, owned/hidden tokens, validated movement, rulers/templates and ft/m converter. Desktop integration and cross-platform acceptance pending |
 | M45 | Combat state: initiative, turn order, rounds, conditions with durations, combat log with GM-secret rolls; HP changes only by the token's owner or the GM for monsters |
 | M46 | Fog geometry, then walls, doors, lights and server-side line of sight per player |
 | M47 | Monster library (SRD 5.1 import with attribution, custom monsters), encounter presets |

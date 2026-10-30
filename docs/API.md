@@ -310,3 +310,40 @@ time a device may stay offline.
   backup brings back the memberships, sessions and content it contained; the operator
   should run `revoke-sessions` and re-apply deletions the backup predates (M25.7 documents the
   restore procedure). Revocations recorded after the backup are not in it.
+
+## M44 table board (schema 011, source only)
+
+- `GET /tables/{tableId}/board` under `/api/v1` returns the caller's filtered
+  scenes, tokens and area templates, active scene and table revision. Only GMs
+  receive preparation scenes, hidden objects or imported geometry. Membership in
+  the table never grants journal access.
+- `POST /tables/{tableId}/board/operations`: `{operationId,baseRevision,command}`;
+  see generated `BoardAction` for scene save/import/activation, token save/remove/
+  movement and template save/remove. Commands also work on the authenticated live
+  socket; `state.board` is the same projection, `boardAck`/`boardError` are distinct
+  from public-message replies. Reconnect always includes a current board snapshot.
+- `POST /tables/{tableId}/maps`: original PNG/JPEG/WebP body with its exact MIME;
+  returns asset metadata, deduplicated by table/checksum. `GET /maps/{assetId}`
+  requires the GM seat or an authorized current visible map/portrait reference.
+- `POST /tables/{tableId}/uvtt`: `{operationId,baseRevision,sceneId,name,document}`,
+  containing a [Universal VTT 0.2/0.3 document](https://arkenforge.com/universal-vtt-files/).
+  Embedded PNG/grid/occluders only; unknown producer data is discarded. Import
+  prepares a scene; showing it to players requires explicit activation. A rejected
+  import may leave a private deduplicated uploaded asset within the table quota.
+
+Limits: 50 scenes/table, 200 tokens/scene and 1000/table, 100 templates/table,
+100 map assets and 256 MiB original images/table. Maps are at most 32 MiB,
+16384 px/side, 64 million pixels and 256 MiB decoded. Commands are at most 256 KiB;
+120 new operations/seat/minute, 50000 receipts and 16 MiB receipt payloads/table.
+Receipts never expire silently; reaching the cap refuses new writes. Public
+messages keep their separate M43 bounds. Failed writes create no receipt; exact
+retries return the previous revision, different payloads for the same ID conflict.
+
+Grid coordinates are square/axial hex cell centres or gridless image coordinates;
+paths have at most 100 adjacent cells (one direct Euclidean segment without a grid).
+Spent distance uses the scene's rules unit. Difficult cells cost double; exceeding
+speed is flagged in the UI, not blocked. In M44, players require their own visible
+active-scene token and the GM's free-movement setting; M45 adds turn enforcement.
+Rulers/converter are local previews. Explicitly shared templates persist; they do
+not apply damage, conditions or sheet changes. Server backups include all table
+state/assets; desktop `.nodex` and campaign AI never read these tables.

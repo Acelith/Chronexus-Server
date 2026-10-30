@@ -29,8 +29,13 @@ hyper = { version = "1.12", features = ["client", "http1"] }
 hyper-util = { version = "0.1.21", features = ["client-legacy", "http1", "tokio"] }
 http-body-util = "0.1.5"
 bytes = "1"
+# Already locked through axum; MIT/Apache-2.0, bounded UVTT image decoding.
+base64 = "0.22.1"
 
 [dev-dependencies]
+# Existing locked MIT/Apache-2.0 WebSocket stack, used for real-channel privacy tests.
+tokio-tungstenite = "0.29.0"
+futures-util = { version = "0.3.34", features = ["sink"] }
 # Paused time for stream lifetime and keepalive tests.
 tokio = { version = "1", features = ["test-util"] }
 tower = { version = "0.5", features = ["util"] }

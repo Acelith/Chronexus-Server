@@ -31,7 +31,8 @@ async fn meta_health_and_contract_describe_only_implemented_scope() {
             "idempotent-mutations",
             "incremental-sync",
             "change-notifications",
-            "deletion"
+            "deletion",
+            "table-board"
         ])
     );
     assert_eq!(

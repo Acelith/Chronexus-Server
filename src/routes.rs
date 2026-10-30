@@ -35,6 +35,8 @@ pub fn router(state: AppState) -> Router {
     Router::new()
         .merge(crate::campaign_routes::router())
         .merge(crate::tables::router())
+        .merge(crate::vtt::router(state.clone()))
+        .merge(crate::uvtt::router(state.clone()))
         .merge(crate::table_grants::router())
         .merge(crate::table_live::router())
         .merge(crate::content_routes::router(state.clone()))
@@ -232,6 +234,7 @@ async fn meta(State(state): State<AppState>) -> Json<Meta> {
             "incremental-sync",
             "change-notifications",
             "deletion",
+            "table-board",
         ],
     };
     // Announced only when the operator configured a runtime (M25.10).
@@ -364,6 +367,8 @@ pub fn contract() -> utoipa::openapi::OpenApi {
     let mut api = Contract::openapi();
     api.merge(crate::campaign_routes::CampaignContract::openapi());
     api.merge(crate::tables::TableContract::openapi());
+    api.merge(crate::vtt::BoardContract::openapi());
+    api.merge(crate::uvtt::ImportContract::openapi());
     api.merge(crate::table_grants::GrantContract::openapi());
     api.merge(crate::table_live::LiveContract::openapi());
     api.merge(crate::content_routes::ContentContract::openapi());

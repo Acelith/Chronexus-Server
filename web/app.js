@@ -32,6 +32,7 @@ let me = null;
 let memoryToken = null;
 let viewVersion = 0;
 let activeTableSocket = null;
+let activeBoard = null;
 
 // ---------- helpers ----------
 function el(tag, attrs = {}, ...children) {
@@ -63,15 +64,17 @@ function setToken(value) {
 class ApiError extends Error {
   constructor(status, message) { super(message); this.status = status; }
 }
-async function api(method, path, body) {
+async function api(method, path, body, binary = false) {
+  const raw = body instanceof Blob;
   const headers = { Accept: "application/json" };
   const auth = token();
   if (auth) headers.Authorization = `Bearer ${auth}`;
-  if (body !== undefined) headers["Content-Type"] = "application/json";
+  if (body !== undefined) headers["Content-Type"] = raw ? body.type : "application/json";
   const response = await fetch(path, {
-    method, headers, body: body === undefined ? undefined : JSON.stringify(body),
+    method, headers, body: body === undefined ? undefined : raw ? body : JSON.stringify(body),
     credentials: "omit", redirect: "error", cache: "no-store",
   });
+  if (binary && response.ok) return response.blob();
   const text = await response.text();
   if (response.status === 401 && auth && auth === token()) {
     setToken(null); me = null;
@@ -159,6 +162,7 @@ function renderNav(current) {
   nav.hidden = false;
 }
 async function route() {
+  activeBoard?.dispose(); activeBoard = null;
   const version = ++viewVersion;
   if (activeTableSocket) { activeTableSocket.close(); activeTableSocket = null; }
   const hash = location.hash || "#/";
@@ -213,6 +217,7 @@ async function tablesView() {
 }
 
 async function tableView(id) {
+  activeBoard?.dispose(); activeBoard = null;
   const version = ++viewVersion;
   loading();
   try {
@@ -241,6 +246,7 @@ async function tableView(id) {
     const message = el("input", { id: "live-message", maxlength: "500", required: true, autocomplete: "off" });
     const sendButton = el("button", { type: "submit", class: "primary", text: t("liveSend"), disabled: true });
     let socket = null;
+    const board = activeBoard = window.ChronexusBoard?.create({ el, t, api, tableId: id, role: table.role, account: me.accountId, seats, confirm: confirmAction, active: () => version === viewVersion });
     let revision = table.revision;
     let lastEvent = 0;
     let pending = null;
@@ -280,6 +286,8 @@ async function tableView(id) {
           try { data = JSON.parse(event.data); } catch { return; }
           if (data.type === "state") {
             revision = data.revision;
+            if (data.board) board?.update(data.board);
+            board?.connected(true);
             if (data.reset) { seen.clear(); log.replaceChildren(); lastEvent = 0; }
             online.textContent = t("liveOnline", { count: data.online });
             for (const item of data.events ?? []) {
@@ -302,11 +310,17 @@ async function tableView(id) {
         socket.onclose = () => {
           if (!current()) return;
           sendButton.disabled = true;
+          board?.connected(false);
           liveStatus.textContent = t("liveReconnecting");
           setTimeout(connect, 2000);
         };
       } catch (error) {
         if (version !== viewVersion) return;
+        if (error.status === 403) {
+          board?.dispose(); log.replaceChildren();
+          show(el("p",{role:"alert",text:t("tableAccessEnded")}),el("a",{href:"#/tables",text:t("nav.tables")}));
+          return;
+        }
         liveStatus.textContent = t("liveReconnecting");
         status.replaceChildren(errorBox(error));
         setTimeout(connect, 5000);
@@ -325,7 +339,7 @@ async function tableView(id) {
     show(el("a", { href: "#/tables", text: t("nav.tables") }), el("h1", { text: table.name }),
       el("p", { class: "muted", text: roleName(table.role) }),
       table.role === "gm" ? el("div", { class: "actions" }, invite("player", t("invitePlayer")), invite("spectator", t("inviteSpectator"))) : null,
-      status,
+      status, board?.root,
       el("section", { class: "table-roster" }, el("h2", { text: t("tableSeats") }),
         el("ul", { class: "plain" }, seats.map(seat => el("li", { class: "campaign-row" },
           el("span", { text: seat.displayName }), el("span", { class: "role", text: roleName(seat.role) }),

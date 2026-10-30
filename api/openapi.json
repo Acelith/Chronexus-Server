@@ -167,6 +167,51 @@
         ],
         "type": "object"
       },
+      "AreaTemplate": {
+        "additionalProperties": false,
+        "properties": {
+          "angle": {
+            "format": "double",
+            "type": "number"
+          },
+          "coverage": {
+            "type": "string"
+          },
+          "hidden": {
+            "type": "boolean"
+          },
+          "id": {
+            "type": "string"
+          },
+          "origin": {
+            "$ref": "#/components/schemas/Point"
+          },
+          "ownerId": {
+            "type": "string"
+          },
+          "sceneId": {
+            "type": "string"
+          },
+          "shape": {
+            "type": "string"
+          },
+          "size": {
+            "$ref": "#/components/schemas/Distance"
+          }
+        },
+        "required": [
+          "id",
+          "sceneId",
+          "ownerId",
+          "shape",
+          "origin",
+          "angle",
+          "size",
+          "coverage",
+          "hidden"
+        ],
+        "type": "object"
+      },
       "Attachment": {
         "properties": {
           "authorId": {
@@ -295,6 +340,311 @@
             ]
           }
         },
+        "type": "object"
+      },
+      "BoardAck": {
+        "properties": {
+          "revision": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "revision"
+        ],
+        "type": "object"
+      },
+      "BoardAction": {
+        "oneOf": [
+          {
+            "properties": {
+              "template": {
+                "$ref": "#/components/schemas/AreaTemplate"
+              },
+              "type": {
+                "enum": [
+                  "saveTemplate"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "template",
+              "type"
+            ],
+            "type": "object"
+          },
+          {
+            "properties": {
+              "template_id": {
+                "type": "string"
+              },
+              "type": {
+                "enum": [
+                  "removeTemplate"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "template_id",
+              "type"
+            ],
+            "type": "object"
+          },
+          {
+            "properties": {
+              "scene": {
+                "$ref": "#/components/schemas/Scene"
+              },
+              "type": {
+                "enum": [
+                  "saveScene"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "scene",
+              "type"
+            ],
+            "type": "object"
+          },
+          {
+            "properties": {
+              "geometry": {
+                "type": "string"
+              },
+              "scene": {
+                "$ref": "#/components/schemas/Scene"
+              },
+              "type": {
+                "enum": [
+                  "importScene"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "scene",
+              "geometry",
+              "type"
+            ],
+            "type": "object"
+          },
+          {
+            "properties": {
+              "scene_id": {
+                "type": "string"
+              },
+              "type": {
+                "enum": [
+                  "activateScene"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "scene_id",
+              "type"
+            ],
+            "type": "object"
+          },
+          {
+            "properties": {
+              "token": {
+                "$ref": "#/components/schemas/BoardToken"
+              },
+              "type": {
+                "enum": [
+                  "saveToken"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "token",
+              "type"
+            ],
+            "type": "object"
+          },
+          {
+            "properties": {
+              "token_id": {
+                "type": "string"
+              },
+              "type": {
+                "enum": [
+                  "removeToken"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "token_id",
+              "type"
+            ],
+            "type": "object"
+          },
+          {
+            "properties": {
+              "path": {
+                "items": {
+                  "$ref": "#/components/schemas/Point"
+                },
+                "type": "array"
+              },
+              "token_id": {
+                "type": "string"
+              },
+              "type": {
+                "enum": [
+                  "move"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "token_id",
+              "path",
+              "type"
+            ],
+            "type": "object"
+          }
+        ]
+      },
+      "BoardOperation": {
+        "additionalProperties": false,
+        "properties": {
+          "baseRevision": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "command": {
+            "$ref": "#/components/schemas/BoardAction"
+          },
+          "operationId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "operationId",
+          "baseRevision",
+          "command"
+        ],
+        "type": "object"
+      },
+      "BoardToken": {
+        "additionalProperties": false,
+        "properties": {
+          "characterId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "diagonals": {
+            "format": "int32",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "hidden": {
+            "type": "boolean"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "ownerId": {
+            "type": "string"
+          },
+          "portraitId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "position": {
+            "$ref": "#/components/schemas/Point"
+          },
+          "sceneId": {
+            "type": "string"
+          },
+          "size": {
+            "format": "double",
+            "type": "number"
+          },
+          "speed": {
+            "$ref": "#/components/schemas/Distance"
+          },
+          "spent": {
+            "format": "double",
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "sceneId",
+          "ownerId",
+          "name",
+          "position",
+          "size",
+          "speed",
+          "hidden",
+          "spent",
+          "diagonals"
+        ],
+        "type": "object"
+      },
+      "BoardView": {
+        "properties": {
+          "activeScene": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "geometry": {
+            "description": "Imported occluders are GM-only preparation data until M46 vision exists.",
+            "items": {
+              "$ref": "#/components/schemas/SceneGeometry"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "revision": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "scenes": {
+            "items": {
+              "$ref": "#/components/schemas/Scene"
+            },
+            "type": "array"
+          },
+          "templates": {
+            "items": {
+              "$ref": "#/components/schemas/AreaTemplate"
+            },
+            "type": "array"
+          },
+          "tokens": {
+            "items": {
+              "$ref": "#/components/schemas/BoardToken"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "revision",
+          "scenes",
+          "tokens",
+          "templates"
+        ],
         "type": "object"
       },
       "CampaignInvite": {
@@ -692,32 +1042,49 @@
         ],
         "type": "object"
       },
-      "Document": {
+      "Distance": {
         "additionalProperties": false,
         "properties": {
-          "blocks": {
-            "items": {
-              "$ref": "#/components/schemas/Block"
-            },
-            "type": "array"
+          "unit": {
+            "type": "string"
           },
-          "importedFrom": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "version": {
-            "format": "int32",
-            "minimum": 0,
-            "type": "integer"
+          "value": {
+            "format": "double",
+            "type": "number"
           }
         },
         "required": [
-          "version",
-          "blocks"
+          "value",
+          "unit"
         ],
         "type": "object"
+      },
+      "Document": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Geometry"
+          },
+          {
+            "properties": {
+              "format": {
+                "format": "double",
+                "type": "number"
+              },
+              "image": {
+                "type": "string"
+              },
+              "resolution": {
+                "$ref": "#/components/schemas/Resolution"
+              }
+            },
+            "required": [
+              "format",
+              "resolution",
+              "image"
+            ],
+            "type": "object"
+          }
+        ]
       },
       "EraseOwnContent": {
         "additionalProperties": false,
@@ -758,6 +1125,41 @@
         "required": [
           "error"
         ],
+        "type": "object"
+      },
+      "Geometry": {
+        "properties": {
+          "lights": {
+            "items": {
+              "$ref": "#/components/schemas/Light"
+            },
+            "type": "array"
+          },
+          "line_of_sight": {
+            "items": {
+              "items": {
+                "$ref": "#/components/schemas/Point"
+              },
+              "type": "array"
+            },
+            "type": "array"
+          },
+          "objects_line_of_sight": {
+            "items": {
+              "items": {
+                "$ref": "#/components/schemas/Point"
+              },
+              "type": "array"
+            },
+            "type": "array"
+          },
+          "portals": {
+            "items": {
+              "$ref": "#/components/schemas/Portal"
+            },
+            "type": "array"
+          }
+        },
         "type": "object"
       },
       "GrantKey": {
@@ -812,6 +1214,48 @@
         ],
         "type": "object"
       },
+      "Grid": {
+        "additionalProperties": false,
+        "properties": {
+          "color": {
+            "type": "string"
+          },
+          "conversion": {
+            "type": "string"
+          },
+          "diagonal": {
+            "type": "string"
+          },
+          "distance": {
+            "$ref": "#/components/schemas/Distance"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "offset": {
+            "$ref": "#/components/schemas/Point"
+          },
+          "opacity": {
+            "format": "double",
+            "type": "number"
+          },
+          "pixels": {
+            "format": "double",
+            "type": "number"
+          }
+        },
+        "required": [
+          "kind",
+          "pixels",
+          "offset",
+          "color",
+          "opacity",
+          "distance",
+          "diagonal",
+          "conversion"
+        ],
+        "type": "object"
+      },
       "Health": {
         "properties": {
           "status": {
@@ -836,6 +1280,35 @@
         "required": [
           "attachmentId",
           "caption"
+        ],
+        "type": "object"
+      },
+      "Import": {
+        "additionalProperties": false,
+        "properties": {
+          "baseRevision": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "document": {
+            "$ref": "#/components/schemas/Document"
+          },
+          "name": {
+            "type": "string"
+          },
+          "operationId": {
+            "type": "string"
+          },
+          "sceneId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "operationId",
+          "baseRevision",
+          "sceneId",
+          "name",
+          "document"
         ],
         "type": "object"
       },
@@ -1077,6 +1550,32 @@
         ],
         "type": "object"
       },
+      "Light": {
+        "properties": {
+          "color": {
+            "type": "string"
+          },
+          "intensity": {
+            "format": "double",
+            "type": "number"
+          },
+          "position": {
+            "$ref": "#/components/schemas/Point"
+          },
+          "range": {
+            "format": "double",
+            "type": "number"
+          },
+          "shadows": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "position",
+          "range"
+        ],
+        "type": "object"
+      },
       "LinkText": {
         "additionalProperties": false,
         "properties": {
@@ -1165,6 +1664,37 @@
           "username",
           "password",
           "device"
+        ],
+        "type": "object"
+      },
+      "MapAsset": {
+        "properties": {
+          "height": {
+            "format": "int32",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "id": {
+            "type": "string"
+          },
+          "mime": {
+            "type": "string"
+          },
+          "sha256": {
+            "type": "string"
+          },
+          "width": {
+            "format": "int32",
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "sha256",
+          "mime",
+          "width",
+          "height"
         ],
         "type": "object"
       },
@@ -1442,6 +1972,45 @@
           }
         ]
       },
+      "Point": {
+        "additionalProperties": false,
+        "properties": {
+          "x": {
+            "format": "double",
+            "type": "number"
+          },
+          "y": {
+            "format": "double",
+            "type": "number"
+          }
+        },
+        "required": [
+          "x",
+          "y"
+        ],
+        "type": "object"
+      },
+      "Portal": {
+        "properties": {
+          "bounds": {
+            "items": {
+              "$ref": "#/components/schemas/Point"
+            },
+            "type": "array"
+          },
+          "closed": {
+            "type": "boolean"
+          },
+          "position": {
+            "$ref": "#/components/schemas/Point"
+          }
+        },
+        "required": [
+          "position",
+          "bounds"
+        ],
+        "type": "object"
+      },
       "Question": {
         "additionalProperties": false,
         "properties": {
@@ -1599,6 +2168,26 @@
         ],
         "type": "object"
       },
+      "Resolution": {
+        "properties": {
+          "map_origin": {
+            "$ref": "#/components/schemas/Point"
+          },
+          "map_size": {
+            "$ref": "#/components/schemas/Point"
+          },
+          "pixels_per_grid": {
+            "format": "double",
+            "type": "number"
+          }
+        },
+        "required": [
+          "map_origin",
+          "map_size",
+          "pixels_per_grid"
+        ],
+        "type": "object"
+      },
       "Revision": {
         "properties": {
           "revision": {
@@ -1634,6 +2223,70 @@
             "$ref": "#/components/schemas/ErrorBody"
           }
         ]
+      },
+      "Scene": {
+        "additionalProperties": false,
+        "properties": {
+          "difficult": {
+            "items": {
+              "$ref": "#/components/schemas/Point"
+            },
+            "type": "array"
+          },
+          "freeMove": {
+            "type": "boolean"
+          },
+          "grid": {
+            "$ref": "#/components/schemas/Grid"
+          },
+          "height": {
+            "format": "int32",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "id": {
+            "type": "string"
+          },
+          "mapId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "width": {
+            "format": "int32",
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "width",
+          "height",
+          "grid",
+          "freeMove",
+          "difficult"
+        ],
+        "type": "object"
+      },
+      "SceneGeometry": {
+        "properties": {
+          "data": {
+            "type": "string"
+          },
+          "sceneId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "sceneId",
+          "data"
+        ],
+        "type": "object"
       },
       "Session": {
         "additionalProperties": false,
@@ -4463,6 +5116,106 @@
         ]
       }
     },
+    "/api/v1/tables/{tableId}/board": {
+      "get": {
+        "operationId": "board",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "tableId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BoardView"
+                }
+              }
+            },
+            "description": ""
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "table-board"
+        ]
+      }
+    },
+    "/api/v1/tables/{tableId}/board/operations": {
+      "post": {
+        "operationId": "operation",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "tableId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BoardOperation"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BoardAck"
+                }
+              }
+            },
+            "description": ""
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "table-board"
+        ]
+      }
+    },
     "/api/v1/tables/{tableId}/invites": {
       "post": {
         "operationId": "invite",
@@ -4712,6 +5465,104 @@
         ]
       }
     },
+    "/api/v1/tables/{tableId}/maps": {
+      "post": {
+        "operationId": "upload",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "tableId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/octet-stream": {
+              "schema": {
+                "type": "string"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MapAsset"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "table-board"
+        ]
+      }
+    },
+    "/api/v1/tables/{tableId}/maps/{assetId}": {
+      "get": {
+        "operationId": "download",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "tableId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "assetId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": ""
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "table-board"
+        ]
+      }
+    },
     "/api/v1/tables/{tableId}/seats": {
       "get": {
         "operationId": "seats",
@@ -4803,6 +5654,51 @@
         ],
         "tags": [
           "tables"
+        ]
+      }
+    },
+    "/api/v1/tables/{tableId}/uvtt": {
+      "post": {
+        "operationId": "upload",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "tableId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Import"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BoardAck"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "table-board"
         ]
       }
     },

@@ -156,6 +156,7 @@ impl Database {
     fn live_authorized(&self, table: &str, user: &Identity) -> Result<bool> {
         self.with(|conn|Ok(conn.query_row("SELECT EXISTS(SELECT 1 FROM table_seats seat JOIN accounts a ON a.id=seat.account_id JOIN sessions s ON s.account_id=a.id WHERE seat.table_id=?1 AND seat.account_id=?2 AND seat.role=?3 AND s.id=?4 AND s.revoked_at IS NULL AND s.expires_at>?5 AND s.absolute_expires_at>?5 AND a.disabled=0)",params![table,user.account,user.role,user.session,now()],|r|r.get(0))?))
     }
+    #[cfg(test)]
     fn live_revision(&self, table: &str) -> Result<i64> {
         self.with(|conn| {
             Ok(conn.query_row(
@@ -231,7 +232,8 @@ async fn upgrade(
         .await?;
     let guard = state.table_live.enter(&id, &user.account)?;
     Ok(ws
-        .max_message_size(2048)
+        .max_message_size(256 * 1024)
+        .max_frame_size(256 * 1024)
         .on_upgrade(move |socket| handle(state, id, user, guard, query.since, socket)))
 }
 async fn send(socket: &mut WebSocket, value: serde_json::Value) -> bool {
@@ -249,9 +251,22 @@ async fn push(
 ) -> Option<i64> {
     let id = table.to_owned();
     let role = user.role.clone();
+    let account = user.account.clone();
+    let session = user.session.clone();
     let result = state
         .blocking(move |db| {
-            let revision = db.live_revision(&id)?;
+            if !db.live_authorized(
+                &id,
+                &Identity {
+                    account: account.clone(),
+                    session,
+                    role: role.clone(),
+                },
+            )? {
+                return Err(ApiError::unauthorized());
+            }
+            let board = db.board_for_account(&id, &account)?;
+            let revision = board.revision;
             let oldest = db.with(|conn| {
                 Ok(conn.query_row(
                     "SELECT min(revision) FROM table_live_events WHERE table_id=?1",
@@ -261,10 +276,10 @@ async fn push(
             })?;
             let reset = oldest.is_some_and(|old| since < old - 1);
             let events = db.live_events(&id, &role, if reset { 0 } else { since })?;
-            Ok((revision, events, reset))
+            Ok((revision, events, reset, board))
         })
         .await;
-    match result { Ok((revision,events,reset))=>send(socket,serde_json::json!({"type":"state","revision":revision,"events":events,"reset":reset,"online":state.table_live.count(table)})).await.then_some(revision),Err(_)=>None }
+    match result { Ok((revision,events,reset,board))=>send(socket,serde_json::json!({"type":"state","revision":revision,"events":events,"reset":reset,"board":board,"online":state.table_live.count(table)})).await.then_some(revision),Err(_)=>None }
 }
 async fn handle(
     state: AppState,
@@ -300,6 +315,12 @@ async fn handle(
             }
             message=socket.recv()=>{
                 let Some(Ok(Message::Text(raw)))=message else {break};
+                if let Ok(op)=serde_json::from_str::<crate::vtt::BoardOperation>(raw.as_str()) {
+                    let id=table.clone();let account=user.account.clone();let session=user.session.clone();let role=user.role.clone();
+                    let result=state.blocking(move|db|{if !db.live_authorized(&id,&Identity{account:account.clone(),session,role})? {return Err(ApiError::unauthorized());}db.board_write(&id,&account,&op)}).await;
+                    match result {Ok(ack)=>{state.table_live.notify(&table);if !send(&mut socket,serde_json::json!({"type":"boardAck","revision":ack.revision})).await{break;}},Err(error)=>{if !send(&mut socket,serde_json::json!({"type":"boardError","message":error.1})).await{break;}}}
+                    continue;
+                }
                 let Ok(op)=serde_json::from_str::<Operation>(raw.as_str()) else { if !send(&mut socket,serde_json::json!({"type":"error","message":"Invalid operation."})).await {break;} continue;};
                 let id=table.clone();let account=user.account.clone();let session=user.session.clone();let role=user.role.clone();
                 let result=state.blocking(move|db|{let identity=Identity{account,session,role};if !db.live_authorized(&id,&identity)? {return Err(ApiError::unauthorized());}db.write_live(&id,&identity,&op)}).await;

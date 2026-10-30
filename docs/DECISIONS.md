@@ -215,3 +215,31 @@ new dependencies, deployment, publication or complete M25.5 acceptance in this s
   The bundled proxy has a fixed address that the server trusts, overwrites the three forwarded
   headers and keeps no access log. Untested here: Docker was unavailable, so the compose file and
   Caddyfile are reviewed but not executed.
+
+## 30 October 2026 — M44 table board and maps
+
+Schema 011 stores table-only scenes, original raster assets, tokens, templates and
+bounded durable operation receipts, separate from campaign content. Table revision
+conflicts and UUIDv7 receipts cover HTTP and WebSocket mutations. Live snapshots
+reuse the same server projection as HTTP: only the active scene and visible
+objects reach players/spectators; imported occluders stay GM-only until M46.
+
+The existing dependency-free web UI uses native Canvas 2D and accessible HTML
+controls. Its parchment/leather/brass palette and system serif typography remain;
+the board is the main working surface, with editors beside it on wide screens
+and below it on narrow ones. The desktop PixiJS integration is separate, pending
+its M42/M43 foundation. This does not introduce React or a second domain writer.
+
+Map uploads retain original validated PNG/JPEG/WebP bytes, at most 32 MiB,
+16384 pixels per side, 64 million pixels and 256 MiB decoded output; two admitted
+uploads and four blocking workers bound decoding. GM authentication/admission
+precedes body collection. Render resolution is capped at 2048 pixels per side.
+Universal VTT 0.2/0.3 embeds a PNG and bounded typed grid/occluder data. No external
+URL, script or producer configuration is followed; unknown metadata is discarded.
+Imported walls/lights are preparation data, not functioning vision (M46).
+
+Distance values retain their rules unit. Conversion (5 ft = 1.5 m or exact
+0.3048 m/ft) is labelled and display-only. Gridless movement is Euclidean;
+hex coordinates are axial. Alternating diagonals retain parity across drags.
+Template centre coverage is exact; optional conservative overlap uses a cell
+bounding radius and is labelled accordingly. Templates never apply game effects.

@@ -121,3 +121,24 @@ dialog::backdrop { background: rgba(20, 15, 10, 0.55); }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 .language { display: flex; align-items: center; gap: 6px; color: #f4e6c8; font-size: 0.9rem; margin: 0; }
 .language select { max-width: 11rem; }
+
+/* Chronexus Table: leather drawing surface, parchment controls, brass selection. */
+.board-workspace { margin-block: 32px; }
+.board-tools { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; padding-block: 12px; }
+.board-tools label { display: flex; flex-direction: column; max-width: 180px; margin: 0; }
+.board-tools input { width: 130px; }
+.board-tools output { font-variant-numeric: tabular-nums; }
+.board-layout { display: grid; grid-template-columns: minmax(0,1fr) 240px; gap: 20px; align-items: start; }
+.board-stage { min-width: 0; }
+.battle-map { display: block; width: 100%; height: auto; background: #292b28; border: 3px solid var(--leather); touch-action: none; }
+.battle-map:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
+.board-editor { max-height: 85vh; overflow-y: auto; padding-inline: 4px; }
+.board-editor form { padding-block: 10px; }
+.board-editor button { margin-block: 6px; width: 100%; min-height: 44px; }
+.board-editor input, .board-editor select { max-width: 100%; }
+.board-editor summary { cursor: pointer; padding-block: 12px; font-size: 1.1rem; }
+.token-roster { display: flex; flex-wrap: wrap; gap: 12px; margin-block: 16px; }
+.token-roster > div { display: flex; flex-direction: column; max-width: 100%; }
+.token-roster button { min-height: 44px; overflow-wrap: anywhere; }
+.token-roster button[aria-pressed="true"] { outline: 3px solid var(--focus); }
+@media (max-width: 860px) { .board-layout { grid-template-columns: 1fr; } .board-editor { max-height: none; display: grid; grid-template-columns: repeat(auto-fit,minmax(210px,1fr)); gap: 20px; } }

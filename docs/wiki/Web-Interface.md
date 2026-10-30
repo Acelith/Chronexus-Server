@@ -13,7 +13,8 @@ The source includes a separate Tables workspace: authorized GMs create tables,
 invite players or spectators and manage seats. Campaign membership and table seats
 remain separate. GMs see only journal items explicitly granted by their authors,
 including items beyond the first 100; the workspace loads the paginated list.
-Desktop table integration, maps and combat remain unfinished.
+The source now includes M44 map/grid/token editing, movement, rulers, area templates
+and the labelled ft/m converter. Desktop table integration and combat remain unfinished.
 
 The live channel shows public activity and presence. After a connection interruption,
 it checks whether a pending message was already saved before retrying the same

@@ -16,6 +16,8 @@ pub mod routes;
 mod table_grants;
 mod table_live;
 mod tables;
+mod uvtt;
+pub mod vtt;
 mod web;
 
 use crate::{
