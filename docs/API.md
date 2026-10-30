@@ -1,10 +1,36 @@
 # Implemented API and desktop compatibility
 
-Source version 0.1.0 implements server milestones M25.1–M25.4, schema 004. This is not a
-published release. The original Chronexus source 0.8.1 has an M24 sharing client;
-server delivery is application M25. The server now implements its
-account, campaign and four-kind sharing protocol, plus explicit private-content,
-selected-sheet and image extensions. Continuous desktop replication remains M25.5.
+## Chronexus Table (server M42/M43 source)
+
+The operator CLI command `chronexus-server invite --gm` issues a one-use account
+registration code with GM capability. Operators and GMs do not inherit journal
+access. Existing table GMs from schema 008 retain capability during migration.
+
+| Route | Action |
+| --- | --- |
+| `POST /api/v1/tables` | GM creates a table |
+| `GET /api/v1/tables`, `GET /api/v1/tables/{tableId}` | List/read own tables |
+| `POST /api/v1/tables/{tableId}/invites` | GM issues a one-use player or spectator code |
+| `POST /api/v1/tables/join` | Existing account takes a seat; `auth/redeem` also accepts table codes for new accounts |
+| `GET /api/v1/tables/{tableId}/seats` | Members list seats |
+| `DELETE /api/v1/tables/{tableId}/seats/{accountId}` | GM removes a non-GM seat or member leaves |
+| `POST`, `DELETE /api/v1/tables/{tableId}/journal-grants` | Author grants/revokes one currently member-shared item for that table's GM |
+| `GET /api/v1/tables/{tableId}/journal-grants` | GM reads only still-authorized grants |
+| `POST /api/v1/tables/{tableId}/live-ticket` | Member obtains a 30-second, one-use ticket |
+| `GET /api/v1/tables/{tableId}/live?ticket=…&since=n` | WebSocket state, presence and public table activity |
+
+The WebSocket accepts JSON `{operationId,baseRevision,text,audience:"public"}`.
+`operationId` is UUIDv7. The server validates current seat/session and revision,
+stores each operation once and sends an acknowledgment. `state` frames contain
+revision, public events, online count and a reset flag for a stale cursor. The
+ticket is consumed at upgrade and is never a reusable account credential. Only
+public activity is accepted at present; secret combat data belongs to later
+milestones and never enters this event stream.
+
+The current source schema is 010. Published release 0.1.1 predates M42/M43;
+these table endpoints have not been published. This server retains the M25
+account, campaign, sharing and synchronization contracts. The desktop app's
+table audience controls are separate work.
 
 - [Generated OpenAPI](../api/openapi.json), also `GET /api/v1/openapi.json`.
 - [Generated TypeScript schemas](../api/types.ts).
@@ -14,8 +40,10 @@ selected-sheet and image extensions. Continuous desktop replication remains M25.
 
 Bodies use camelCase JSON and reject unknown fields. Bearer tokens are required
 except for meta, login, invitation redemption and recovery. Tokens/codes contain
-256 random bits; storage keeps only their SHA-256 hashes. Credentials and client
-IDs are never accepted as URL query authentication. All responses use no-store.
+256 random bits; storage keeps only their SHA-256 hashes. Session tokens and
+client IDs are never accepted as URL query authentication. The live WebSocket
+uses a separate 30-second, one-use ticket in its URL; access logs must omit
+query strings. All responses use no-store.
 
 | Route | Action |
 | --- | --- |

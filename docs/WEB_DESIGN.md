@@ -20,14 +20,15 @@ where practical and controls at least 44 CSS pixels tall.
 - Tables scroll within their own keyboard-focusable wrapper on narrow screens.
   Names wrap and remain inert text. Slow previous requests cannot replace a new view.
 
-## Future M42–M47 integration (planning only)
+## Table workspace (M42–M43)
 
-Add Tables as a separate global workspace when M42 actually exists. Do not nest it
-inside campaign administration: a table has its own membership and may be linked
-to a journal campaign only explicitly. Keep Operator as a service administration
-area; operator status does not confer GM capability or journal access.
+Tables is a separate global workspace. A table has its own membership and does
+not imply access to a journal campaign. Keep Operator as a service administration
+area; operator status does not confer GM capability or journal access. The current
+table page handles invitations, seats, explicit GM journal grants and public live
+activity. Reconnection leaves journal editing independent.
 
-A future table route should keep the scene/canvas as its primary workspace, with
+M44's table route should keep the scene/canvas as its primary workspace, with
 contextual tools for maps, tokens, initiative, vision and encounters. Do not place
 the canvas inside the current campaign usage layout or render disabled placeholder
 features now. Persist table identity in its route, and enforce per-recipient
@@ -43,8 +44,7 @@ runtime package is needed. These DOM tests cover navigation races, storage failu
 expired sessions, safe names and keyboard skip navigation; they do not replace
 real API permission tests or visual review.
 
-The existing server interface is English-only. This pass reuses its visible copy;
-all ten desktop locales still need a server-specific catalog and coverage gate.
-The desktop localization gate does not prove server translation coverage. Before
-the wider GM interface ships, complete that localization work and verify long
-labels, CJK and RTL with real translations.
+The server interface has ten language catalogs and a catalog completeness test.
+The desktop localization gate is run separately; it does not inspect this repo.
+The M43 browser test covered English, mobile width and Arabic RTL. CJK visual
+review and production TLS remain pending.

@@ -19,7 +19,7 @@ function fixture(fetcher, options = {}) {
   return dom;
 }
 const response = value => ({ status: 200, ok: true, text: async () => JSON.stringify(value) });
-const account = { accountId: 'self', displayName: 'Player', operator: false };
+const account = { accountId: 'self', displayName: 'Player', operator: false, gmEnabled: false };
 const overview = { name: '<img src=x onerror=alert(1)>', role: 'owner', members: 1,
   myItems: [], myContentBytes: 0, myAttachments: 0, myAttachmentBytes: 0,
   sharedByOthers: 0, accountAttachmentBytes: 0, quotas: {} };
@@ -35,6 +35,38 @@ test('tables page keeps names inert and links to table workspace', async () => {
   assert.equal(w.document.querySelector('#main img'), null);
   assert.equal(w.document.querySelector('#main a[href="#/table/synthetic-id"]').textContent, '<img src=x onerror=alert(1)>');
   assert.equal(w.document.querySelector('#nav a[aria-current="page"]').textContent, 'Tables');
+  dom.window.close();
+});
+
+test('player table workspace has no empty GM controls or stray null text', async () => {
+  const dom = fixture(async path => response(path.endsWith('/account') ? account :
+    path.endsWith('/live-ticket') ? { ticket: 'synthetic' } :
+    path.endsWith('/seats') ? [] :
+    { id: 'synthetic-id', name: 'Synthetic table', role: 'player', revision: 1 }));
+  const { window: w } = dom;
+  w.WebSocket = class { close() {} };
+  w.sessionStorage.setItem('chronexus-web-session', 'synthetic');
+  w.location.hash = '#/table/synthetic-id';
+  await settle();
+  assert.equal(w.document.querySelector('main').textContent.includes('null'), false);
+  assert.equal(w.document.querySelector('main').textContent.includes('Invite player'), false);
+  assert.equal(w.document.querySelector('main h1').textContent, 'Synthetic table');
+  dom.window.close();
+});
+
+test('Italian table workspace translates controls without changing the table name', async () => {
+  const dom = fixture(async path => response(path.endsWith('/account') ? account :
+    path.endsWith('/live-ticket') ? { ticket: 'synthetic' } :
+    path.endsWith('/seats') ? [] :
+    { id: 'synthetic-id', name: 'Original campaign text', role: 'player', revision: 1 }), { locale: 'it' });
+  const { window: w } = dom;
+  w.WebSocket = class { close() {} };
+  w.sessionStorage.setItem('chronexus-web-session', 'synthetic');
+  w.location.hash = '#/table/synthetic-id';
+  await settle();
+  assert.equal(w.document.querySelector('main h1').textContent, 'Original campaign text');
+  assert.equal(w.document.querySelector('.live-heading h2').textContent, 'Canale del tavolo');
+  assert.equal(w.document.querySelector('.table-roster h2').textContent, 'Al tavolo');
   dom.window.close();
 });
 

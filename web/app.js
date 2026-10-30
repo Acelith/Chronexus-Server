@@ -31,6 +31,7 @@ document.querySelector(".skip").addEventListener("click", (event) => {
 let me = null;
 let memoryToken = null;
 let viewVersion = 0;
+let activeTableSocket = null;
 
 // ---------- helpers ----------
 function el(tag, attrs = {}, ...children) {
@@ -85,7 +86,7 @@ async function api(method, path, body) {
 }
 function show(...nodes) {
   main.classList.toggle("sign-in", !me);
-  main.replaceChildren(...nodes);
+  main.replaceChildren(...nodes.filter(node => node !== null && node !== undefined && node !== false));
   document.title = `${main.querySelector("h1")?.textContent ?? "Chronexus Server"} | Chronexus Server`;
   main.focus();
 }
@@ -159,6 +160,7 @@ function renderNav(current) {
 }
 async function route() {
   const version = ++viewVersion;
+  if (activeTableSocket) { activeTableSocket.close(); activeTableSocket = null; }
   const hash = location.hash || "#/";
   if (!token()) { renderNav(null); return signIn(); }
   try {
@@ -203,8 +205,8 @@ async function tablesView() {
         el("a", { href: `#/table/${encodeURIComponent(table.id)}`, text: table.name }),
         el("span", { class: "role", text: roleName(table.role) })))) : el("p", { class: "muted", text: t("tablesEmpty") }),
       el("div", { class: "table-actions" },
-        el("form", { class: "card", onsubmit: (event) => { event.preventDefault(); act(create, status, async () => { const table = await api("POST", "/api/v1/tables", { name: name.value.trim() }); location.hash = `#/table/${table.id}`; return t("done"); }); } },
-          el("h2", { text: t("createTable") }), el("label", { for: "table-name", text: t("tableName") }), name, create),
+        me.gmEnabled ? el("form", { class: "card", onsubmit: (event) => { event.preventDefault(); act(create, status, async () => { const table = await api("POST", "/api/v1/tables", { name: name.value.trim() }); location.hash = `#/table/${table.id}`; return t("done"); }); } },
+          el("h2", { text: t("createTable") }), el("label", { for: "table-name", text: t("tableName") }), name, create) : null,
         el("form", { class: "card", onsubmit: (event) => { event.preventDefault(); act(join, status, async () => { const table = await api("POST", "/api/v1/tables/join", { inviteCode: code.value.trim() }); location.hash = `#/table/${table.id}`; return t("done"); }); } },
           el("h2", { text: t("joinTable") }), el("label", { for: "table-code", text: t("inviteCode") }), code, join)), status);
   } catch (error) { if (version === viewVersion) show(errorBox(error)); }
@@ -215,8 +217,75 @@ async function tableView(id) {
   loading();
   try {
     const table = await api("GET", `/api/v1/tables/${encodeURIComponent(id)}`);
+    const [seats, grants] = await Promise.all([
+      api("GET", `/api/v1/tables/${encodeURIComponent(id)}/seats`),
+      table.role === "gm" ? api("GET", `/api/v1/tables/${encodeURIComponent(id)}/journal-grants`) : Promise.resolve([]),
+    ]);
     if (version !== viewVersion) return;
     const status = el("div", { role: "status" });
+    const liveStatus = el("span", { class: "live-status", role: "status", text: t("liveConnecting") });
+    const online = el("span", { class: "muted" });
+    const log = el("ol", { class: "live-log", "aria-live": "polite" });
+    const message = el("input", { id: "live-message", maxlength: "500", required: true, autocomplete: "off" });
+    const sendButton = el("button", { type: "submit", class: "primary", text: t("liveSend"), disabled: true });
+    let socket = null;
+    let revision = table.revision;
+    let lastEvent = 0;
+    let pending = null;
+    const seen = new Set();
+    const operationId = () => {
+      const bytes = crypto.getRandomValues(new Uint8Array(16));
+      const millis = Date.now();
+      for (let i = 0; i < 6; i++) bytes[i] = Math.floor(millis / 2 ** ((5 - i) * 8)) & 255;
+      bytes[6] = (bytes[6] & 15) | 0x70;
+      bytes[8] = (bytes[8] & 63) | 0x80;
+      const hex = [...bytes].map(n => n.toString(16).padStart(2, "0")).join("");
+      return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+    };
+    const connect = async () => {
+      if (version !== viewVersion) return;
+      liveStatus.textContent = t("liveConnecting");
+      try {
+        const ticket = await api("POST", `/api/v1/tables/${encodeURIComponent(id)}/live-ticket`);
+        if (version !== viewVersion) return;
+        const url = new URL(`/api/v1/tables/${encodeURIComponent(id)}/live`, location.href);
+        url.protocol = location.protocol === "https:" ? "wss:" : "ws:";
+        url.searchParams.set("ticket", ticket.ticket);
+        url.searchParams.set("since", String(lastEvent));
+        socket = new WebSocket(url);
+        activeTableSocket = socket;
+        socket.onopen = () => { liveStatus.textContent = t("liveConnected"); sendButton.disabled = table.role === "spectator" || !!pending; };
+        socket.onmessage = (event) => {
+          let data;
+          try { data = JSON.parse(event.data); } catch { return; }
+          if (data.type === "state") {
+            revision = data.revision;
+            if (data.reset) { seen.clear(); log.replaceChildren(); lastEvent = 0; }
+            online.textContent = t("liveOnline", { count: data.online });
+            for (const item of data.events ?? []) {
+              if (seen.has(item.operationId)) continue;
+              seen.add(item.operationId);
+              if (pending?.operationId === item.operationId) { message.value = ""; pending = null; sendButton.disabled = false; }
+              lastEvent = Math.max(lastEvent, item.revision);
+              log.append(el("li", {}, el("strong", { text: item.authorName }), document.createTextNode(`: ${item.text}`)));
+            }
+          } else if (data.type === "presence") online.textContent = t("liveOnline", { count: data.online });
+          else if (data.type === "ack" && pending) { message.value = ""; pending = null; sendButton.disabled = false; }
+          else if (data.type === "error") { pending = null; sendButton.disabled = false; status.replaceChildren(el("p", { class: "error", role: "alert", text: t("liveSendFailed") })); }
+        };
+        socket.onclose = () => {
+          sendButton.disabled = true;
+          if (version !== viewVersion) return;
+          liveStatus.textContent = t("liveReconnecting");
+          setTimeout(connect, 2000);
+        };
+      } catch (error) {
+        if (version !== viewVersion) return;
+        liveStatus.textContent = t("liveReconnecting");
+        status.replaceChildren(errorBox(error));
+        setTimeout(connect, 5000);
+      }
+    };
     const invite = (role, label) => el("button", { type: "button", text: label, onclick: async (event) => {
       const button = event.currentTarget;
       button.disabled = true;
@@ -230,7 +299,38 @@ async function tableView(id) {
     show(el("a", { href: "#/tables", text: t("nav.tables") }), el("h1", { text: table.name }),
       el("p", { class: "muted", text: roleName(table.role) }),
       table.role === "gm" ? el("div", { class: "actions" }, invite("player", t("invitePlayer")), invite("spectator", t("inviteSpectator"))) : null,
-      status);
+      status,
+      el("section", { class: "table-roster" }, el("h2", { text: t("tableSeats") }),
+        el("ul", { class: "plain" }, seats.map(seat => el("li", { class: "campaign-row" },
+          el("span", { text: seat.displayName }), el("span", { class: "role", text: roleName(seat.role) }),
+          seat.role !== "gm" && (table.role === "gm" || seat.accountId === me.accountId) ? el("button", {
+            type: "button", text: seat.accountId === me.accountId ? t("tableLeave") : t("tableRemove"),
+            onclick: async event => {
+              const own = seat.accountId === me.accountId;
+              if (!await confirmAction(own ? t("tableLeave") : t("tableRemoveConfirm", { name: seat.displayName }),
+                own ? [t("tableLeaveConfirm")] : [], own ? t("tableLeave") : t("tableRemove"))) return;
+              await act(event.currentTarget, status, async () => {
+                await api("DELETE", `/api/v1/tables/${encodeURIComponent(id)}/seats/${encodeURIComponent(seat.accountId)}`);
+                if (own) location.hash = "#/tables"; else tableView(id);
+                return t("done");
+              });
+            },
+          }) : null)))),
+      table.role === "gm" ? el("section", { class: "gm-shared" }, el("h2", { text: t("gmShared") }),
+        grants.length ? el("ul", { class: "plain" }, grants.map(item => el("li", {},
+          el("strong", { text: item.payload?.title || kindName(item.kind) }),
+          el("span", { class: "muted", text: ` · ${item.authorName}` })))) : el("p", { class: "muted", text: t("gmSharedEmpty") })) : null,
+      el("section", { class: "live-panel", "aria-label": t("liveTitle") },
+        el("div", { class: "live-heading" }, el("h2", { text: t("liveTitle") }), liveStatus, online),
+        log,
+        table.role === "spectator" ? null : el("form", { class: "live-compose", onsubmit: event => {
+          event.preventDefault();
+          if (socket?.readyState !== WebSocket.OPEN || !message.value.trim()) return;
+          pending = { operationId: operationId(), baseRevision: revision, text: message.value.trim(), audience: "public" };
+          socket.send(JSON.stringify(pending));
+          sendButton.disabled = true;
+        } }, el("label", { for: "live-message", text: t("liveMessage") }), message, sendButton)));
+    connect();
   } catch (error) { if (version === viewVersion) show(errorBox(error)); }
 }
 

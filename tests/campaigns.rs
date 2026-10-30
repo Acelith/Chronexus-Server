@@ -451,7 +451,7 @@ fn account_schema_upgrade_preserves_credentials_and_foreign_keys() {
         assert_eq!(hash, "retained-hash");
         assert_eq!(
             conn.pragma_query_value(None, "user_version", |r| r.get::<_, i64>(0))?,
-            7
+            10
         );
         assert_eq!(
             conn.pragma_query_value(None, "foreign_keys", |r| r.get::<_, i64>(0))?,

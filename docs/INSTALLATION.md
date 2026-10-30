@@ -109,6 +109,8 @@ The image runs as UID/GID 10001 with a read-only root, dropped capabilities and 
 single writable data volume. No database or AI ports are published. API error
 responses deliberately omit raw request/SQL details. Request content and credentials
 are never logged by the application; configure your proxy with the same policy.
+M43 live WebSocket URLs contain short-lived one-use tickets. Do not log URL query
+strings at the proxy; the bundled Caddyfile discards access logs.
 
 ## Accounts and recovery
 
@@ -219,7 +221,8 @@ Schema versions are recorded in the database; an older binary refuses a newer ar
    }
    ```
 
-   Keep the proxy's access log free of `Authorization` headers and request bodies. Set
+   Keep the proxy's access log free of `Authorization` headers, URL query strings
+   and request bodies. Set
    `CHRONEXUS_PUBLIC_ORIGIN` to the exact HTTPS origin and `CHRONEXUS_TRUSTED_PROXIES` to the
    proxy's address as the container sees it. Never trust `0.0.0.0/0`.
 2. **Secrets.** The server has no static secret to store: passwords are Argon2id hashes, session

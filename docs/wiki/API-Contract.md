@@ -7,6 +7,9 @@
   that lack what they need (for example `incremental-sync`).
 - Human-readable reference: `docs/API.md`. The desktop client's view of the same contract:
   the app's `docs/SYNC_API.md`.
+- Table APIs now cover GM-only creation, invitation sign-up, separate seats and
+  explicit journal grants. Live WebSocket tickets are one-use and the current
+  channel accepts public table activity only. See `docs/API.md` for frames.
 
 ## Compatibility rules
 

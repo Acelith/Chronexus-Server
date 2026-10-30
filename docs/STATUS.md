@@ -1,5 +1,25 @@
 # Chronexus Server status
 
+## 30 October 2026: M42/M43 server source implemented; no release
+
+- Operator `invite --gm` grants GM capability; ordinary accounts cannot create tables.
+  One-use table codes register new accounts or seat existing ones. Members can leave;
+  GMs can remove players/spectators. Table membership grants no journal membership.
+- Authors may explicitly grant a currently shared journal item to their table's GM.
+  The GM reads only these items; private items, withdrawn items, removed authors and
+  other campaigns remain inaccessible. This is a server API; desktop audience UI
+  remains a separate app change.
+- Live WebSocket uses a 30-second one-use ticket issued via Bearer authentication,
+  bounded public messages, operation IDs and table revisions. It checks current
+  seats/sessions on writes and notifications, has presence and reconnect snapshots.
+  GM-only map/token/combat content does not exist yet and cannot be sent by this
+  channel. Table web pages show seats, explicit GM journal grants and live activity.
+- Windows checks: Rust fmt, Clippy `-D warnings`, full cargo test, release build,
+  generated contract check, ten web DOM tests, server ten-locale catalog check,
+  desktop `pnpm i18n:check` and a synthetic two-browser GM/player live test passed.
+  The browser test covered reload, mobile layout and Arabic RTL. Linux/macOS and
+  production TLS remain unverified. No deployment, tag or release.
+
 ## 30 October 2026: M42 foundation in progress (source only)
 
 - Schema 008 adds tables, separate GM/player/spectator seats and one-use table invitations.

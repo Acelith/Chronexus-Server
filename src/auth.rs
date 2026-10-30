@@ -149,6 +149,16 @@ fn timestamp(seconds: i64) -> String {
 impl Database {
     /// Codes are shown only by an explicit operator CLI command, never in request logs.
     pub fn issue_invite(&self, recovery_username: Option<&str>) -> Result<String> {
+        self.issue_invite_with_gm(recovery_username, false)
+    }
+    pub fn issue_invite_with_gm(
+        &self,
+        recovery_username: Option<&str>,
+        grant_gm: bool,
+    ) -> Result<String> {
+        if grant_gm && recovery_username.is_some() {
+            return Err(ApiError::invalid());
+        }
         let code = random_secret()?;
         self.with(|conn| {
             let tx = conn.transaction_with_behavior(TransactionBehavior::Immediate)?;
@@ -160,8 +170,8 @@ impl Database {
                 tx.execute("UPDATE invites SET used_at=?1 WHERE recovery_account_id=?2 AND used_at IS NULL", params![now(),id])?;
             }
             tx.execute("DELETE FROM invites WHERE expires_at<?1", [now() - MAX_SECONDS])?;
-            tx.execute("INSERT INTO invites(code_hash,recovery_account_id,created_at,expires_at) VALUES(?1,?2,?3,?4)",
-                params![digest(&code), account, now(), now() + if recovery_username.is_some() {3600} else {86400}])?;
+            tx.execute("INSERT INTO invites(code_hash,recovery_account_id,created_at,expires_at,grant_gm) VALUES(?1,?2,?3,?4,?5)",
+                params![digest(&code), account, now(), now() + if recovery_username.is_some() {3600} else {86400},grant_gm])?;
             tx.commit()?;
             Ok(code.clone())
         })
@@ -226,13 +236,16 @@ impl Database {
         self.with(|conn| {
             let tx = conn.transaction_with_behavior(TransactionBehavior::Immediate)?;
             let valid: bool = tx.query_row("SELECT EXISTS(SELECT 1 FROM invites WHERE code_hash=?1 AND recovery_account_id IS NULL AND used_at IS NULL AND expires_at>?2)", params![digest(&request.invite_code),now()], |r| r.get(0))?;
-            if !valid && !crate::campaigns::available_invite(&tx,&digest(&request.invite_code))? { return Err(ApiError::gone()); }
+            let table_invite = crate::tables::available_invite(&tx,&digest(&request.invite_code))?;
+            if !valid && !table_invite && !crate::campaigns::available_invite(&tx,&digest(&request.invite_code))? { return Err(ApiError::gone()); }
             let exists: bool = tx.query_row("SELECT EXISTS(SELECT 1 FROM accounts WHERE username=?1)", [&name], |r| r.get(0))?;
             if exists { return Err(ApiError(StatusCode::CONFLICT, "Username unavailable.")); }
             let id = Uuid::new_v4().to_string();
-            tx.execute("INSERT INTO accounts(id,username,display_name,password_hash,created_at) VALUES(?1,?2,?3,?4,?5)", params![id,name,request.display_name,hash,now()])?;
+            tx.execute("INSERT INTO accounts(id,username,display_name,password_hash,created_at,gm_enabled) VALUES(?1,?2,?3,?4,?5,coalesce((SELECT grant_gm FROM invites WHERE code_hash=?6),0))", params![id,name,request.display_name,hash,now(),digest(&request.invite_code)])?;
             if valid {
                 tx.execute("UPDATE invites SET used_at=?1 WHERE code_hash=?2", params![now(),digest(&request.invite_code)])?;
+            } else if table_invite {
+                crate::tables::accept_invite(&tx,&digest(&request.invite_code),&id)?;
             } else {
                 crate::campaigns::accept_invite(&tx,&digest(&request.invite_code),&id)?;
             }

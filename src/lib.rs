@@ -13,8 +13,10 @@ mod events;
 pub mod lifecycle;
 pub mod payload;
 pub mod routes;
-mod web;
+mod table_grants;
+mod table_live;
 mod tables;
+mod web;
 
 use crate::{
     config::Config,
@@ -34,6 +36,7 @@ pub struct AppState {
     pub(crate) dummy_hash: Arc<String>,
     /// Present only when the operator configured server AI.
     pub(crate) ai: Option<Arc<ai::Gate>>,
+    pub(crate) table_live: Arc<table_live::Hub>,
 }
 impl AppState {
     pub fn new(config: Config) -> std::result::Result<Self, String> {
@@ -50,6 +53,7 @@ impl AppState {
             workers: Arc::new(Semaphore::new(4)),
             dummy_hash: Arc::new(dummy_hash),
             ai,
+            table_live: Arc::new(table_live::Hub::new()),
         })
     }
     pub async fn blocking<T, F>(&self, operation: F) -> Result<T>

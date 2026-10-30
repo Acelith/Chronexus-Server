@@ -60,6 +60,7 @@ pub struct Account {
     created_at: String,
     /// Listed in CHRONEXUS_OPERATORS: may read service status and account metadata.
     operator: bool,
+    gm_enabled: bool,
 }
 #[derive(Serialize, ToSchema, Default)]
 #[serde(rename_all = "camelCase")]
@@ -183,13 +184,15 @@ impl Database {
     pub fn account(&self, token: &str, operators: &[String]) -> Result<Account> {
         let identity = self.identity(token)?;
         self.with(|conn| {
-            let (username, display_name, created): (String, String, i64) = conn.query_row(
-                "SELECT username,display_name,created_at FROM accounts WHERE id=?1",
+            let (username, display_name, created, gm_enabled): (String, String, i64, bool) = conn
+                .query_row(
+                "SELECT username,display_name,created_at,gm_enabled FROM accounts WHERE id=?1",
                 [&identity.account_id],
-                |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
+                |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?)),
             )?;
             Ok(Account {
                 operator: operators.contains(&username),
+                gm_enabled,
                 account_id: identity.account_id.clone(),
                 username,
                 display_name,

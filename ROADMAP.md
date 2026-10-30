@@ -76,8 +76,8 @@ client.
 
 | ID | Server deliverables |
 | --- | --- |
-| M42 | In progress: schema 008 tables, seats, one-use codes and web table administration; GM enrollment policy, invitation sign-up, journal audience and full matrix remain |
-| M43 | WebSocket `/api/v1/tables/{id}/live` with per-recipient views, presence, operation IDs and revisions, reconnection from a revision or snapshot; web interface for GMs (builds on M25.11) |
+| M42 | Server implemented in source (schemas 008–009): operator-issued GM capability, tables/seats, one-use invitation sign-up, removal and explicit per-item GM journal grants; desktop audience controls remain in the app repository |
+| M43 | Server implemented in source (schema 010): one-use WebSocket tickets, bounded live public messages, presence, revisions, idempotent operation IDs and reconnect snapshots; GM/player web table workspace. Maps and secret combat data begin M44–M45 |
 | M44 | Scenes, map assets (larger image limits, Universal VTT import), grid settings, tokens with owner and visibility, server-validated movement and diagonal rule, rulers and area templates; distances stored in their rules unit |
 | M45 | Combat state: initiative, turn order, rounds, conditions with durations, combat log with GM-secret rolls; HP changes only by the token's owner or the GM for monsters |
 | M46 | Fog geometry, then walls, doors, lights and server-side line of sight per player |

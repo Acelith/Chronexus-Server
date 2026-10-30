@@ -18,7 +18,13 @@ async fn run() -> Result<(), String> {
                     .map_err(|_| "Cannot serialize contract.")?
             );
         }
-        "invite" | "recover" if args.len() == 1 || (args[0] == "recover" && args.len() == 2) => {
+        "invite" | "recover"
+            if args.len() == 1
+                || (args[0] == "invite"
+                    && args.get(1).is_some_and(|s| s == "--gm")
+                    && args.len() == 2)
+                || (args[0] == "recover" && args.len() == 2) =>
+        {
             if args[0] == "recover" && args.len() != 2 {
                 return Err("Usage: chronexus-server recover USERNAME".into());
             }
@@ -28,7 +34,14 @@ async fn run() -> Result<(), String> {
             );
             let db = Database::open(&path)?;
             let code = db
-                .issue_invite(args.get(1).map(String::as_str))
+                .issue_invite_with_gm(
+                    if args[0] == "recover" {
+                        args.get(1).map(String::as_str)
+                    } else {
+                        None
+                    },
+                    args.get(1).is_some_and(|s| s == "--gm"),
+                )
                 .map_err(|e| e.1.to_string())?;
             // Only this operator-invoked command reveals the secret; serve never logs it.
             println!("{code}");
@@ -124,7 +137,7 @@ async fn run() -> Result<(), String> {
         }
         _ => {
             return Err(
-                "Usage: chronexus-server [serve|invite|recover USERNAME|revoke-sessions|compact [DAYS]|backup FILE|verify FILE|restore FILE|openapi|healthcheck]"
+                "Usage: chronexus-server [serve|invite [--gm]|recover USERNAME|revoke-sessions|compact [DAYS]|backup FILE|verify FILE|restore FILE|openapi|healthcheck]"
                     .into(),
             );
         }

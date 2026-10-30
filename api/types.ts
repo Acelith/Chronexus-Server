@@ -5,6 +5,7 @@ export type Account = {
   "accountId": string;
   "createdAt": string;
   "displayName": string;
+  "gmEnabled": boolean;
   "operator": boolean;
   "username": string;
 };
@@ -146,6 +147,10 @@ export type CreateCampaign = {
   "name": string;
 };
 
+export type CreateTable = {
+  "name": string;
+};
+
 export type Current = {
   "payload"?: null | Payload;
   "revision": number;
@@ -188,6 +193,21 @@ export type ErrorBody = {
   "error": string;
 };
 
+export type GrantKey = {
+  "campaignId": string;
+  "itemId": string;
+  "kind": string;
+};
+
+export type GrantedItem = {
+  "authorName": string;
+  "campaignId": string;
+  "itemId": string;
+  "kind": string;
+  "payload": Payload;
+  "revision": number;
+};
+
 export type Health = {
   "status": string;
 };
@@ -208,6 +228,10 @@ export type Inline = {
 } | {
   "props": Mention;
   "type": "pageMention";
+};
+
+export type InviteRequest = {
+  "role": string;
 };
 
 export type InviteRole = {
@@ -236,6 +260,10 @@ export type JoinCampaign = {
   "inviteCode": string;
 };
 
+export type JoinTable = {
+  "inviteCode": string;
+};
+
 export type KeyedRevision = {
   "baseRevision": number;
   "requestId"?: string | null;
@@ -253,6 +281,21 @@ export type LinkText = {
   "styles": Styles;
   "text": string;
   "type": string;
+};
+
+export type LiveEvent = {
+  "audience": string;
+  "authorId": string;
+  "authorName": string;
+  "createdAt": string;
+  "operationId": string;
+  "revision": number;
+  "text": string;
+};
+
+export type LiveTicket = {
+  "expiresAt": string;
+  "ticket": string;
 };
 
 export type Login = {
@@ -421,6 +464,25 @@ export type SyncPage = {
   "cursor": string;
   "items": Array<ContentItem>;
   "more": boolean;
+};
+
+export type Table = {
+  "id": string;
+  "name": string;
+  "revision": number;
+  "role": string;
+};
+
+export type TableInvite = {
+  "code": string;
+  "expiresAt": string;
+  "role": string;
+};
+
+export type TableSeat = {
+  "accountId": string;
+  "displayName": string;
+  "role": string;
 };
 
 export type Visibility = "private" | "members";

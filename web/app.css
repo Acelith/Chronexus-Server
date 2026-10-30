@@ -76,6 +76,19 @@ ul.plain li { padding: 20px 0; border-bottom: 1px solid #c8b083; }
 .table-actions { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 20px; margin-top: 32px; }
 .table-actions .card { margin: 0; padding: 24px; }
 .table-actions h2 { margin-top: 0; }
+.live-panel { margin-top: 36px; background: var(--paper); border: 1px solid #c8b083; border-radius: 6px; padding: clamp(16px, 3vw, 28px); }
+.live-heading { display: flex; flex-wrap: wrap; align-items: baseline; gap: 12px 24px; border-bottom: 1px solid #c8b083; }
+.live-heading h2 { margin: 0; margin-inline-end: auto; margin-block-end: 12px; border: 0; padding: 0; }
+.live-status { color: var(--burgundy); font-weight: 600; }
+.live-log { min-height: 180px; max-height: 50vh; overflow-y: auto; padding-block: 12px; padding-inline-start: 24px; margin: 0; }
+.live-log li { padding: 8px 0; border-bottom: 1px solid #e2d3b3; overflow-wrap: anywhere; }
+.live-compose { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 8px 12px; align-items: end; }
+.live-compose label { grid-column: 1 / -1; margin: 0; }
+.live-compose input { max-width: none; }
+.table-roster, .gm-shared { margin-top: 30px; }
+.table-roster .campaign-row { align-items: center; justify-content: flex-start; flex-wrap: wrap; }
+.table-roster .campaign-row > span:first-child { margin-inline-end: auto; }
+.table-roster li { min-height: 54px; }
 .campaign-row a { font-size: 1.25rem; padding-block: 10px; overflow-wrap: anywhere; }
 .role { color: var(--muted); flex-shrink: 0; }
 a { color: var(--burgundy); text-underline-offset: 0.2em; }
