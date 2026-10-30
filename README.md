@@ -67,6 +67,13 @@ The delivery goal:
 | **Local or server AI** | Explicit execution choice, scoped sources and citations, bounded server resource use | M25.10 | Implemented; no model qualified yet ([docs/AI.md](docs/AI.md)) |
 | **Web management** | Authenticated campaign, membership, storage and service management | M25.11 | Implemented (web interface at the public origin, ten languages) |
 
+The current source also includes **Chronexus Table**: GM accounts/invitations and
+live tables (M42/M43), map/grid/token editing with ft/m tools (M44), and explicit
+initiative, turns, conditions and owner-only HP with filtered logs (M45). These
+are server/web source changes after release 0.1.1. Desktop table integration and
+cross-platform acceptance remain pending; see [current evidence](docs/STATUS.md).
+GM access to the journal still requires each author's explicit item grant.
+
 ## Deployment and configuration
 
 The source build uses **Docker Compose**, persistent volumes and a Rust service.

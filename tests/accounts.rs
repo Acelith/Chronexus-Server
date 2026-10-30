@@ -32,7 +32,8 @@ async fn meta_health_and_contract_describe_only_implemented_scope() {
             "incremental-sync",
             "change-notifications",
             "deletion",
-            "table-board"
+            "table-board",
+            "table-combat"
         ])
     );
     assert_eq!(

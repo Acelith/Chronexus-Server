@@ -72,7 +72,7 @@
     const sceneSelect=el('select',{'aria-label':t('scene')});
     const tool=el('select',{'aria-label':t('tool')},...['move','ruler',...(role==='gm'?['calibrate','terrain']:[]),'circle','cone','square','line','cylinder'].map(v=>el('option',{value:v,text:t('tool.'+v)})));
     let board=null,online=false,busy=false,disposed=false,selected=null,chosenScene=null,start=null,preview=null,measurement=null,calibration=null,pending=null,primary='ft';
-    const images=new Map(),urls=new Set(),controls=[];
+    const images=new Map(),urls=new Set();
     try{primary=localStorage.getItem('chronexus-table-unit')==='m'?'m':'ft';}catch{}
     const current=()=>!disposed&&active();
     const scene=()=>board?.scenes.find(s=>s.id===(chosenScene??board.activeScene))??board?.scenes[0];
@@ -83,8 +83,8 @@
       const a=convert(v,unit,primary,convention), other=primary==='ft'?'m':'ft';
       return `${number(a)} ${primary} · ${number(convert(v,unit,other,convention))} ${other}`;
     };
-    const button=(key,fn)=>{const b=el('button',{type:'button',text:t(key),onclick:fn});controls.push(b);return b;};
-    const syncDisabled=()=>controls.forEach(b=>b.disabled=!online||busy);
+    const button=(key,fn)=>{const b=el('button',{type:'button',text:t(key),onclick:fn,'data-board-write':true,disabled:!online||busy});return b;};
+    const syncDisabled=()=>root.querySelectorAll('[data-board-write]').forEach(b=>b.disabled=!online||busy||(b.hasAttribute('data-owned-only')&&selectedToken()?.ownerId!==account));
     const showError=e=>{status.replaceChildren(el('p',{class:'error',role:'alert',text:t('boardFailed')}));if(pending)status.append(button('retry',()=>run(pending)));};
     const endpoint=`/api/v1/tables/${encodeURIComponent(tableId)}`;
     async function refresh(){const value=await api('GET',endpoint+'/board');if(current())update(value);}
@@ -111,7 +111,7 @@
     const convertDisplay=()=>{converted.textContent=distance(Number(converter.value)||0,primary);convention.textContent=t('conversion.'+(scene()?.grid.conversion??'table'));};
     converter.oninput=convertDisplay;
     tools.append(sceneSelect,tool,coverage,el('label',{},t('templateSize'),templateSize),el('label',{},t('primaryUnit'),unit),el('label',{},t('converter'),converter),converted,convention);
-    sceneSelect.onchange=()=>{chosenScene=sceneSelect.value;selected=null;draw();};
+    sceneSelect.onchange=()=>{chosenScene=sceneSelect.value;selected=null;draw();tracker?.update(board);syncDisabled();};
     const copy=el('button',{type:'button',text:t('copyResult'),onclick:async()=>{try{await navigator.clipboard.writeText(converted.textContent);status.textContent=t('done');}catch{status.textContent=t('boardFailed');}}});tools.append(copy);
     if(role!=='spectator')tools.append(button('shareTemplate',()=>{if(measurement&&scene()&&role!=='spectator')send({type:'saveTemplate',template:measurement});}));
     const templateList=el('div',{class:'template-list'});
@@ -126,7 +126,7 @@
       if(!current())return;convertDisplay();const s=scene();
       sceneSelect.replaceChildren(...(board?.scenes??[]).map(v=>el('option',{value:v.id,selected:v.id===s?.id,text:v.name})));
       roster.replaceChildren(...tokens().map(v=>{
-        const b=el('button',{type:'button','aria-pressed':v.id===selected,text:`${v.name} · ${distance(v.speed.value,v.speed.unit)}${v.hidden?' · '+t('hidden'):''}`,onclick:()=>{selected=v.id;draw();}});
+        const b=el('button',{type:'button','aria-pressed':v.id===selected,text:`${v.name} · ${distance(v.speed.value,v.speed.unit)}${v.hidden?' · '+t('hidden'):''}`,onclick:()=>{selected=v.id;draw();tracker?.update(board);syncDisabled();}});
         return el('div',{},b,el('span',{class:v.spent>convert(v.speed.value,v.speed.unit,s.grid.distance.unit,s.grid.conversion)?'error':'muted',text:distance(v.spent)+' / '+distance(v.speed.value,v.speed.unit)}));
       }));
       templateList.replaceChildren(...(board?.templates??[]).filter(v=>v.sceneId===s?.id).map(v=>el('div',{},t('tool.'+v.shape)+' '+distance(v.size.value,v.size.unit), (role==='gm'||v.ownerId===account)?button('remove',()=>send({type:'removeTemplate',templateId:v.id})):null)));
@@ -142,7 +142,9 @@
       ctx.restore();ctx.fillStyle='rgba(160,100,40,0.4)';for(const p of s.difficult){const c=pixel(p,g);ctx.fillRect(c.x-g.pixels/2,c.y-g.pixels/2,g.pixels,g.pixels);}
       for(const v of tokens()){const p=pixel(v.position,g),r=v.size*g.pixels/2;ctx.beginPath();ctx.arc(p.x,p.y,r,0,2*Math.PI);ctx.fillStyle=v.hidden?'#736151':v.ownerId===account?'#245c68':'#803c39';ctx.fill();ctx.lineWidth=v.id===selected?4:2;ctx.strokeStyle=v.id===selected?'#f6db8b':'#f3e7cb';ctx.stroke();
         if(v.portraitId){const image=images.get(v.portraitId);if(image){ctx.save();ctx.beginPath();ctx.arc(p.x,p.y,r-2,0,2*Math.PI);ctx.clip();ctx.drawImage(image,p.x-r,p.y-r,r*2,r*2);ctx.restore();}else loadImage(v.portraitId);}
-        ctx.font=`${Math.max(12,g.pixels/4)}px Georgia`;ctx.textAlign='center';ctx.fillStyle='#fff8e6';ctx.fillText(v.name,p.x,p.y+r+16);}
+        ctx.font=`${Math.max(12,g.pixels/4)}px Georgia`;ctx.textAlign='center';ctx.fillStyle='#fff8e6';ctx.fillText(v.name,p.x,p.y+r+16);
+        const effects=board?.combat?.conditions?.filter(c=>c.tokenId===v.id)??[];if(effects.length){ctx.beginPath();ctx.arc(p.x+r,p.y-r,12,0,Math.PI*2);ctx.fillStyle=effects.some(c=>c.expired)?'#b94d39':'#1f5f8b';ctx.fill();ctx.fillStyle='#ffffff';ctx.font='14px Georgia';ctx.fillText(number(effects.length),p.x+r,p.y-r+5);}
+      }
       const areas=[...(board?.templates??[]).filter(a=>a.sceneId===s.id),...(measurement?[measurement]:[])];
       for(const area of areas){
         const a=pixel(area.origin,g),r=convert(area.size.value,area.size.unit,g.distance.unit,g.conversion)/g.distance.value*g.pixels;
@@ -161,7 +163,8 @@
     const movable=v=>v&&(role==='gm'||v.ownerId===account)&&role!=='spectator';
     canvas.onpointerdown=e=>{if(!scene())return;const p=coordinate(e);start=snap(p,scene().grid);preview=start;calibration=tool.value==='calibrate'?p:null;
       if(tool.value==='move'){const hit=tokens().findLast(v=>{const q=pixel(v.position,scene().grid);return Math.hypot(q.x-p.x,q.y-p.y)<v.size*scene().grid.pixels/2;});selected=hit?.id??selected;start=selectedToken()?.position??start;}
-      canvas.setPointerCapture?.(e.pointerId);draw();};
+      canvas.setPointerCapture?.(e.pointerId);draw();tracker?.update(board);syncDisabled();};
+    canvas.onpointercancel=()=>{start=null;preview=null;calibration=null;draw();};
     canvas.onpointermove=e=>{if(!start||!scene())return;preview=snap(coordinate(e),scene().grid);
       if(['circle','cone','square','line','cylinder'].includes(tool.value)){const a=pixel(start,scene().grid),b=pixel(preview,scene().grid);measurement={id:id(),sceneId:scene().id,ownerId:account,shape:tool.value,origin:start,angle:Math.atan2(b.y-a.y,b.x-a.x)*180/Math.PI,size:{value:Number(templateSize.value)||0,unit:primary},coverage:coverage.value,hidden:false};}
       draw();try{summary.textContent=distance(cost(start,path(start,preview,scene().grid),scene(),selectedToken()?.diagonals??0));}catch{summary.textContent=t('pathLimit');}};
@@ -208,7 +211,8 @@
       editor.append(el('details',{},el('summary',{text:t('tokenEditor')}),form));
     }
     if(role==='gm'){sceneEditor();tokenEditor();}
-    function update(value){if(!current()||(board&&value.revision<board.revision))return;board=value;if(chosenScene&&!value.scenes.some(s=>s.id===chosenScene))chosenScene=null;if(selected&&!tokens().some(v=>v.id===selected))selected=null;draw();}
+    const tracker=window.ChronexusCombat?.create({el,t,role,account,send,getBoard:()=>board,getSelected:()=>selected,getScene:scene,field,button,confirm});if(tracker)root.append(tracker.root);
+    function update(value){if(!current()||(board&&value.revision<board.revision))return;board=value;if(chosenScene&&!value.scenes.some(s=>s.id===chosenScene))chosenScene=null;if(selected&&!tokens().some(v=>v.id===selected))selected=null;if(measurement&&measurement.sceneId!==scene()?.id)measurement=null;draw();tracker?.update(value);syncDisabled();}
     function connected(value){online=value;notice.textContent=t(value?'liveConnected':'liveReconnecting');syncDisabled();}
     function dispose(){disposed=true;for(const url of urls)URL.revokeObjectURL(url);urls.clear();images.clear();}
     return {root,update,connected,dispose,send,refresh,get snapshot(){return board;},get selected(){return selected;},distance,editor,status,button,field};

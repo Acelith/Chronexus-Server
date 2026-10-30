@@ -88,6 +88,9 @@ export type BoardAck = {
 };
 
 export type BoardAction = {
+  "action": CombatAction;
+  "type": "combat";
+} | {
   "template": AreaTemplate;
   "type": "saveTemplate";
 } | {
@@ -138,11 +141,14 @@ export type BoardToken = {
 
 export type BoardView = {
   "activeScene"?: string | null;
+  "combat"?: null | CombatState;
+  "combatLog": Array<CombatLog>;
   "geometry"?: Array<SceneGeometry> | null;
   "revision": number;
   "scenes": Array<Scene>;
   "templates": Array<AreaTemplate>;
   "tokens": Array<BoardToken>;
+  "vitals": Array<VitalsView>;
 };
 
 export type CampaignInvite = {
@@ -204,6 +210,89 @@ export type ClueSource = {
   "blockId"?: string | null;
   "id": string;
   "kind": string;
+};
+
+export type CombatAction = {
+  "scene_id": string;
+  "token_ids": Array<string>;
+  "type": "start";
+} | {
+  "type": "end";
+} | {
+  "roll": boolean;
+  "secret": boolean;
+  "token_id": string;
+  "type": "initiative";
+  "value": number;
+} | {
+  "token_ids": Array<string>;
+  "type": "order";
+} | {
+  "type": "next";
+} | {
+  "type": "delay";
+} | {
+  "token_id": string;
+  "type": "add";
+} | {
+  "token_id": string;
+  "type": "remove";
+} | {
+  "ac"?: number | null;
+  "gm_note"?: string | null;
+  "hp": number;
+  "max_hp": number;
+  "show_hp": boolean;
+  "status"?: string | null;
+  "token_id": string;
+  "type": "setVitals";
+} | {
+  "condition": Condition;
+  "type": "setCondition";
+} | {
+  "condition_id": string;
+  "type": "removeCondition";
+} | {
+  "count": number;
+  "label": string;
+  "modifier": number;
+  "secret": boolean;
+  "sides": number;
+  "token_id": string;
+  "type": "roll";
+};
+
+export type CombatLog = {
+  "amount"?: number | null;
+  "createdAt": string;
+  "dice": Array<number>;
+  "id": number;
+  "kind": string;
+  "label": string;
+  "tokenId"?: string | null;
+};
+
+export type CombatState = {
+  "conditions": Array<Condition>;
+  "current"?: string | null;
+  "order": Array<Combatant>;
+  "round": number;
+  "running": boolean;
+  "sceneId"?: string | null;
+};
+
+export type Combatant = {
+  "initiative"?: number | null;
+  "secret": boolean;
+  "tokenId": string;
+};
+
+export type Condition = {
+  "expired": boolean;
+  "id": string;
+  "name": string;
+  "rounds"?: number | null;
+  "tokenId": string;
 };
 
 export type ContentItem = Item & {
@@ -640,6 +729,16 @@ export type TableSeat = {
 };
 
 export type Visibility = "private" | "members";
+
+export type VitalsView = {
+  "ac"?: number | null;
+  "gmNote"?: string | null;
+  "hp"?: number | null;
+  "maxHp"?: number | null;
+  "showHp": boolean;
+  "status"?: string | null;
+  "tokenId": string;
+};
 
 export type WriteContent = {
   "baseRevision": number;

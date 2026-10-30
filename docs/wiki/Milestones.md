@@ -18,4 +18,17 @@ The server is application milestone **M25**; its steps are numbered M25.0–M25.
 | M25.10 | Explicit local or self-hosted server AI | Implemented; no model qualified (CPU run 29/10/2026) |
 | M25.11 | Web campaign and server management | Implemented, ten languages |
 
+Table work in the current source (not included in historical release 0.1.1):
+
+| ID | Server/web state |
+| --- | --- |
+| M42 | GM capability, seats, invites and explicit journal grants implemented |
+| M43 | Authenticated live channel and table workspace implemented |
+| M44 | Scene/map/grid/token movement, rulers/templates and ft/m conversion implemented |
+| M45 | Explicit combat, turn/round controls, conditions, owner-only HP and filtered logs implemented |
+| M46 | Fog and vision planned |
+| M47 | Monster library and encounters planned |
+
+Desktop table integration and cross-platform end-to-end acceptance remain pending.
+
 Alongside M25.8: application **M41**, this wiki.

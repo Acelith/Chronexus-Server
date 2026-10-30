@@ -9,6 +9,9 @@
 | `tests/events.rs` | Notification streams and their limits |
 | `tests/lifecycle.rs` | Removal, erasure, deletion, restored backups |
 | `tests/security.rs` | Authorization matrix and hostile input |
+| `tests/vtt.rs` | Scene/token/template authorization, movement, UVTT, original map backups and checksum refusal |
+| `tests/combat.rs` | Three rounds, tie order, ownership/private HP, secret rolls, conditions and combat restore |
+| `tests/table_live.rs` | Real WebSocket filtering, operation, reconnect, revocation and loopback latency observation |
 | `tests/recovery.rs` | Backup, verify, restore, upgrade rollback |
 
 ```sh
@@ -21,3 +24,14 @@ paths may not pass through symbolic links (the macOS temp folder does).
 **With the real desktop client:** the app repository runs its client against this
 server's binary (`sync::tests::live`) and three real app instances against a Compose
 deployment with HTTPS (`scripts/qa/sync/`, see its `docs/QA.md`).
+
+
+Web checks (using jsdom from the desktop development checkout):
+
+```sh
+NODE_PATH=../Chronexus/node_modules node --test scripts/test-web.cjs scripts/test-board.cjs
+```
+
+These cover all ten catalogs and decimal conventions, English/Italian/Arabic tracker
+controls, RTL, keyboard movement, disconnected write gates and spectator controls.
+Browser checks use isolated synthetic server data, never personal campaigns.

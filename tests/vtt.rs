@@ -139,7 +139,8 @@ async fn maps_keep_original_bytes_and_do_not_grant_access_to_prepared_assets() {
     // Whole-server backup/restore contains table assets without touching journals.
     let path = g.f._directory.path().join("board-backup.sqlite3");
     let source = g.f.state.config.database.clone();
-    chronexus_server::backup::create(&source, &path).unwrap();
+    let report = chronexus_server::backup::create(&source, &path).unwrap();
+    assert_eq!(report.attachments, 1);
     let restored = g.f._directory.path().join("restored.sqlite3");
     chronexus_server::backup::restore(&restored, &path).unwrap();
     let restored = Database::open(&restored).unwrap();
@@ -158,6 +159,20 @@ async fn maps_keep_original_bytes_and_do_not_grant_access_to_prepared_assets() {
             Ok(())
         })
         .unwrap();
+    db.with(|conn| {
+        conn.execute(
+            "UPDATE table_map_assets SET original=x'00' WHERE id=?1",
+            [&asset.id],
+        )?;
+        Ok(())
+    })
+    .unwrap();
+    let bad = g.f._directory.path().join("corrupt-map-backup.sqlite3");
+    assert!(chronexus_server::backup::create(&source, &bad).is_err());
+    assert!(
+        !bad.exists(),
+        "a backup with a corrupted original must not be reported as saved"
+    );
 }
 #[tokio::test]
 async fn uvtt_import_keeps_occluders_gm_only_and_rejects_remote_images() {
@@ -202,4 +217,68 @@ fn distance_conversion_preserves_both_conventions_and_original_values() {
         9.0
     );
     assert!((chronexus_server::vtt::convert(30.0, "ft", "m", "exact") - 9.144).abs() < 1e-9);
+}
+
+#[tokio::test]
+async fn template_ownership_and_hidden_preparation_are_enforced_on_every_view() {
+    let g = TableFixture::new().await;
+    let scene = g.scene().await;
+    let prepared = g.scene().await;
+    g.activate(&scene).await;
+    let public = json!({"id":Uuid::new_v4().to_string(),"sceneId":scene["id"],"ownerId":g.player["accountId"],"shape":"cone","origin":{"x":3,"y":3},"angle":45,"size":{"value":15,"unit":"ft"},"coverage":"center","hidden":false});
+    assert_eq!(
+        g.command(&g.player, json!({"type":"saveTemplate","template":public}))
+            .await
+            .0,
+        StatusCode::OK
+    );
+    let mut hidden = public.clone();
+    hidden["id"] = json!(Uuid::new_v4().to_string());
+    hidden["hidden"] = json!(true);
+    hidden["ownerId"] = g.gm["accountId"].clone();
+    assert_eq!(
+        g.command(&g.gm, json!({"type":"saveTemplate","template":hidden}))
+            .await
+            .0,
+        StatusCode::OK
+    );
+    for user in [&g.player, &g.other, &g.spectator] {
+        let view = g.view(user).await.1;
+        assert_eq!(view["templates"].as_array().unwrap().len(), 1);
+        assert_eq!(view["templates"][0]["id"], public["id"]);
+    }
+    assert_eq!(
+        g.command(
+            &g.other,
+            json!({"type":"removeTemplate","templateId":public["id"]})
+        )
+        .await
+        .0,
+        StatusCode::NOT_FOUND
+    );
+    let mut stolen = public.clone();
+    stolen["ownerId"] = g.other["accountId"].clone();
+    assert_eq!(
+        g.command(&g.other, json!({"type":"saveTemplate","template":stolen}))
+            .await
+            .0,
+        StatusCode::BAD_REQUEST
+    );
+    let mut private = public.clone();
+    private["sceneId"] = prepared["id"].clone();
+    assert_eq!(
+        g.command(&g.player, json!({"type":"saveTemplate","template":private}))
+            .await
+            .0,
+        StatusCode::FORBIDDEN
+    );
+    assert_eq!(
+        g.command(
+            &g.player,
+            json!({"type":"removeTemplate","templateId":public["id"]})
+        )
+        .await
+        .0,
+        StatusCode::OK
+    );
 }

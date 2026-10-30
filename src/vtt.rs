@@ -96,6 +96,7 @@ pub struct AreaTemplate {
     deny_unknown_fields
 )]
 pub enum BoardAction {
+    Combat { action: crate::combat::CombatAction },
     SaveTemplate { template: AreaTemplate },
     RemoveTemplate { template_id: String },
     SaveScene { scene: Scene },
@@ -134,6 +135,9 @@ pub struct BoardView {
     pub scenes: Vec<Scene>,
     pub tokens: Vec<BoardToken>,
     pub templates: Vec<AreaTemplate>,
+    pub combat: Option<crate::combat::CombatState>,
+    pub vitals: Vec<crate::combat::VitalsView>,
+    pub combat_log: Vec<crate::combat::CombatLog>,
     /// Imported occluders are GM-only preparation data until M46 vision exists.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub geometry: Option<Vec<SceneGeometry>>,
@@ -292,7 +296,11 @@ fn move_token(
             )
             .optional()?
             .flatten();
-        if t.owner_id != account || t.hidden || active.as_deref() != Some(&s.id) || !s.free_move {
+        if t.owner_id != account
+            || t.hidden
+            || active.as_deref() != Some(&s.id)
+            || !crate::combat::movement_allowed(conn, table, &t, s.free_move)?
+        {
             return Err(ApiError(
                 StatusCode::FORBIDDEN,
                 "Token movement not allowed.",
@@ -347,6 +355,7 @@ fn move_token(
         previous = *p;
     }
     t.position = previous;
+    crate::combat::log(conn, table, Some(&t), "public", ("move", None, vec![], ""))?;
     save_token(conn, table, &t)
 }
 pub(crate) fn apply(
@@ -357,6 +366,7 @@ pub(crate) fn apply(
     action: &BoardAction,
 ) -> Result<()> {
     match action {
+        BoardAction::Combat { action } => crate::combat::apply(conn, table, account, role, action)?,
         BoardAction::SaveTemplate { template: t } => {
             identifier(&t.id)?;
             identifier(&t.owner_id)?;
@@ -498,6 +508,16 @@ pub(crate) fn apply(
             }
             let mut t = t.clone();
             let old = board_token(conn, table, &t.id).ok();
+            if let Some(old) = &old
+                && old.owner_id != t.owner_id
+                && !access(conn, table, &old.owner_id).is_ok_and(|r| r == "gm")
+            {
+                return Err(ApiError(
+                    StatusCode::FORBIDDEN,
+                    "Player token ownership requires its author's consent.",
+                ));
+            }
+
             t.spent = old.as_ref().map_or(0.0, |v| v.spent);
             t.diagonals = old.map_or(0, |v| v.diagonals);
             save_token(conn, table, &t)?;
@@ -505,6 +525,7 @@ pub(crate) fn apply(
         BoardAction::RemoveToken { token_id } => {
             gm(role)?;
             board_token(conn, table, token_id)?;
+            crate::combat::remove_token(conn, table, token_id)?;
             conn.execute(
                 "DELETE FROM table_tokens WHERE table_id=?1 AND id=?2",
                 params![table, token_id],
@@ -634,12 +655,17 @@ pub(crate) fn view(conn: &Connection, table: &str, account: &str) -> Result<Boar
             templates.push(t);
         }
     }
+    let (combat, vitals, combat_log) =
+        crate::combat::projection(conn, table, account, &role, &tokens, &active)?;
     Ok(BoardView {
         revision,
         active_scene: active,
         scenes,
         tokens,
         templates,
+        combat,
+        vitals,
+        combat_log,
         geometry: if role == "gm" { Some(geometry) } else { None },
     })
 }

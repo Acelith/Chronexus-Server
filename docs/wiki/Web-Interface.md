@@ -14,7 +14,9 @@ invite players or spectators and manage seats. Campaign membership and table sea
 remain separate. GMs see only journal items explicitly granted by their authors,
 including items beyond the first 100; the workspace loads the paginated list.
 The source now includes M44 map/grid/token editing, movement, rulers, area templates
-and the labelled ft/m converter. Desktop table integration and combat remain unfinished.
+and the labelled ft/m converter. M45 adds initiative, turn/round controls, conditions,
+owner-only confirmed HP changes and a filtered combat log. Desktop table integration
+remains pending.
 
 The live channel shows public activity and presence. After a connection interruption,
 it checks whether a pending message was already saved before retrying the same
@@ -60,3 +62,19 @@ file; that is outside the application.)
 
 The interface supports English and the nine other desktop languages, including
 right-to-left Arabic. Campaign text remains unchanged.
+
+
+## Combat in the current source
+
+Select combatants, prepare combat, enter/roll initiative and use the order controls
+for ties, then begin the first turn. Only the GM advances/delays turns or manages
+the roster. Players move their own token on its turn. Select a token on the map
+or in its list to load/edit its values. Only the owner changes HP/AC or rolls for
+it; the GM changes its own monsters. HP stays private unless its owner chooses
+to show it. A public status such as “bloodied” is manual, never inferred.
+
+HP changes require confirmation. Rolls do not apply damage or change a character
+sheet. Condition durations reaching zero remain visible with a review reminder;
+remove them explicitly when appropriate. Spectators have no mutation controls.
+Hidden tokens/turns, GM notes, secret rolls and private HP logs never arrive in
+other players' views. Maps, combat and journals remain separate spaces.

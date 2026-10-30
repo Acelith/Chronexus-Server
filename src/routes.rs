@@ -235,6 +235,7 @@ async fn meta(State(state): State<AppState>) -> Json<Meta> {
             "change-notifications",
             "deletion",
             "table-board",
+            "table-combat",
         ],
     };
     // Announced only when the operator configured a runtime (M25.10).

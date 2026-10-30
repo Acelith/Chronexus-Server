@@ -9,10 +9,12 @@
 | `campaigns.rs`, `campaign_routes.rs` | Campaigns, invitations, members, roles |
 | `content.rs`, `content_routes.rs`, `payload.rs` | Items, visibility, revisions, receipts, change log, `/sync` |
 | `attachments.rs` | Image uploads and downloads with checksums |
+| `vtt.rs`, `uvtt.rs` | Table scenes, original map assets, grid/movement, templates and filtered live snapshots |
+| `combat.rs` | Explicit initiative/turns, conditions, owner-only vitals and audience-filtered logs |
 | `events.rs` | Content-free change notifications (SSE) |
 | `lifecycle.rs` | Deletion of campaigns, own content and accounts |
 | `backup.rs` | Backup, verification, restore |
-| `db.rs` | Database opening, safe paths, migrations `001`–`006` |
+| `db.rs` | Database opening, safe paths, migrations `001`–`012` |
 | `error.rs` | Error type; responses without internals |
 
 **Request flow:** proxy → origin/forwarded-header checks → bearer session → membership and

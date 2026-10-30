@@ -15,6 +15,17 @@ async fn live_snapshots_filter_secrets_reconnect_and_reject_removed_seats() {
     g.activate(&s).await;
     let token = g.token(&s, &g.player, false).await;
     g.token(&s, &g.gm, true).await;
+    let guard = g.token(&s, &g.gm, false).await;
+    for action in [
+        json!({"type":"setVitals","tokenId":guard["id"],"hp":19,"maxHp":30,"ac":15,"showHp":false,"gmNote":"SECRET GUARD NOTE"}),
+        json!({"type":"roll","tokenId":guard["id"],"count":1,"sides":20,"modifier":0,"secret":true,"label":"SECRET GUARD ROLL"}),
+    ] {
+        let (status, body) = g
+            .command(&g.gm, json!({"type":"combat","action":action}))
+            .await;
+        assert_eq!(status, StatusCode::OK, "{body}");
+    }
+
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
     let port = listener.local_addr().unwrap().port();
     let app = g.f.app.clone();
@@ -43,8 +54,9 @@ async fn live_snapshots_filter_secrets_reconnect_and_reject_removed_seats() {
     let frame = socket.next().await.unwrap().unwrap().into_text().unwrap();
     assert!(!frame.contains("SECRET"));
     let state: Value = serde_json::from_str(&frame).unwrap();
-    assert_eq!(state["board"]["tokens"].as_array().unwrap().len(), 1);
+    assert_eq!(state["board"]["tokens"].as_array().unwrap().len(), 2);
     let op = json!({"operationId":Uuid::now_v7().to_string(),"baseRevision":state["revision"],"command":{"type":"move","tokenId":token["id"],"path":[{"x":2,"y":1}]}});
+    let started = std::time::Instant::now();
     socket
         .send(Message::Text(op.to_string().into()))
         .await
@@ -60,12 +72,24 @@ async fn live_snapshots_filter_secrets_reconnect_and_reject_removed_seats() {
             .unwrap();
         assert!(!frame.contains("SECRET"));
         let frame: Value = serde_json::from_str(&frame).unwrap();
-        if frame["type"] == "state" && frame["board"]["tokens"][0]["position"]["x"] == 2.0 {
+        if frame["type"] == "state"
+            && frame["board"]["tokens"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .find(|v| v["id"] == token["id"])
+                .unwrap()["position"]["x"]
+                == 2.0
+        {
             received = true;
             break;
         }
     }
     assert!(received);
+    println!(
+        "Loopback move acknowledgment and filtered state: {} ms",
+        started.elapsed().as_millis()
+    );
     socket.close(None).await.unwrap();
     let (_, next) =
         g.f.call("POST", &path, Value::Null, g.player["token"].as_str())
@@ -92,7 +116,15 @@ async fn live_snapshots_filter_secrets_reconnect_and_reject_removed_seats() {
             .as_str(),
     )
     .unwrap();
-    assert_eq!(frame["board"]["tokens"][0]["position"]["x"], 2.0);
+    assert_eq!(
+        frame["board"]["tokens"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|v| v["id"] == token["id"])
+            .unwrap()["position"]["x"],
+        2.0
+    );
     assert_eq!(
         g.f.call(
             "DELETE",

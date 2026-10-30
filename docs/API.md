@@ -41,7 +41,7 @@ absent, retries the exact operation ID and payload once on the new connection.
 A revision conflict preserves the draft for an explicit new send; it never
 silently rebases the old operation. Acknowledgment does not erase a newer draft.
 
-The current source schema is 010. Published release 0.1.1 predates M42/M43;
+M42/M43 introduced schema 010; current source schema is 012. Published release 0.1.1 predates M42/M43;
 these table endpoints have not been published. This server retains the M25
 account, campaign, sharing and synchronization contracts. The desktop app's
 table audience controls are separate work.
@@ -342,8 +342,48 @@ retries return the previous revision, different payloads for the same ID conflic
 Grid coordinates are square/axial hex cell centres or gridless image coordinates;
 paths have at most 100 adjacent cells (one direct Euclidean segment without a grid).
 Spent distance uses the scene's rules unit. Difficult cells cost double; exceeding
-speed is flagged in the UI, not blocked. In M44, players require their own visible
-active-scene token and the GM's free-movement setting; M45 adds turn enforcement.
+speed is flagged in the UI, not blocked. Players require their own visible active-scene token. Outside combat the GM must
+allow free movement; during combat only the current token may move (GM movement
+remains unrestricted).
 Rulers/converter are local previews. Explicitly shared templates persist; they do
 not apply damage, conditions or sheet changes. Server backups include all table
 state/assets; desktop `.nodex` and campaign AI never read these tables.
+
+
+## M45 explicit combat (schema 012, source only)
+
+Use the same board operation envelope with `command: {type:"combat",action:...}`.
+Generated `CombatAction` defines the full JSON contract. The GM prepares selected
+same-scene tokens (`start`), owners enter initiative or explicitly roll d20 plus
+a manual modifier, the GM resolves ties/reorders, then `next` begins round 1.
+Subsequent `next` advances turns/rounds; `delay`, `add`, `remove` and `end` are
+explicit GM actions. Changing initiative later preserves the current token.
+Players move only their own current token; new turns reset spent distance and
+diagonal parity. Removing a physical token repairs the tracker in the same transaction.
+
+`setVitals` sets absolute table-only HP/max HP/AC, optional public manual `status`,
+HP disclosure and a GM-only note for GM-owned tokens. Only the token's owner may
+change these values, including against the GM: the GM edits its own monsters,
+not a player's character token. GM reassignment cannot take over a player-owned
+token (including after the player leaves). HP is absent for others unless its
+owner explicitly enables disclosure; AC remains owner-only. The GM's private
+notes never reach other seats. The web asks for confirmation for HP changes.
+No automatic roll-to-damage, death, resource consumption or journal/sheet write.
+
+`setCondition`/`removeCondition` allow the GM or token owner to manage SRD condition
+markers with an optional manual round duration. Round boundaries decrement it;
+zero is retained as an explicit expiry reminder, never silently removed. Names
+are stable condition IDs with localized display labels; no rule effects inferred.
+`roll` supports 1–20 dice of 2–1000 sides and an explicit integer modifier. Owners
+roll their tokens; only the GM can mark its rolls secret. Initiative uses the same
+bounded server randomness; there is no implicit advantage or character formula.
+
+`board.combat`, `board.vitals` and `board.combatLog` are filtered together with visible
+active-scene tokens. Hidden turns have no player-visible token ID. Secret rolls,
+private HP deltas, preparation-scene events and GM notes are filtered before HTTP
+or WebSocket serialization. The server keeps the latest 1000 log rows per table;
+snapshots return at most 200 recent authorized candidates, further filtered by
+visible token/scene. This is a bounded activity log, not an immutable audit archive.
+Server backups validate map checksums as well as campaign-image checksums and
+preserve combat; restore still revokes all sessions. Native desktop character
+projection/mirroring and three-desktop end-to-end qualification are separate work.

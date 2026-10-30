@@ -4,6 +4,7 @@ pub mod auth;
 pub mod backup;
 mod campaign_routes;
 pub mod campaigns;
+pub mod combat;
 pub mod config;
 pub mod content;
 mod content_routes;

@@ -1,5 +1,41 @@
 # Chronexus Server status
 
+## 30 October 2026: M45 server/web combat (schema 012, source only)
+
+- M44 committed first as `10774c4`; M45 adds an explicit initiative phase, manual
+  or d20-plus-manual-modifier initiative, GM tie ordering, turn/round advancement,
+  delay, add/remove/end and per-turn movement/parity reset. Player movement is
+  restricted to their own visible active-scene token on its turn.
+- HP/max HP/AC are changed only by the token owner: a GM controls its own monsters,
+  not a player character. Owner-only values/HP deltas and GM notes are structurally
+  filtered. Optional public HP/status is explicit; status is manual. Reassignment
+  cannot take over a player's token. HP actions require web confirmation.
+- Conditions have localized stable IDs, round durations and retained expiry
+  reminders, including canvas markers; removal is explicit. Public/GM-secret rolls,
+  movement and applied effects have a bounded audience-filtered log. Preparation
+  scenes, hidden turns and secret rolls never enter other seats' HTTP/live views.
+  Dice have no automatic HP, sheet, journal, resource or AI effects.
+- Backups include combat and original maps. Verification now checks table-map
+  SHA-256/size as well as campaign images, counts both in its upload report and
+  refuses a corrupted-map copy. Restore continues to revoke every prior session.
+- macOS arm64 / Rust 1.97: `cargo fmt --check`, Clippy `--all-targets -- -D warnings`,
+  full `cargo test --locked` (106 passed), release build, generated-contract drift,
+  strict TypeScript check of generated types and JavaScript syntax passed.
+  Twenty-nine web DOM/board tests passed. Server ten-locale catalog/placeholder
+  checks and desktop `pnpm i18n:check` passed; existing candidate-catalog backlog
+  remains unchanged. Tracker controls tested in English, Italian and Arabic.
+- Real isolated browser/server: schema 011 preview migrated to 012 with its table,
+  map settings and tokens retained; three combat rounds, confirmation and HP/status
+  save checked. Arabic RTL at a narrow viewport had no horizontal document overflow.
+  One real WebSocket loopback observation was under 1 ms at integer-ms resolution;
+  this is not a LAN measurement or the three-native-desktop scenario.
+- Skills: Frontend Design for the established table layout; UI/UX Pro Max for
+  keyboard/single-pointer controls, confirmation and draft/error handling.
+  No source changes in the desktop repository, version bump, remote publication,
+  release, deployment or Windows/Linux qualification. Desktop M42–M45 integration
+  remains pending. Next planned server milestone: M46 fog/vision, then M47 monsters.
+
+
 ## 30 October 2026: M44 server and web board (schema 011, source only)
 
 - Persistent scene/map/grid, owned and hidden tokens, square/axial hex/gridless

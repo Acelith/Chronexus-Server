@@ -26,6 +26,7 @@ use std::collections::BTreeMap;
 use utoipa::{OpenApi, ToSchema};
 
 const INDEX: &str = include_str!("../web/index.html");
+const COMBAT: &str = include_str!("../web/combat.js");
 const BOARD: &str = include_str!("../web/board.js");
 const SCRIPT: &str = include_str!("../web/app.js");
 const TRANSLATIONS: &str = include_str!("../web/i18n.js");
@@ -132,6 +133,10 @@ pub(crate) fn router() -> Router<AppState> {
         .route(
             "/",
             get(|| async { page(INDEX, "text/html; charset=utf-8") }),
+        )
+        .route(
+            "/web/combat.js",
+            get(|| async { page(COMBAT, "text/javascript; charset=utf-8") }),
         )
         .route(
             "/web/board.js",

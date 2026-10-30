@@ -178,6 +178,23 @@ pub fn verify(path: &Path) -> Result<Report, String> {
     }
     drop(rows);
     drop(query);
+    if schema >= 11 {
+        let mut query = conn
+            .prepare("SELECT sha256,length(original),original FROM table_map_assets")
+            .map_err(|_| "The backup has no table map assets.")?;
+        let mut rows = query.query([]).map_err(|_| "Cannot read table maps.")?;
+        while let Some(row) = rows.next().map_err(|_| "Cannot read table maps.")? {
+            let length: i64 = row.get(1).map_err(|_| "Cannot read a table map.")?;
+            if !(1..=crate::vtt::MAX_MAP as i64).contains(&length) {
+                return Err("A table map exceeds the supported size limit.".into());
+            }
+            let sha: String = row.get(0).map_err(|_| "Cannot read a table map.")?;
+            let bytes: Vec<u8> = row.get(2).map_err(|_| "Cannot read a table map.")?;
+            if format!("{:x}", Sha256::digest(&bytes)) != sha {
+                return Err("A table map in the backup does not match its checksum.".into());
+            }
+        }
+    }
     let report = (|| {
         let (bytes, sha256) = file_sha256(&path)?;
         Ok::<_, String>(Report {
@@ -185,7 +202,12 @@ pub fn verify(path: &Path) -> Result<Report, String> {
             accounts: count(&conn, "accounts")?,
             campaigns: count(&conn, "campaigns")?,
             content: count(&conn, "content")?,
-            attachments: count(&conn, "attachments")?,
+            attachments: count(&conn, "attachments")?
+                + if schema >= 11 {
+                    count(&conn, "table_map_assets")?
+                } else {
+                    0
+                },
             bytes,
             sha256,
         })

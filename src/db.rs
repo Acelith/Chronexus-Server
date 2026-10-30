@@ -22,7 +22,7 @@ pub struct Database(
 );
 pub(crate) const SERVER_ID: i64 = 0x43584e53;
 /// The newest schema this binary can run; an older binary refuses a newer archive.
-pub const LATEST_SCHEMA: u32 = 11;
+pub const LATEST_SCHEMA: u32 = 12;
 
 /// Rejects parent traversal and symbolic links in every existing component of `path`,
 /// including the file itself, and returns it as an absolute path.
@@ -242,6 +242,12 @@ impl Database {
             tx.execute_batch(include_str!("../migrations/011_vtt_maps.sql"))
                 .map_err(|_| "Table map migration failed; transaction rolled back.")?;
             tx.pragma_update(None, "user_version", 11)
+                .map_err(|_| "Cannot record schema version.")?;
+        }
+        if version < 12 {
+            tx.execute_batch(include_str!("../migrations/012_table_combat.sql"))
+                .map_err(|_| "Table combat migration failed; transaction rolled back.")?;
+            tx.pragma_update(None, "user_version", 12)
                 .map_err(|_| "Cannot record schema version.")?;
         }
         tx.commit().map_err(|_| "Cannot commit schema migration.")?;

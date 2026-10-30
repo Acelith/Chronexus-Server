@@ -142,3 +142,17 @@ dialog::backdrop { background: rgba(20, 15, 10, 0.55); }
 .token-roster button { min-height: 44px; overflow-wrap: anywhere; }
 .token-roster button[aria-pressed="true"] { outline: 3px solid var(--focus); }
 @media (max-width: 860px) { .board-layout { grid-template-columns: 1fr; } .board-editor { max-height: none; display: grid; grid-template-columns: repeat(auto-fit,minmax(210px,1fr)); gap: 20px; } }
+.combat-tracker { margin-block: 28px; border-block-start: 3px solid var(--brass); }
+.combat-actions { display: flex; flex-wrap: wrap; align-items: end; gap: 10px; }
+.combat-actions select { min-width: 200px; }
+.combat-actions button, .combat-order button { min-height: 44px; }
+.combat-order { padding-inline-start: 28px; }
+.combat-order li { padding: 12px; border-block-end: 1px solid #c8b083; overflow-wrap: anywhere; }
+.combat-order li.current-turn { border-inline-start: 4px solid var(--focus); background: var(--paper); }
+.combat-order button { margin-inline-start: 8px; }
+.combat-tracker form { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 10px 20px; max-width: 740px; padding-block: 16px; }
+.combat-tracker form label { margin-block: 8px 0; }
+.combat-tracker form input,.combat-tracker form select { width: 100%; min-width: 0; }
+.combat-log { max-height: 320px; overflow: auto; padding: 12px 12px 12px 32px; background: var(--paper); }
+.combat-log li { padding-block: 6px; overflow-wrap: anywhere; }
+@media (max-width: 500px) { .combat-tracker form { grid-template-columns: 1fr; } }

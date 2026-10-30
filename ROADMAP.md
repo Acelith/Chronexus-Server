@@ -1,6 +1,6 @@
 # Chronexus Server roadmap
 
-Updated: 26 October 2026. Status: M25.1–M25.4 server APIs implemented in source; campaign synchronization and release pending.
+Updated: 30 October 2026. M25 APIs and releases 0.1.0/0.1.1 are delivered. M42–M45 server/web source is implemented; desktop table integration, production and hardware acceptance remain pending.
 
 Chronexus Server will provide optional, self-hosted campaign synchronization and
 sharing between Chronexus players. Enabling synchronization for a campaign keeps
@@ -47,10 +47,10 @@ Server M25.0–M25.11 IDs remain unchanged. End-to-end campaign acceptance is st
 ## Milestone sequence
 
 The server is application milestone **M25**, so its steps are numbered M25.0–M25.11
-(renamed from S0–S11 on 27 October 2026; older commits still say S). M25.1–M25.7 are
-implemented; M25.8 is the next step. Each milestone needs focused tests and recorded
-evidence; this partial delivery is not a production deployment or a completed
-application M25.
+(renamed from S0–S11 on 27 October 2026; older commits still say S). M25.1–M25.8
+have implementation/release evidence below; production deployment and server AI
+hardware qualification remain open. Each milestone needs focused tests and recorded
+evidence; source delivery alone is not production or desktop table acceptance.
 
 | ID | Deliverable | Dependency | Status |
 | --- | --- | --- | --- |
@@ -67,11 +67,11 @@ application M25.
 | M25.10 | Explicit local or self-hosted server AI | M25.8 | Implemented; CPU run 29/10/2026 did not qualify qwen3:4b; larger models need more memory |
 | M25.11 | Web campaign and server management | M25.8; independent of M25.10 | Implemented 27/10/2026, ten languages 29/10/2026 (tests/web.rs, browser-checked); spectator/operator actions beyond status out of scope |
 
-## Chronexus Table — virtual tabletop (application M42–M47, planned)
+## Chronexus Table — virtual tabletop (application M42–M47)
 
 Requested 27 October 2026; full requirements in the application's
-[docs/VTT.md](https://github.com/Acelith/Chronexus/blob/main/docs/VTT.md). Planning
-only. The server is the authority for tables; GM-only content is filtered here, never in a
+[docs/VTT.md](https://github.com/Acelith/Chronexus/blob/main/docs/VTT.md). M42–M45 server/web source is implemented; M46–M47 and desktop table integration
+remain pending. The server is the authority for tables; GM-only content is filtered here, never in a
 client.
 
 | ID | Server deliverables |
@@ -79,7 +79,7 @@ client.
 | M42 | Server implemented in source (schemas 008–009): operator-issued GM capability, tables/seats, one-use invitation sign-up, removal and explicit per-item GM journal grants; desktop audience controls remain in the app repository |
 | M43 | Server implemented in source (schema 010): one-use WebSocket tickets, bounded live public messages, presence, revisions, idempotent operation IDs and reconnect snapshots; GM/player web table workspace. Maps and secret combat data begin M44–M45 |
 | M44 | Implemented in server/web source (schema 011): scenes, validated original maps/UVTT, square/hex/gridless calibration, owned/hidden tokens, validated movement, rulers/templates and ft/m converter. Desktop integration and cross-platform acceptance pending |
-| M45 | Combat state: initiative, turn order, rounds, conditions with durations, combat log with GM-secret rolls; HP changes only by the token's owner or the GM for monsters |
+| M45 | Implemented in server/web source (schema 012): initiative/tie order, turns/rounds/delay/add/remove, manual owner-only HP/AC, conditions with retained expiry reminders and filtered public/GM-secret logs. Desktop and cross-platform acceptance pending |
 | M46 | Fog geometry, then walls, doors, lights and server-side line of sight per player |
 | M47 | Monster library (SRD 5.1 import with attribution, custom monsters), encounter presets |
 

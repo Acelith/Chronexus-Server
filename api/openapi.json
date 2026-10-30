@@ -358,6 +358,24 @@
         "oneOf": [
           {
             "properties": {
+              "action": {
+                "$ref": "#/components/schemas/CombatAction"
+              },
+              "type": {
+                "enum": [
+                  "combat"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "action",
+              "type"
+            ],
+            "type": "object"
+          },
+          {
+            "properties": {
               "template": {
                 "$ref": "#/components/schemas/AreaTemplate"
               },
@@ -606,6 +624,22 @@
               "null"
             ]
           },
+          "combat": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/CombatState"
+              }
+            ]
+          },
+          "combatLog": {
+            "items": {
+              "$ref": "#/components/schemas/CombatLog"
+            },
+            "type": "array"
+          },
           "geometry": {
             "description": "Imported occluders are GM-only preparation data until M46 vision exists.",
             "items": {
@@ -637,13 +671,21 @@
               "$ref": "#/components/schemas/BoardToken"
             },
             "type": "array"
+          },
+          "vitals": {
+            "items": {
+              "$ref": "#/components/schemas/VitalsView"
+            },
+            "type": "array"
           }
         },
         "required": [
           "revision",
           "scenes",
           "tokens",
-          "templates"
+          "templates",
+          "vitals",
+          "combatLog"
         ],
         "type": "object"
       },
@@ -888,6 +930,440 @@
         "required": [
           "kind",
           "id"
+        ],
+        "type": "object"
+      },
+      "CombatAction": {
+        "oneOf": [
+          {
+            "properties": {
+              "scene_id": {
+                "type": "string"
+              },
+              "token_ids": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "type": {
+                "enum": [
+                  "start"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "scene_id",
+              "token_ids",
+              "type"
+            ],
+            "type": "object"
+          },
+          {
+            "properties": {
+              "type": {
+                "enum": [
+                  "end"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "type"
+            ],
+            "type": "object"
+          },
+          {
+            "properties": {
+              "roll": {
+                "type": "boolean"
+              },
+              "secret": {
+                "type": "boolean"
+              },
+              "token_id": {
+                "type": "string"
+              },
+              "type": {
+                "enum": [
+                  "initiative"
+                ],
+                "type": "string"
+              },
+              "value": {
+                "format": "int32",
+                "type": "integer"
+              }
+            },
+            "required": [
+              "token_id",
+              "value",
+              "roll",
+              "secret",
+              "type"
+            ],
+            "type": "object"
+          },
+          {
+            "properties": {
+              "token_ids": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "type": {
+                "enum": [
+                  "order"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "token_ids",
+              "type"
+            ],
+            "type": "object"
+          },
+          {
+            "properties": {
+              "type": {
+                "enum": [
+                  "next"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "type"
+            ],
+            "type": "object"
+          },
+          {
+            "properties": {
+              "type": {
+                "enum": [
+                  "delay"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "type"
+            ],
+            "type": "object"
+          },
+          {
+            "properties": {
+              "token_id": {
+                "type": "string"
+              },
+              "type": {
+                "enum": [
+                  "add"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "token_id",
+              "type"
+            ],
+            "type": "object"
+          },
+          {
+            "properties": {
+              "token_id": {
+                "type": "string"
+              },
+              "type": {
+                "enum": [
+                  "remove"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "token_id",
+              "type"
+            ],
+            "type": "object"
+          },
+          {
+            "properties": {
+              "ac": {
+                "format": "int32",
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "gm_note": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "hp": {
+                "format": "int32",
+                "type": "integer"
+              },
+              "max_hp": {
+                "format": "int32",
+                "type": "integer"
+              },
+              "show_hp": {
+                "type": "boolean"
+              },
+              "status": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "token_id": {
+                "type": "string"
+              },
+              "type": {
+                "enum": [
+                  "setVitals"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "token_id",
+              "hp",
+              "max_hp",
+              "show_hp",
+              "type"
+            ],
+            "type": "object"
+          },
+          {
+            "properties": {
+              "condition": {
+                "$ref": "#/components/schemas/Condition"
+              },
+              "type": {
+                "enum": [
+                  "setCondition"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "condition",
+              "type"
+            ],
+            "type": "object"
+          },
+          {
+            "properties": {
+              "condition_id": {
+                "type": "string"
+              },
+              "type": {
+                "enum": [
+                  "removeCondition"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "condition_id",
+              "type"
+            ],
+            "type": "object"
+          },
+          {
+            "properties": {
+              "count": {
+                "format": "int32",
+                "minimum": 0,
+                "type": "integer"
+              },
+              "label": {
+                "type": "string"
+              },
+              "modifier": {
+                "format": "int32",
+                "type": "integer"
+              },
+              "secret": {
+                "type": "boolean"
+              },
+              "sides": {
+                "format": "int32",
+                "minimum": 0,
+                "type": "integer"
+              },
+              "token_id": {
+                "type": "string"
+              },
+              "type": {
+                "enum": [
+                  "roll"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "token_id",
+              "count",
+              "sides",
+              "modifier",
+              "secret",
+              "label",
+              "type"
+            ],
+            "type": "object"
+          }
+        ]
+      },
+      "CombatLog": {
+        "properties": {
+          "amount": {
+            "format": "int32",
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "dice": {
+            "items": {
+              "format": "int32",
+              "minimum": 0,
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "id": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "tokenId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "dice",
+          "label",
+          "createdAt"
+        ],
+        "type": "object"
+      },
+      "CombatState": {
+        "additionalProperties": false,
+        "properties": {
+          "conditions": {
+            "items": {
+              "$ref": "#/components/schemas/Condition"
+            },
+            "type": "array"
+          },
+          "current": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "order": {
+            "items": {
+              "$ref": "#/components/schemas/Combatant"
+            },
+            "type": "array"
+          },
+          "round": {
+            "format": "int32",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "running": {
+            "type": "boolean"
+          },
+          "sceneId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "running",
+          "round",
+          "order",
+          "conditions"
+        ],
+        "type": "object"
+      },
+      "Combatant": {
+        "additionalProperties": false,
+        "properties": {
+          "initiative": {
+            "format": "int32",
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "secret": {
+            "type": "boolean"
+          },
+          "tokenId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "tokenId",
+          "secret"
+        ],
+        "type": "object"
+      },
+      "Condition": {
+        "additionalProperties": false,
+        "properties": {
+          "expired": {
+            "type": "boolean"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "rounds": {
+            "format": "int32",
+            "minimum": 0,
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "tokenId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "tokenId",
+          "name",
+          "expired"
         ],
         "type": "object"
       },
@@ -2524,6 +3000,54 @@
           "members"
         ],
         "type": "string"
+      },
+      "VitalsView": {
+        "properties": {
+          "ac": {
+            "format": "int32",
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "gmNote": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "hp": {
+            "format": "int32",
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "maxHp": {
+            "format": "int32",
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "showHp": {
+            "type": "boolean"
+          },
+          "status": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "tokenId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "tokenId",
+          "showHp"
+        ],
+        "type": "object"
       },
       "WriteContent": {
         "additionalProperties": false,

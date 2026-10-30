@@ -243,3 +243,23 @@ Distance values retain their rules unit. Conversion (5 ft = 1.5 m or exact
 hex coordinates are axial. Alternating diagonals retain parity across drags.
 Template centre coverage is exact; optional conservative overlap uses a cell
 bounding radius and is labelled accordingly. Templates never apply game effects.
+
+
+## 30 October 2026 — M45 explicit combat and private vitals
+
+Schema 012 adds combat state, structurally separate token vitals/GM notes and a
+bounded log with public, owner-only and GM-only audiences. The board transaction
+and receipt cover every change: conditions, turn repair, HP, rolls and movement
+logs never commit independently. Both HTTP and live snapshots use the same filtered
+projection. Preparation-scene events are scene-scoped; revealing a monster never
+publishes its earlier secret rolls. Private player HP deltas remain owner-only,
+even when the token is hidden. GMs cannot transfer player-token ownership to read
+or edit HP; removal and new tokens are explicit separate actions.
+
+Preparing a combat starts an initiative phase (round 0), followed by an explicit
+first-turn action. Initiative is either a manual number or an explicitly requested
+d20 plus a manual modifier; stable sorting plus GM reorder handles ties. Round
+boundaries decrement conditions but keep expired markers until explicit removal.
+Only the current token's movement budget/parity resets when its turn begins.
+All effects remain in table tokens; linking/mirroring a desktop sheet is pending
+its explicit desktop integration and never inferred from a UUID or a roll.
