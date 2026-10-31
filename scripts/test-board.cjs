@@ -15,6 +15,23 @@ function fixture(locale='en',role='gm'){
   w.document.body.append(board.root);board.update(state);board.connected(true);return{dom,w,board,state,requests};
 }
 const settle=()=>new Promise(resolve=>setTimeout(resolve,20));
+test('all new editor labels and fog tools are translated in ten locales',()=>{
+  const f=fixture();try{
+    const source=readFileSync(join(root,'board.js'),'utf8');
+    const keys=[...source.matchAll(/\bfield\([^,]+,\s*['"]([^'"]+)['"]/g)].map(m=>m[1]);
+    for(const key of [...keys,...['reveal','cover','brushReveal','brushCover','polygon'].map(v=>'tool.'+v)])assert.equal(f.w.ChronexusI18n.has(key),true,key);
+  }finally{f.dom.window.close();}
+});
+for(const locale of ['en','it','ar'])test(`${locale}: explicit fog actions and immutable monster source drafts`,async()=>{
+  const f=fixture(locale);try{
+    const press=key=>{const button=[...f.w.document.querySelectorAll('button')].find(b=>b.textContent===f.w.ChronexusI18n.t(key));assert.ok(button,key);button.click();};
+    press('revealAll');await settle();assert.equal(f.requests.find(r=>r.body?.command?.type==='saveFog').body.command.fog.strokes[0].reveal,true);
+    const state=structuredClone(f.state);state.revision=7;state.monsters=[{id:'monster',name:'<script>source</script>',hp:8,ac:12,speed:{value:30,unit:'ft'},size:1,statBlock:'Canonical action',portraitId:null,source:{url:'https://example.org/srd',author:'Author',license:'CC0',edition:'Synthetic',original:'Immutable'}}];f.board.update(state);
+    const row=[...f.w.document.querySelectorAll('strong')].find(v=>v.textContent===state.monsters[0].name).parentNode;
+    [...row.querySelectorAll('button')].find(b=>b.textContent===f.w.ChronexusI18n.t('editToken')).click();press('saveMonster');await settle();
+    const saved=f.requests.find(r=>r.body?.command?.type==='saveMonster');assert.equal(saved.body.command.monster.source.original,'Immutable');assert.equal(f.w.document.querySelector('script'),null);
+  }finally{f.dom.window.close();}
+});
 test('both conversion conventions, all canonical values and all ten decimal locales',()=>{
   for(const locale of ['en','it','de','fr','es','pt-BR','ja','ko','zh-Hans','ar']){
     const f=fixture(locale);try{

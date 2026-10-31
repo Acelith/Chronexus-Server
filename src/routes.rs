@@ -34,6 +34,7 @@ pub struct Health {
 pub fn router(state: AppState) -> Router {
     Router::new()
         .merge(crate::campaign_routes::router())
+        .merge(crate::catalog::router())
         .merge(crate::tables::router())
         .merge(crate::vtt::router(state.clone()))
         .merge(crate::uvtt::router(state.clone()))
@@ -367,6 +368,7 @@ struct Contract;
 pub fn contract() -> utoipa::openapi::OpenApi {
     let mut api = Contract::openapi();
     api.merge(crate::campaign_routes::CampaignContract::openapi());
+    api.merge(crate::catalog::CatalogContract::openapi());
     api.merge(crate::tables::TableContract::openapi());
     api.merge(crate::vtt::BoardContract::openapi());
     api.merge(crate::uvtt::ImportContract::openapi());

@@ -69,6 +69,51 @@ struct Light {
 fn point(p: Point) -> bool {
     p.x.is_finite() && p.y.is_finite() && p.x.abs() <= 100000.0 && p.y.abs() <= 100000.0
 }
+pub(crate) fn apply_vision(data: &str, s: &Scene, fog: &mut crate::fog::Fog) -> Result<()> {
+    let g: Geometry = serde_json::from_str(data).map_err(|_| ApiError::invalid())?;
+    g.validate()?;
+    let pixel = |p: Point| {
+        crate::vtt::pixel(
+            p,
+            &Grid {
+                kind: "square".into(),
+                ..s.grid.clone()
+            },
+        )
+    };
+    let mut walls = Vec::new();
+    for line in g.line_of_sight.iter().chain(&g.objects_line_of_sight) {
+        for pair in line.windows(2) {
+            walls.push(crate::fog::Wall {
+                a: pixel(pair[0]),
+                b: pixel(pair[1]),
+                door: false,
+                open: false,
+            });
+        }
+    }
+    for portal in &g.portals {
+        walls.push(crate::fog::Wall {
+            a: pixel(portal.bounds[0]),
+            b: pixel(portal.bounds[1]),
+            door: true,
+            open: !portal.closed,
+        });
+    }
+    fog.walls = walls;
+    fog.lights = g
+        .lights
+        .iter()
+        .map(|l| crate::fog::Light {
+            position: pixel(l.position),
+            range: Distance {
+                value: l.range * s.grid.distance.value,
+                unit: s.grid.distance.unit.clone(),
+            },
+        })
+        .collect();
+    Ok(())
+}
 impl Geometry {
     pub(crate) fn validate(&self) -> Result<()> {
         let points: usize = self

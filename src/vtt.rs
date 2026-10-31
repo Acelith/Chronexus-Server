@@ -62,6 +62,8 @@ pub struct Scene {
 #[derive(Clone, Debug, Deserialize, Serialize, ToSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct BoardToken {
+    #[serde(default)]
+    pub artwork: bool,
     pub id: String,
     pub scene_id: String,
     pub owner_id: String,
@@ -96,15 +98,58 @@ pub struct AreaTemplate {
     deny_unknown_fields
 )]
 pub enum BoardAction {
-    Combat { action: crate::combat::CombatAction },
-    SaveTemplate { template: AreaTemplate },
-    RemoveTemplate { template_id: String },
-    SaveScene { scene: Scene },
-    ImportScene { scene: Scene, geometry: String },
-    ActivateScene { scene_id: String },
-    SaveToken { token: BoardToken },
-    RemoveToken { token_id: String },
-    Move { token_id: String, path: Vec<Point> },
+    ImportVision {
+        scene_id: String,
+    },
+    SaveAsset {
+        asset: crate::library::LibraryAsset,
+    },
+    SaveMonster {
+        monster: crate::library::Monster,
+    },
+    SaveEncounter {
+        encounter: crate::library::Encounter,
+    },
+    RemoveLibrary {
+        id: String,
+        kind: String,
+    },
+    DeployEncounter {
+        scene_id: String,
+        encounter_id: String,
+    },
+    SaveFog {
+        fog: crate::fog::Fog,
+    },
+    Combat {
+        action: crate::combat::CombatAction,
+    },
+    SaveTemplate {
+        template: AreaTemplate,
+    },
+    RemoveTemplate {
+        template_id: String,
+    },
+    SaveScene {
+        scene: Scene,
+    },
+    ImportScene {
+        scene: Scene,
+        geometry: String,
+    },
+    ActivateScene {
+        scene_id: String,
+    },
+    SaveToken {
+        token: BoardToken,
+    },
+    RemoveToken {
+        token_id: String,
+    },
+    Move {
+        token_id: String,
+        path: Vec<Point>,
+    },
 }
 #[derive(Deserialize, Serialize, ToSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -130,6 +175,15 @@ pub struct MapAsset {
 #[derive(Serialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct BoardView {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub assets: Option<Vec<crate::library::LibraryAsset>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub monsters: Option<Vec<crate::library::Monster>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub encounters: Option<Vec<crate::library::Encounter>>,
+    pub fog: Vec<crate::fog::FogView>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub fog_editor: Option<Vec<crate::fog::Fog>>,
     pub revision: i64,
     pub active_scene: Option<String>,
     pub scenes: Vec<Scene>,
@@ -138,7 +192,7 @@ pub struct BoardView {
     pub combat: Option<crate::combat::CombatState>,
     pub vitals: Vec<crate::combat::VitalsView>,
     pub combat_log: Vec<crate::combat::CombatLog>,
-    /// Imported occluders are GM-only preparation data until M46 vision exists.
+    /// Original imported geometry remains GM-only; editable vision has a separate policy.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub geometry: Option<Vec<SceneGeometry>>,
 }
@@ -310,9 +364,23 @@ fn move_token(
     if path.is_empty() || path.len() > 100 {
         return Err(ApiError::invalid());
     }
+    let fog = if role == "gm" {
+        None
+    } else {
+        crate::fog::projection(conn, table, &s, account)?
+    };
     let mut previous = t.position;
     for p in path {
         position(*p, &s)?;
+        if fog
+            .as_ref()
+            .is_some_and(|f| !f.contains(&s, pixel(*p, &s.grid)))
+        {
+            return Err(ApiError(
+                StatusCode::FORBIDDEN,
+                "Token movement not allowed.",
+            ));
+        }
         let dx = (p.x - previous.x).abs();
         let dy = (p.y - previous.y).abs();
         let cells = match s.grid.kind.as_str() {
@@ -366,6 +434,58 @@ pub(crate) fn apply(
     action: &BoardAction,
 ) -> Result<()> {
     match action {
+        BoardAction::ImportVision { scene_id } => {
+            gm(role)?;
+            let s = scene(conn, table, scene_id)?;
+            let geometry: String = conn.query_row(
+                "SELECT geometry FROM table_scenes WHERE table_id=?1 AND id=?2",
+                params![table, scene_id],
+                |r| r.get(0),
+            )?;
+            let mut fog = crate::fog::load(conn, table, scene_id)?.unwrap_or(crate::fog::Fog {
+                scene_id: scene_id.clone(),
+                enabled: false,
+                vision: false,
+                strokes: vec![],
+                walls: vec![],
+                eyes: vec![],
+                lights: vec![],
+            });
+            crate::uvtt::apply_vision(&geometry, &s, &mut fog)?;
+            crate::fog::save(conn, table, &s, &fog)?;
+        }
+        BoardAction::SaveAsset { asset } => {
+            gm(role)?;
+            crate::library::save_asset(conn, table, asset)?;
+        }
+        BoardAction::SaveMonster { monster } => {
+            gm(role)?;
+            crate::library::save_monster(conn, table, monster)?;
+        }
+        BoardAction::SaveEncounter { encounter } => {
+            gm(role)?;
+            crate::library::save_encounter(conn, table, encounter)?;
+        }
+        BoardAction::RemoveLibrary { id, kind } => {
+            gm(role)?;
+            if !["monster", "encounter"].contains(&kind.as_str()) {
+                return Err(ApiError::invalid());
+            }
+            crate::library::remove(conn, table, id, kind)?;
+        }
+        BoardAction::DeployEncounter {
+            scene_id,
+            encounter_id,
+        } => {
+            gm(role)?;
+            scene(conn, table, scene_id)?;
+            crate::library::deploy(conn, table, account, scene_id, encounter_id)?;
+        }
+        BoardAction::SaveFog { fog } => {
+            gm(role)?;
+            let s = scene(conn, table, &fog.scene_id)?;
+            crate::fog::save(conn, table, &s, fog)?;
+        }
         BoardAction::Combat { action } => crate::combat::apply(conn, table, account, role, action)?,
         BoardAction::SaveTemplate { template: t } => {
             identifier(&t.id)?;
@@ -615,7 +735,7 @@ pub(crate) fn view(conn: &Connection, table: &str, account: &str) -> Result<Boar
             ))
         })?
         .collect::<std::result::Result<Vec<_>, _>>()?;
-    let mut scenes = Vec::new();
+    let mut scenes: Vec<Scene> = Vec::new();
     let mut geometry = Vec::new();
     for (id, data, geo) in rows {
         if role == "gm" || active.as_deref() == Some(&id) {
@@ -628,6 +748,25 @@ pub(crate) fn view(conn: &Connection, table: &str, account: &str) -> Result<Boar
             }
         }
     }
+    let mut fog = Vec::new();
+    let mut fog_editor = Vec::new();
+    for s in &scenes {
+        if let Some(value) = crate::fog::projection(conn, table, s, account)? {
+            fog.push(value);
+        }
+        if role == "gm"
+            && let Some(value) = crate::fog::load(conn, table, &s.id)?
+        {
+            fog_editor.push(value);
+        }
+    }
+    let visible = |scene_id: &str, p: Point| -> bool {
+        scenes.iter().find(|s| s.id == scene_id).is_some_and(|s| {
+            fog.iter()
+                .find(|f| f.scene_id == s.id)
+                .is_none_or(|f| f.contains(s, p))
+        })
+    };
     let mut q =
         conn.prepare("SELECT data FROM table_tokens WHERE table_id=?1 ORDER BY id LIMIT 10000")?;
     let rows = q
@@ -636,7 +775,9 @@ pub(crate) fn view(conn: &Connection, table: &str, account: &str) -> Result<Boar
     let mut tokens = Vec::new();
     for data in rows {
         let mut t: BoardToken = serde_json::from_str(&data).map_err(|_| ApiError::internal())?;
-        if role == "gm" || (!t.hidden && active.as_deref() == Some(&t.scene_id)) {
+        let s = scenes.iter().find(|s| s.id == t.scene_id);
+        let revealed = s.is_some_and(|s| visible(&t.scene_id, pixel(t.position, &s.grid)));
+        if role == "gm" || (!t.hidden && active.as_deref() == Some(&t.scene_id) && revealed) {
             if role != "gm" && t.owner_id != account {
                 t.character_id = None;
             }
@@ -651,13 +792,48 @@ pub(crate) fn view(conn: &Connection, table: &str, account: &str) -> Result<Boar
     let mut templates = Vec::new();
     for data in rows {
         let t: AreaTemplate = serde_json::from_str(&data).map_err(|_| ApiError::internal())?;
-        if role == "gm" || (!t.hidden && active.as_deref() == Some(&t.scene_id)) {
+        let revealed = scenes
+            .iter()
+            .find(|s| s.id == t.scene_id)
+            .is_some_and(|s| visible(&t.scene_id, pixel(t.origin, &s.grid)));
+        if role == "gm" || (!t.hidden && active.as_deref() == Some(&t.scene_id) && revealed) {
             templates.push(t);
         }
     }
     let (combat, vitals, combat_log) =
         crate::combat::projection(conn, table, account, &role, &tokens, &active)?;
+    if role != "gm" {
+        for s in &mut scenes {
+            if let Some(mask) = fog.iter().find(|f| f.scene_id == s.id) {
+                let grid = s.grid.clone();
+                let allowed = s
+                    .difficult
+                    .iter()
+                    .copied()
+                    .filter(|p| mask.contains(s, pixel(*p, &grid)))
+                    .collect();
+                s.difficult = allowed;
+            }
+        }
+    }
     Ok(BoardView {
+        assets: if role == "gm" {
+            Some(crate::library::list(conn, table, "asset")?)
+        } else {
+            None
+        },
+        monsters: if role == "gm" {
+            Some(crate::library::list(conn, table, "monster")?)
+        } else {
+            None
+        },
+        encounters: if role == "gm" {
+            Some(crate::library::list(conn, table, "encounter")?)
+        } else {
+            None
+        },
+        fog,
+        fog_editor: if role == "gm" { Some(fog_editor) } else { None },
         revision,
         active_scene: active,
         scenes,
@@ -749,6 +925,16 @@ impl Database {
             if format!("{:x}", Sha256::digest(&bytes)) != checksum {
                 return Err(ApiError::internal());
             }
+            if role != "gm" {
+                let board = view(conn, table, &user.account_id)?;
+                // An asset used as a fogged background can never be fetched as a portrait.
+                let protected: bool = conn.query_row("SELECT EXISTS(SELECT 1 FROM table_scenes s JOIN table_fog f ON f.scene_id=s.id WHERE s.table_id=?1 AND json_extract(s.data,'$.mapId')=?2 AND json_extract(f.data,'$.enabled')=1)",params![table,id],|r|r.get(0))?;
+                if protected {
+                    let s = board.scenes.iter().find(|s|s.map_id.as_deref()==Some(id)).ok_or(ApiError(StatusCode::NOT_FOUND,"Map not found."))?;
+                    let fog = board.fog.iter().find(|f|f.scene_id==s.id).ok_or(ApiError(StatusCode::NOT_FOUND,"Map not found."))?;
+                    return Ok(("image/png".into(), fog.redact(&bytes)?));
+                }
+            }
             Ok((mime, bytes))
         })
     }
@@ -768,6 +954,10 @@ pub(crate) fn router(state: AppState) -> Router<AppState> {
                 .layer(axum::middleware::from_fn_with_state(state, asset_admission)),
         )
         .route("/api/v1/tables/{tableId}/maps/{assetId}", get(download))
+        .route(
+            "/api/v1/tables/{tableId}/maps/{assetId}/thumbnail",
+            get(thumbnail),
+        )
 }
 #[utoipa::path(get,path="/api/v1/tables/{tableId}/board",params(("tableId"=String,Path)),security(("bearer"=[])),responses((status=200,body=BoardView),(status=403,body=ErrorBody)),tag="table-board")]
 async fn board(
@@ -815,6 +1005,35 @@ async fn upload(
         .await
         .map(Json)
 }
+#[utoipa::path(get,path="/api/v1/tables/{tableId}/maps/{assetId}/thumbnail",params(("tableId"=String,Path),("assetId"=String,Path)),security(("bearer"=[])),responses((status=200,body=String,content_type="image/png"),(status=404,body=ErrorBody)),tag="table-board")]
+async fn thumbnail(
+    State(state): State<AppState>,
+    headers: HeaderMap,
+    Path((table, id)): Path<(String, String)>,
+) -> Result<Response> {
+    let bearer = token(&headers)?;
+    let bytes = state
+        .blocking(move |db| {
+            let (_, bytes) = db.get_map(&bearer, &table, &id)?;
+            let image = image::load_from_memory(&bytes)
+                .map_err(|_| ApiError::internal())?
+                .thumbnail(128, 128);
+            let mut out = std::io::Cursor::new(Vec::new());
+            image
+                .write_to(&mut out, image::ImageFormat::Png)
+                .map_err(|_| ApiError::internal())?;
+            Ok(out.into_inner())
+        })
+        .await?;
+    Ok((
+        [
+            (header::CONTENT_TYPE, "image/png"),
+            (header::CACHE_CONTROL, "no-store"),
+        ],
+        bytes,
+    )
+        .into_response())
+}
 #[utoipa::path(get,path="/api/v1/tables/{tableId}/maps/{assetId}",params(("tableId"=String,Path),("assetId"=String,Path)),security(("bearer"=[])),responses((status=200,body=String,content_type="application/octet-stream"),(status=404,body=ErrorBody)),tag="table-board")]
 async fn download(
     State(state): State<AppState>,
@@ -836,7 +1055,7 @@ async fn download(
 }
 #[derive(OpenApi)]
 #[openapi(
-    paths(board, operation, upload, download),
+    paths(board, operation, upload, download, thumbnail),
     components(schemas(
         AreaTemplate,
         Point,

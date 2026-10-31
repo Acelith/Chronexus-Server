@@ -26,8 +26,8 @@ Table work in the current source (not included in historical release 0.1.1):
 | M43 | Authenticated live channel and table workspace implemented |
 | M44 | Scene/map/grid/token movement, rulers/templates and ft/m conversion implemented |
 | M45 | Explicit combat, turn/round controls, conditions, owner-only HP and filtered logs implemented |
-| M46 | Fog and vision planned |
-| M47 | Monster library and encounters planned |
+| M46 | Persistent manual fog, bounded per-player vision, walls/doors/lights and redacted downloads implemented |
+| M47 | Attributed SRD/custom monster copies, encounter presets and image library with computer/Commons import implemented |
 
 Desktop table integration and cross-platform end-to-end acceptance remain pending.
 

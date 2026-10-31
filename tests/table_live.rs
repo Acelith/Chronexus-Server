@@ -125,6 +125,33 @@ async fn live_snapshots_filter_secrets_reconnect_and_reject_removed_seats() {
             .unwrap()["position"]["x"],
         2.0
     );
+    // Fog revocation reaches the same per-recipient channel as HTTP snapshots.
+    let (status, ack) = g
+        .command(
+            &g.gm,
+            json!({"type":"saveFog","fog":{"sceneId":s["id"],"enabled":true,"strokes":[]}}),
+        )
+        .await;
+    assert_eq!(status, StatusCode::OK);
+    let mut covered = false;
+    for _ in 0..6 {
+        let raw = tokio::time::timeout(std::time::Duration::from_secs(2), socket.next())
+            .await
+            .unwrap()
+            .unwrap()
+            .unwrap()
+            .into_text()
+            .unwrap();
+        assert!(!raw.contains("SECRET"));
+        let event: Value = serde_json::from_str(&raw).unwrap();
+        if event["type"] == "state" && event["revision"] == ack["revision"] {
+            assert!(event["board"]["tokens"].as_array().unwrap().is_empty());
+            assert!(event["board"].get("fogEditor").is_none());
+            covered = true;
+            break;
+        }
+    }
+    assert!(covered);
     assert_eq!(
         g.f.call(
             "DELETE",

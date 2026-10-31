@@ -31,6 +31,7 @@ http-body-util = "0.1.5"
 bytes = "1"
 # Already locked through axum; MIT/Apache-2.0, bounded UVTT image decoding.
 base64 = "0.22.1"
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls-native-roots", "json"] }
 
 [dev-dependencies]
 # Existing locked MIT/Apache-2.0 WebSocket stack, used for real-channel privacy tests.

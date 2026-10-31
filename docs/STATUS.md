@@ -1,5 +1,39 @@
 # Chronexus Server status
 
+## 31 October 2026: M46–M47 and table image library (schemas 013–014, source only)
+
+- Persistent manual fog (rectangle, polygon, brush), explicit wall/door/light controls,
+  per-owner vision/darkvision and UVTT geometry conversion. Visibility is a bounded,
+  coarse 32 × 32 mask, not pixel-perfect fog. HTTP/live tokens, terrain, combat and
+  logs are filtered; map downloads are redacted on the server. GM originals survive.
+- GM-only editable SRD 2014/custom monsters, immutable source/edition/licence data,
+  encounter presets and confirmed atomic deployment with independent HP/AC.
+  The existing explicit dice controls apply to spawned monsters; no journal/sheet writes.
+- Image browser: PNG/JPEG/WebP computer import, managed original bytes, local previews,
+  grid artwork preserving aspect ratio/transparency and monster portraits. Explicit
+  Wikimedia Commons search/import with raster/licence/host allowlists and attribution;
+  SRD lookups send only collection/entry IDs. No startup calls, redirects or campaign data.
+  Search results are text until import; rotation/cropping/map stamps are not implemented.
+- Windows x64: portable Rust 1.99.1 + LLVM tools prepared under ignored target/qa-tools;
+  no system installation or PATH changes. Full Rust suite, focused privacy/library/live
+  regressions, Clippy with warnings denied and generated contract checks executed.
+  Full suite: 114 passed. Focused fog/library/live checks also passed. Thirty-three
+  web DOM tests, strict generated TypeScript check and JavaScript syntax passed.
+  Release build passed; focused checks include redacted 128 px thumbnails and backup
+  preservation. Arabic browser review at 390 px showed no horizontal overflow.
+- Browser on a synthetic isolated server: real Commons search, CC0 PNG import and
+  placement, computer PNG import, SRD search/import draft verified. Ten-language
+  editor coverage plus English/Italian/Arabic DOM checks run; desktop i18n gate passed
+  with its pre-existing candidate-catalog backlog unchanged.
+- Skills: Rust Best Practices (ownership, validation and linting), SQLite Expert
+  (atomic migrations and bounded persistence), Impeccable (existing GM sidebar),
+  Systematic Debugging (test/build failures). Mechanical design detector reported
+  only the existing tracker accent border, outside this change.
+- No desktop source changes, release, deployment or publication. Native macOS/Linux,
+  three desktop players, LAN latency, production TLS and offline/firewall acceptance
+  remain unverified. Next: desktop M42–M47 integration and full multi-device acceptance;
+  the server roadmap still has M25 production/model qualification open.
+
 ## 30 October 2026: M45 server/web combat (schema 012, source only)
 
 - M44 committed first as `10774c4`; M45 adds an explicit initiative phase, manual

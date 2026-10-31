@@ -1,6 +1,6 @@
 # Chronexus Server roadmap
 
-Updated: 30 October 2026. M25 APIs and releases 0.1.0/0.1.1 are delivered. M42–M45 server/web source is implemented; desktop table integration, production and hardware acceptance remain pending.
+Updated: 31 October 2026. M25 APIs and releases 0.1.0/0.1.1 are delivered. M42–M47 server/web source is implemented; desktop table integration, production and hardware acceptance remain pending.
 
 Chronexus Server will provide optional, self-hosted campaign synchronization and
 sharing between Chronexus players. Enabling synchronization for a campaign keeps
@@ -70,8 +70,8 @@ evidence; source delivery alone is not production or desktop table acceptance.
 ## Chronexus Table — virtual tabletop (application M42–M47)
 
 Requested 27 October 2026; full requirements in the application's
-[docs/VTT.md](https://github.com/Acelith/Chronexus/blob/main/docs/VTT.md). M42–M45 server/web source is implemented; M46–M47 and desktop table integration
-remain pending. The server is the authority for tables; GM-only content is filtered here, never in a
+[docs/VTT.md](https://github.com/Acelith/Chronexus/blob/main/docs/VTT.md). M42–M47 server/web source is implemented; desktop table integration
+and cross-platform acceptance remain pending. The server is the authority for tables; GM-only content is filtered here, never in a
 client.
 
 | ID | Server deliverables |
@@ -80,8 +80,8 @@ client.
 | M43 | Server implemented in source (schema 010): one-use WebSocket tickets, bounded live public messages, presence, revisions, idempotent operation IDs and reconnect snapshots; GM/player web table workspace. Maps and secret combat data begin M44–M45 |
 | M44 | Implemented in server/web source (schema 011): scenes, validated original maps/UVTT, square/hex/gridless calibration, owned/hidden tokens, validated movement, rulers/templates and ft/m converter. Desktop integration and cross-platform acceptance pending |
 | M45 | Implemented in server/web source (schema 012): initiative/tie order, turns/rounds/delay/add/remove, manual owner-only HP/AC, conditions with retained expiry reminders and filtered public/GM-secret logs. Desktop and cross-platform acceptance pending |
-| M46 | Fog geometry, then walls, doors, lights and server-side line of sight per player |
-| M47 | Monster library (SRD 5.1 import with attribution, custom monsters), encounter presets |
+| M46 | Implemented in server/web source (schema 013): persistent manual fog, bounded per-player vision, walls/doors/lights, explicit UVTT geometry conversion and redacted map downloads; 32 × 32 visibility tiles, desktop/cross-platform acceptance pending |
+| M47 | Implemented in server/web source (schema 014): editable attributed SRD/custom monster copies, private encounter presets and transactional placement; image library with explicit Commons lookup and computer import. Desktop/cross-platform acceptance pending |
 
 Acceptance highlights: hidden tokens, fog contents, GM notes and secret rolls never reach a
 player over HTTP or the live channel (automated matrix); a full combat with one GM on the web

@@ -387,3 +387,26 @@ visible token/scene. This is a bounded activity log, not an immutable audit arch
 Server backups validate map checksums as well as campaign-image checksums and
 preserve combat; restore still revokes all sessions. Native desktop character
 projection/mirroring and three-desktop end-to-end qualification are separate work.
+
+## M46–M47 table tools (schemas 013–014, source only)
+
+The existing board operation envelope now accepts `saveFog`, `importVision`,
+`saveMonster`, `saveEncounter`, `deployEncounter`, `removeLibrary` and `saveAsset`.
+These are GM-only, revisioned, transactional and covered by the existing durable
+operation receipts. `BoardToken.artwork` defaults to false for older tokens.
+
+`BoardView.fog` contains only the viewer's visible tile indices. `fogEditor`,
+`monsters`, `encounters` and `assets` are structurally absent for non-GM seats.
+Fogged map downloads return redacted PNG bytes; the GM retains original bytes.
+
+`POST /tables/{tableId}/catalog` accepts `{kind,query,entry}` (`monsters` or
+`assets`), with an explicit public term or selected entry ID. It returns search
+entries, an editable monster draft, or an imported managed image plus attribution.
+It never saves a monster automatically. Saving the reviewed draft/asset uses a
+normal board operation. An interrupted image import can leave a private,
+deduplicated original within the existing table quota.
+
+See [Table tools](TABLE_TOOLS.md) for visibility resolution, capacities, licences,
+network hosts, deadlines and the user workflows. OpenAPI/TypeScript are generated
+from the implemented types. These APIs do not change journals, character sheets,
+AI retrieval, or the original campaign synchronization contract.

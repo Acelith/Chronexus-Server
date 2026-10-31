@@ -78,3 +78,16 @@ sheet. Condition durations reaching zero remain visible with a review reminder;
 remove them explicitly when appropriate. Spectators have no mutation controls.
 Hidden tokens/turns, GM notes, secret rolls and private HP logs never arrive in
 other players' views. Maps, combat and journals remain separate spaces.
+
+## Fog, monsters and image library (M46–M47)
+
+The current server/web source adds manual fog, per-player restricted vision with
+walls/doors/lights, editable SRD/custom monsters and saved encounter placement.
+The GM sidebar also has an image library: import PNG/JPEG/WebP from the computer,
+search Wikimedia Commons explicitly, retain attribution, and place images on the
+grid or use them for monster portraits. Downloads of fogged backgrounds are
+redacted by the server; players do not receive the full map behind an overlay.
+
+Fog currently uses a coarse 32 × 32 visibility mask. Source delivery does not
+claim desktop integration, production hosting or three-platform acceptance.
+See [Table tools](../TABLE_TOOLS.md) for operation instructions and limits.

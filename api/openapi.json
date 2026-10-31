@@ -257,6 +257,34 @@
         ],
         "type": "object"
       },
+      "Attribution": {
+        "additionalProperties": false,
+        "properties": {
+          "author": {
+            "type": "string"
+          },
+          "edition": {
+            "type": "string"
+          },
+          "license": {
+            "type": "string"
+          },
+          "original": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "url",
+          "author",
+          "license",
+          "edition",
+          "original"
+        ],
+        "type": "object"
+      },
       "BinaryImage": {
         "description": "OpenAPI-only marker for a raw binary image body.",
         "format": "binary",
@@ -356,6 +384,140 @@
       },
       "BoardAction": {
         "oneOf": [
+          {
+            "properties": {
+              "scene_id": {
+                "type": "string"
+              },
+              "type": {
+                "enum": [
+                  "importVision"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "scene_id",
+              "type"
+            ],
+            "type": "object"
+          },
+          {
+            "properties": {
+              "asset": {
+                "$ref": "#/components/schemas/LibraryAsset"
+              },
+              "type": {
+                "enum": [
+                  "saveAsset"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "asset",
+              "type"
+            ],
+            "type": "object"
+          },
+          {
+            "properties": {
+              "monster": {
+                "$ref": "#/components/schemas/Monster"
+              },
+              "type": {
+                "enum": [
+                  "saveMonster"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "monster",
+              "type"
+            ],
+            "type": "object"
+          },
+          {
+            "properties": {
+              "encounter": {
+                "$ref": "#/components/schemas/Encounter"
+              },
+              "type": {
+                "enum": [
+                  "saveEncounter"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "encounter",
+              "type"
+            ],
+            "type": "object"
+          },
+          {
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "kind": {
+                "type": "string"
+              },
+              "type": {
+                "enum": [
+                  "removeLibrary"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "kind",
+              "type"
+            ],
+            "type": "object"
+          },
+          {
+            "properties": {
+              "encounter_id": {
+                "type": "string"
+              },
+              "scene_id": {
+                "type": "string"
+              },
+              "type": {
+                "enum": [
+                  "deployEncounter"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "scene_id",
+              "encounter_id",
+              "type"
+            ],
+            "type": "object"
+          },
+          {
+            "properties": {
+              "fog": {
+                "$ref": "#/components/schemas/Fog"
+              },
+              "type": {
+                "enum": [
+                  "saveFog"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "fog",
+              "type"
+            ],
+            "type": "object"
+          },
           {
             "properties": {
               "action": {
@@ -555,6 +717,9 @@
       "BoardToken": {
         "additionalProperties": false,
         "properties": {
+          "artwork": {
+            "type": "boolean"
+          },
           "characterId": {
             "type": [
               "string",
@@ -624,6 +789,15 @@
               "null"
             ]
           },
+          "assets": {
+            "items": {
+              "$ref": "#/components/schemas/LibraryAsset"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
           "combat": {
             "oneOf": [
               {
@@ -640,10 +814,43 @@
             },
             "type": "array"
           },
+          "encounters": {
+            "items": {
+              "$ref": "#/components/schemas/Encounter"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "fog": {
+            "items": {
+              "$ref": "#/components/schemas/FogView"
+            },
+            "type": "array"
+          },
+          "fogEditor": {
+            "items": {
+              "$ref": "#/components/schemas/Fog"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
           "geometry": {
-            "description": "Imported occluders are GM-only preparation data until M46 vision exists.",
+            "description": "Original imported geometry remains GM-only; editable vision has a separate policy.",
             "items": {
               "$ref": "#/components/schemas/SceneGeometry"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "monsters": {
+            "items": {
+              "$ref": "#/components/schemas/Monster"
             },
             "type": [
               "array",
@@ -680,6 +887,7 @@
           }
         },
         "required": [
+          "fog",
           "revision",
           "scenes",
           "tokens",
@@ -1562,6 +1770,54 @@
           }
         ]
       },
+      "Encounter": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "members": {
+            "items": {
+              "$ref": "#/components/schemas/Spawn"
+            },
+            "type": "array"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "members"
+        ],
+        "type": "object"
+      },
+      "Entry": {
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "source": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/Attribution"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "type": "object"
+      },
       "EraseOwnContent": {
         "additionalProperties": false,
         "properties": {
@@ -1600,6 +1856,104 @@
         },
         "required": [
           "error"
+        ],
+        "type": "object"
+      },
+      "Eye": {
+        "additionalProperties": false,
+        "properties": {
+          "darkvision": {
+            "type": "boolean"
+          },
+          "range": {
+            "$ref": "#/components/schemas/Distance"
+          },
+          "tokenId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "tokenId",
+          "range",
+          "darkvision"
+        ],
+        "type": "object"
+      },
+      "Fog": {
+        "additionalProperties": false,
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "eyes": {
+            "items": {
+              "$ref": "#/components/schemas/Eye"
+            },
+            "type": "array"
+          },
+          "lights": {
+            "items": {
+              "$ref": "#/components/schemas/Light"
+            },
+            "type": "array"
+          },
+          "sceneId": {
+            "type": "string"
+          },
+          "strokes": {
+            "description": "Ordered paint strokes: reveal=true uncovers, false covers again.",
+            "items": {
+              "$ref": "#/components/schemas/Stroke"
+            },
+            "type": "array"
+          },
+          "vision": {
+            "type": "boolean"
+          },
+          "walls": {
+            "items": {
+              "$ref": "#/components/schemas/Wall"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "sceneId",
+          "enabled",
+          "strokes"
+        ],
+        "type": "object"
+      },
+      "FogView": {
+        "properties": {
+          "columns": {
+            "format": "int32",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "rows": {
+            "format": "int32",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "sceneId": {
+            "type": "string"
+          },
+          "visible": {
+            "description": "Indices of visible tiles only; no unrevealed geometry is disclosed.",
+            "items": {
+              "format": "int32",
+              "minimum": 0,
+              "type": "integer"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "sceneId",
+          "columns",
+          "rows",
+          "visible"
         ],
         "type": "object"
       },
@@ -2026,24 +2380,40 @@
         ],
         "type": "object"
       },
-      "Light": {
+      "LibraryAsset": {
+        "additionalProperties": false,
         "properties": {
-          "color": {
+          "id": {
             "type": "string"
           },
-          "intensity": {
-            "format": "double",
-            "type": "number"
+          "name": {
+            "type": "string"
           },
+          "source": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/Attribution"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "type": "object"
+      },
+      "Light": {
+        "additionalProperties": false,
+        "properties": {
           "position": {
             "$ref": "#/components/schemas/Point"
           },
           "range": {
-            "format": "double",
-            "type": "number"
-          },
-          "shadows": {
-            "type": "boolean"
+            "$ref": "#/components/schemas/Distance"
           }
         },
         "required": [
@@ -2243,6 +2613,61 @@
           "version",
           "serverVersion",
           "capabilities"
+        ],
+        "type": "object"
+      },
+      "Monster": {
+        "additionalProperties": false,
+        "properties": {
+          "ac": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "hp": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "portraitId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "size": {
+            "format": "double",
+            "type": "number"
+          },
+          "source": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/Attribution"
+              }
+            ]
+          },
+          "speed": {
+            "$ref": "#/components/schemas/Distance"
+          },
+          "statBlock": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "hp",
+          "ac",
+          "speed",
+          "size",
+          "statBlock"
         ],
         "type": "object"
       },
@@ -2644,6 +3069,72 @@
         ],
         "type": "object"
       },
+      "Reply": {
+        "properties": {
+          "asset": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/MapAsset"
+              }
+            ]
+          },
+          "entries": {
+            "items": {
+              "$ref": "#/components/schemas/Entry"
+            },
+            "type": "array"
+          },
+          "monster": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/Monster"
+              }
+            ]
+          },
+          "source": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/Attribution"
+              }
+            ]
+          }
+        },
+        "required": [
+          "entries"
+        ],
+        "type": "object"
+      },
+      "Request": {
+        "additionalProperties": false,
+        "properties": {
+          "entry": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "kind": {
+            "type": "string"
+          },
+          "query": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "query"
+        ],
+        "type": "object"
+      },
       "Resolution": {
         "properties": {
           "map_origin": {
@@ -2861,6 +3352,45 @@
         ],
         "type": "object"
       },
+      "Spawn": {
+        "additionalProperties": false,
+        "properties": {
+          "hidden": {
+            "type": "boolean"
+          },
+          "monsterId": {
+            "type": "string"
+          },
+          "position": {
+            "$ref": "#/components/schemas/Point"
+          }
+        },
+        "required": [
+          "monsterId",
+          "position",
+          "hidden"
+        ],
+        "type": "object"
+      },
+      "Stroke": {
+        "additionalProperties": false,
+        "properties": {
+          "points": {
+            "items": {
+              "$ref": "#/components/schemas/Point"
+            },
+            "type": "array"
+          },
+          "reveal": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "reveal",
+          "points"
+        ],
+        "type": "object"
+      },
       "Styles": {
         "additionalProperties": false,
         "properties": {
@@ -3046,6 +3576,30 @@
         "required": [
           "tokenId",
           "showHp"
+        ],
+        "type": "object"
+      },
+      "Wall": {
+        "additionalProperties": false,
+        "properties": {
+          "a": {
+            "$ref": "#/components/schemas/Point"
+          },
+          "b": {
+            "$ref": "#/components/schemas/Point"
+          },
+          "door": {
+            "type": "boolean"
+          },
+          "open": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "a",
+          "b",
+          "door",
+          "open"
         ],
         "type": "object"
       },
@@ -5740,6 +6294,51 @@
         ]
       }
     },
+    "/api/v1/tables/{tableId}/catalog": {
+      "post": {
+        "operationId": "catalog",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "tableId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Request"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Reply"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "table-catalog"
+        ]
+      }
+    },
     "/api/v1/tables/{tableId}/invites": {
       "post": {
         "operationId": "invite",
@@ -6059,6 +6658,59 @@
           "200": {
             "content": {
               "application/octet-stream": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": ""
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "table-board"
+        ]
+      }
+    },
+    "/api/v1/tables/{tableId}/maps/{assetId}/thumbnail": {
+      "get": {
+        "operationId": "thumbnail",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "tableId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "assetId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "image/png": {
                 "schema": {
                   "type": "string"
                 }

@@ -64,6 +64,14 @@ export type Attachment = {
   "width": number;
 };
 
+export type Attribution = {
+  "author": string;
+  "edition": string;
+  "license": string;
+  "original": string;
+  "url": string;
+};
+
 export type BinaryImage = Uint8Array;
 
 export type Block = {
@@ -88,6 +96,29 @@ export type BoardAck = {
 };
 
 export type BoardAction = {
+  "scene_id": string;
+  "type": "importVision";
+} | {
+  "asset": LibraryAsset;
+  "type": "saveAsset";
+} | {
+  "monster": Monster;
+  "type": "saveMonster";
+} | {
+  "encounter": Encounter;
+  "type": "saveEncounter";
+} | {
+  "id": string;
+  "kind": string;
+  "type": "removeLibrary";
+} | {
+  "encounter_id": string;
+  "scene_id": string;
+  "type": "deployEncounter";
+} | {
+  "fog": Fog;
+  "type": "saveFog";
+} | {
   "action": CombatAction;
   "type": "combat";
 } | {
@@ -125,6 +156,7 @@ export type BoardOperation = {
 };
 
 export type BoardToken = {
+  "artwork"?: boolean;
   "characterId"?: string | null;
   "diagonals": number;
   "hidden": boolean;
@@ -141,9 +173,14 @@ export type BoardToken = {
 
 export type BoardView = {
   "activeScene"?: string | null;
+  "assets"?: Array<LibraryAsset> | null;
   "combat"?: null | CombatState;
   "combatLog": Array<CombatLog>;
+  "encounters"?: Array<Encounter> | null;
+  "fog": Array<FogView>;
+  "fogEditor"?: Array<Fog> | null;
   "geometry"?: Array<SceneGeometry> | null;
+  "monsters"?: Array<Monster> | null;
   "revision": number;
   "scenes": Array<Scene>;
   "templates": Array<AreaTemplate>;
@@ -348,6 +385,18 @@ export type Document = Geometry & {
   "resolution": Resolution;
 };
 
+export type Encounter = {
+  "id": string;
+  "members": Array<Spawn>;
+  "name": string;
+};
+
+export type Entry = {
+  "id": string;
+  "name": string;
+  "source"?: null | Attribution;
+};
+
 export type EraseOwnContent = {
   "confirm": boolean;
 };
@@ -359,6 +408,29 @@ export type Erased = {
 
 export type ErrorBody = {
   "error": string;
+};
+
+export type Eye = {
+  "darkvision": boolean;
+  "range": Distance;
+  "tokenId": string;
+};
+
+export type Fog = {
+  "enabled": boolean;
+  "eyes"?: Array<Eye>;
+  "lights"?: Array<Light>;
+  "sceneId": string;
+  "strokes": Array<Stroke>;
+  "vision"?: boolean;
+  "walls"?: Array<Wall>;
+};
+
+export type FogView = {
+  "columns": number;
+  "rows": number;
+  "sceneId": string;
+  "visible": Array<number>;
 };
 
 export type Geometry = {
@@ -471,12 +543,15 @@ export type KindUsage = {
   "sharedItems": number;
 };
 
+export type LibraryAsset = {
+  "id": string;
+  "name": string;
+  "source"?: null | Attribution;
+};
+
 export type Light = {
-  "color"?: string;
-  "intensity"?: number;
   "position": Point;
-  "range": number;
-  "shadows"?: boolean;
+  "range": Distance;
 };
 
 export type LinkText = {
@@ -532,6 +607,18 @@ export type Meta = {
   "capabilities": Array<string>;
   "serverVersion": string;
   "version": number;
+};
+
+export type Monster = {
+  "ac": number;
+  "hp": number;
+  "id": string;
+  "name": string;
+  "portraitId"?: string | null;
+  "size": number;
+  "source"?: null | Attribution;
+  "speed": Distance;
+  "statBlock": string;
 };
 
 export type OperatorAccount = {
@@ -634,6 +721,19 @@ export type RemoteCampaign = {
   "role": string;
 };
 
+export type Reply = {
+  "asset"?: null | MapAsset;
+  "entries": Array<Entry>;
+  "monster"?: null | Monster;
+  "source"?: null | Attribution;
+};
+
+export type Request = {
+  "entry"?: string | null;
+  "kind": string;
+  "query": string;
+};
+
 export type Resolution = {
   "map_origin": Point;
   "map_size": Point;
@@ -693,6 +793,17 @@ export type SignedIn = {
   "username": string;
 };
 
+export type Spawn = {
+  "hidden": boolean;
+  "monsterId": string;
+  "position": Point;
+};
+
+export type Stroke = {
+  "points": Array<Point>;
+  "reveal": boolean;
+};
+
 export type Styles = {
   "backgroundColor"?: string | null;
   "bold"?: boolean | null;
@@ -738,6 +849,13 @@ export type VitalsView = {
   "showHp": boolean;
   "status"?: string | null;
   "tokenId": string;
+};
+
+export type Wall = {
+  "a": Point;
+  "b": Point;
+  "door": boolean;
+  "open": boolean;
 };
 
 export type WriteContent = {

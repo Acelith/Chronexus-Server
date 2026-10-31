@@ -263,3 +263,20 @@ boundaries decrement conditions but keep expired markers until explicit removal.
 Only the current token's movement budget/parity resets when its turn begins.
 All effects remain in table tokens; linking/mirroring a desktop sheet is pending
 its explicit desktop integration and never inferred from a UUID or a roll.
+
+## 31 October 2026 — bounded table visibility and public imports
+
+M46 uses a separate persisted fog policy and per-recipient 32 × 32 visibility
+masks. Original images are retained; non-GM downloads are redacted rather than
+trusting a browser overlay. Walls are opaque line segments, doors are explicit,
+lights circular, and visibility is conservative at tile corners. This keeps the
+initial implementation bounded and auditable; it is not pixel-perfect vision.
+
+M47 keeps monster originals/attribution immutable inside editable table-local
+copies and deploys encounters through the existing board transaction and receipts.
+The image browser uses an explicit Commons lookup with a strict raster/licence
+allowlist; SRD imports use the existing public 2014 rules source. A bounded HTTPS
+client (reqwest 0.12, MIT/Apache-2.0; rustls) supplies fixed-host requests without
+redirects, cookies or campaign content. Local image import remains available.
+No browser engine, third-party embedded scripts, journal mutation or startup
+network activity was introduced.

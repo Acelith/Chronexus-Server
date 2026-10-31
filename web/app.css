@@ -136,6 +136,14 @@ dialog::backdrop { background: rgba(20, 15, 10, 0.55); }
 .board-editor form { padding-block: 10px; }
 .board-editor button { margin-block: 6px; width: 100%; min-height: 44px; }
 .board-editor input, .board-editor select { max-width: 100%; }
+.board-editor textarea { width: 100%; min-width: 0; resize: vertical; font: inherit; color: var(--ink); background: var(--paper); border: 1px solid var(--brass); }
+.source-attribution { white-space: pre-wrap; overflow-wrap: anywhere; font: inherit; font-size: .85rem; }
+.asset-gallery { display: grid; gap: 20px; margin-block: 16px; }
+.asset-gallery > div { min-width: 0; padding-block-end: 16px; border-block-end: 1px solid var(--brass); }
+.asset-gallery img { display: block; object-fit: contain; max-width: 100%; background: var(--paper); }
+.asset-gallery strong, .asset-gallery small { display: block; overflow-wrap: anywhere; }
+.asset-results small { display: block; overflow-wrap: anywhere; color: var(--muted); }
+.board-editor details > div, .board-editor form { overflow-wrap: anywhere; min-width: 0; }
 .board-editor summary { cursor: pointer; padding-block: 12px; font-size: 1.1rem; }
 .token-roster { display: flex; flex-wrap: wrap; gap: 12px; margin-block: 16px; }
 .token-roster > div { display: flex; flex-direction: column; max-width: 100%; }
