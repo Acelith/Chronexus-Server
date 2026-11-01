@@ -28,10 +28,10 @@ docker compose exec -T server chronexus-server invite
 `docker compose up -d --build`, and point your proxy at `127.0.0.1:8080` as described under
 *Production deployment*.
 
-Build from the checked-out GitHub source with `--build`. A GHCR image has not yet
-been published and verified; keep the local image default. `CHRONEXUS_IMAGE` remains
-available for an image you explicitly choose and verify. Ports, network and image
-are configured through `.env`.
+Build from the checked-out GitHub source with `--build`, or set `CHRONEXUS_IMAGE` to a
+published image you choose and verify: `ghcr.io/acelith/chronexus-server:0.2.0` (linux/amd64
+and linux/arm64, built by GitHub Actions; `latest` follows the newest version tag and `main`
+the default branch). Ports, network and image are configured through `.env`.
 
 The `invite` command prints one server invitation, usable for 24 hours. Pass it to the intended
 account holder through a private channel; it is a credential, shown only by that command and not
@@ -303,7 +303,9 @@ load testing beyond the built-in limits, and real TLS/DNS.
 ## Development and checks
 
 See [DEVELOPMENT.md](DEVELOPMENT.md), [API.md](API.md) and [STATUS.md](STATUS.md).
-GitHub release 0.1.1 contains Linux binaries. Container deployment currently builds locally; GHCR publication is pending.
+GitHub release 0.2.0 contains Linux amd64/arm64 binaries extracted unchanged from the CI
+image, plus `SHA256SUMS.txt`. That 0.2.0 checksum file has Windows line endings; on Linux check
+it with `tr -d '\r' < SHA256SUMS.txt | sha256sum -c`. Later releases write plain LF.
 
 ## Operator commands for lifecycle and recovery (M25.6)
 

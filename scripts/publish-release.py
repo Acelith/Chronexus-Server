@@ -55,7 +55,7 @@ def main():
         raise ValueError("Release already exists; it is never replaced")
     with tempfile.TemporaryDirectory() as directory:
         sums = Path(directory) / "SHA256SUMS.txt"
-        sums.write_text("".join(f"{sha(asset)}  {asset.name}\n" for asset in assets), encoding="utf-8")
+        sums.write_text("".join(f"{sha(asset)}  {asset.name}\n" for asset in assets), encoding="utf-8", newline="\n")
         assets.append(sums)
         release = client.api(client.prefix + "/releases", "POST", {
             "tag_name": tag, "target_commitish": commit, "name": "Chronexus Server " + version,
