@@ -1,3 +1,19 @@
+# Chronexus Server status — 1 November 2026
+
+- Desktop table support adds schema 015: portrait ownership receipts, original-byte
+  upload for player-owned tokens, and explicit selected character projections.
+  Ownership, active scene and role are checked; no journal or full-sheet upload.
+  HP-only updates preserve AC, disclosure and status unless separately selected.
+- OpenAPI field names now match the existing camelCase wire protocol for board
+  and combat operations; generated TypeScript is checked. Failed image loads can
+  retry after reconnect. No visible strings changed.
+- Windows: 117 Rust tests passed, Clippy all targets with warnings denied,
+  release build, generated contract check and 33 web DOM tests passed.
+  Desktop exercised three real player channels, three combat rounds and filtered
+  fog after reconnect. Native macOS/Linux, production TLS and LAN latency remain
+  pending. Source changes only; no release/deployment.
+- Skills: Rust Best Practices, SQLite Expert, Systematic Debugging.
+
 # Chronexus Server status
 
 ## 31 October 2026: M46–M47 and table image library (schemas 013–014, source only)

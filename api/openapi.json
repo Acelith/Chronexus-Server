@@ -386,7 +386,25 @@
         "oneOf": [
           {
             "properties": {
-              "scene_id": {
+              "projection": {
+                "$ref": "#/components/schemas/PlayerProjection"
+              },
+              "type": {
+                "enum": [
+                  "projectToken"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "projection",
+              "type"
+            ],
+            "type": "object"
+          },
+          {
+            "properties": {
+              "sceneId": {
                 "type": "string"
               },
               "type": {
@@ -397,7 +415,7 @@
               }
             },
             "required": [
-              "scene_id",
+              "sceneId",
               "type"
             ],
             "type": "object"
@@ -480,10 +498,10 @@
           },
           {
             "properties": {
-              "encounter_id": {
+              "encounterId": {
                 "type": "string"
               },
-              "scene_id": {
+              "sceneId": {
                 "type": "string"
               },
               "type": {
@@ -494,8 +512,8 @@
               }
             },
             "required": [
-              "scene_id",
-              "encounter_id",
+              "sceneId",
+              "encounterId",
               "type"
             ],
             "type": "object"
@@ -556,7 +574,7 @@
           },
           {
             "properties": {
-              "template_id": {
+              "templateId": {
                 "type": "string"
               },
               "type": {
@@ -567,7 +585,7 @@
               }
             },
             "required": [
-              "template_id",
+              "templateId",
               "type"
             ],
             "type": "object"
@@ -614,7 +632,7 @@
           },
           {
             "properties": {
-              "scene_id": {
+              "sceneId": {
                 "type": "string"
               },
               "type": {
@@ -625,7 +643,7 @@
               }
             },
             "required": [
-              "scene_id",
+              "sceneId",
               "type"
             ],
             "type": "object"
@@ -650,7 +668,7 @@
           },
           {
             "properties": {
-              "token_id": {
+              "tokenId": {
                 "type": "string"
               },
               "type": {
@@ -661,7 +679,7 @@
               }
             },
             "required": [
-              "token_id",
+              "tokenId",
               "type"
             ],
             "type": "object"
@@ -674,7 +692,7 @@
                 },
                 "type": "array"
               },
-              "token_id": {
+              "tokenId": {
                 "type": "string"
               },
               "type": {
@@ -685,7 +703,7 @@
               }
             },
             "required": [
-              "token_id",
+              "tokenId",
               "path",
               "type"
             ],
@@ -1145,10 +1163,10 @@
         "oneOf": [
           {
             "properties": {
-              "scene_id": {
+              "sceneId": {
                 "type": "string"
               },
-              "token_ids": {
+              "tokenIds": {
                 "items": {
                   "type": "string"
                 },
@@ -1162,8 +1180,8 @@
               }
             },
             "required": [
-              "scene_id",
-              "token_ids",
+              "sceneId",
+              "tokenIds",
               "type"
             ],
             "type": "object"
@@ -1190,7 +1208,7 @@
               "secret": {
                 "type": "boolean"
               },
-              "token_id": {
+              "tokenId": {
                 "type": "string"
               },
               "type": {
@@ -1205,7 +1223,7 @@
               }
             },
             "required": [
-              "token_id",
+              "tokenId",
               "value",
               "roll",
               "secret",
@@ -1215,7 +1233,7 @@
           },
           {
             "properties": {
-              "token_ids": {
+              "tokenIds": {
                 "items": {
                   "type": "string"
                 },
@@ -1229,7 +1247,7 @@
               }
             },
             "required": [
-              "token_ids",
+              "tokenIds",
               "type"
             ],
             "type": "object"
@@ -1264,7 +1282,7 @@
           },
           {
             "properties": {
-              "token_id": {
+              "tokenId": {
                 "type": "string"
               },
               "type": {
@@ -1275,14 +1293,14 @@
               }
             },
             "required": [
-              "token_id",
+              "tokenId",
               "type"
             ],
             "type": "object"
           },
           {
             "properties": {
-              "token_id": {
+              "tokenId": {
                 "type": "string"
               },
               "type": {
@@ -1293,7 +1311,7 @@
               }
             },
             "required": [
-              "token_id",
+              "tokenId",
               "type"
             ],
             "type": "object"
@@ -1307,7 +1325,7 @@
                   "null"
                 ]
               },
-              "gm_note": {
+              "gmNote": {
                 "type": [
                   "string",
                   "null"
@@ -1317,11 +1335,11 @@
                 "format": "int32",
                 "type": "integer"
               },
-              "max_hp": {
+              "maxHp": {
                 "format": "int32",
                 "type": "integer"
               },
-              "show_hp": {
+              "showHp": {
                 "type": "boolean"
               },
               "status": {
@@ -1330,7 +1348,7 @@
                   "null"
                 ]
               },
-              "token_id": {
+              "tokenId": {
                 "type": "string"
               },
               "type": {
@@ -1341,10 +1359,10 @@
               }
             },
             "required": [
-              "token_id",
+              "tokenId",
               "hp",
-              "max_hp",
-              "show_hp",
+              "maxHp",
+              "showHp",
               "type"
             ],
             "type": "object"
@@ -1369,7 +1387,7 @@
           },
           {
             "properties": {
-              "condition_id": {
+              "conditionId": {
                 "type": "string"
               },
               "type": {
@@ -1380,7 +1398,7 @@
               }
             },
             "required": [
-              "condition_id",
+              "conditionId",
               "type"
             ],
             "type": "object"
@@ -1407,7 +1425,7 @@
                 "minimum": 0,
                 "type": "integer"
               },
-              "token_id": {
+              "tokenId": {
                 "type": "string"
               },
               "type": {
@@ -1418,7 +1436,7 @@
               }
             },
             "required": [
-              "token_id",
+              "tokenId",
               "count",
               "sides",
               "modifier",
@@ -2873,6 +2891,54 @@
           }
         ]
       },
+      "PlayerProjection": {
+        "additionalProperties": false,
+        "properties": {
+          "characterId": {
+            "type": "string"
+          },
+          "name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "portraitId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "speed": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/Distance"
+              }
+            ]
+          },
+          "tokenId": {
+            "type": "string"
+          },
+          "vitals": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ProjectionVitals"
+              }
+            ]
+          }
+        },
+        "required": [
+          "tokenId",
+          "characterId"
+        ],
+        "type": "object"
+      },
       "Point": {
         "additionalProperties": false,
         "properties": {
@@ -2909,6 +2975,35 @@
         "required": [
           "position",
           "bounds"
+        ],
+        "type": "object"
+      },
+      "ProjectionVitals": {
+        "additionalProperties": false,
+        "properties": {
+          "ac": {
+            "format": "int32",
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "hp": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "maxHp": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "showHp": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "hp",
+          "maxHp",
+          "showHp"
         ],
         "type": "object"
       },
@@ -6723,6 +6818,51 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "table-board"
+        ]
+      }
+    },
+    "/api/v1/tables/{tableId}/portraits": {
+      "post": {
+        "operationId": "portrait_upload",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "tableId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/octet-stream": {
+              "schema": {
+                "type": "string"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MapAsset"
                 }
               }
             },

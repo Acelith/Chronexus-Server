@@ -98,7 +98,11 @@ pub struct AreaTemplate {
     deny_unknown_fields
 )]
 pub enum BoardAction {
+    ProjectToken {
+        projection: PlayerProjection,
+    },
     ImportVision {
+        #[serde(rename = "sceneId")]
         scene_id: String,
     },
     SaveAsset {
@@ -115,7 +119,9 @@ pub enum BoardAction {
         kind: String,
     },
     DeployEncounter {
+        #[serde(rename = "sceneId")]
         scene_id: String,
+        #[serde(rename = "encounterId")]
         encounter_id: String,
     },
     SaveFog {
@@ -128,6 +134,7 @@ pub enum BoardAction {
         template: AreaTemplate,
     },
     RemoveTemplate {
+        #[serde(rename = "templateId")]
         template_id: String,
     },
     SaveScene {
@@ -138,15 +145,18 @@ pub enum BoardAction {
         geometry: String,
     },
     ActivateScene {
+        #[serde(rename = "sceneId")]
         scene_id: String,
     },
     SaveToken {
         token: BoardToken,
     },
     RemoveToken {
+        #[serde(rename = "tokenId")]
         token_id: String,
     },
     Move {
+        #[serde(rename = "tokenId")]
         token_id: String,
         path: Vec<Point>,
     },
@@ -157,6 +167,24 @@ pub struct BoardOperation {
     pub operation_id: String,
     pub base_revision: i64,
     pub command: BoardAction,
+}
+#[derive(Deserialize, Serialize, ToSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct PlayerProjection {
+    pub token_id: String,
+    pub character_id: String,
+    pub name: Option<String>,
+    pub speed: Option<Distance>,
+    pub portrait_id: Option<String>,
+    pub vitals: Option<ProjectionVitals>,
+}
+#[derive(Deserialize, Serialize, ToSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ProjectionVitals {
+    pub hp: i32,
+    pub max_hp: i32,
+    pub ac: Option<i32>,
+    pub show_hp: bool,
 }
 #[derive(Serialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
@@ -434,6 +462,68 @@ pub(crate) fn apply(
     action: &BoardAction,
 ) -> Result<()> {
     match action {
+        BoardAction::ProjectToken { projection: p } => {
+            let mut token = board_token(conn, table, &p.token_id)?;
+            let active: Option<String> = conn
+                .query_row(
+                    "SELECT active_scene FROM table_boards WHERE table_id=?1",
+                    [table],
+                    |r| r.get(0),
+                )
+                .optional()?
+                .flatten();
+            if role != "player" || token.owner_id != account || token.hidden {
+                return Err(ApiError(
+                    StatusCode::FORBIDDEN,
+                    "Own player token required.",
+                ));
+            }
+            if active.as_deref() != Some(&token.scene_id) {
+                return Err(ApiError(
+                    StatusCode::FORBIDDEN,
+                    "Active player token required.",
+                ));
+            }
+            identifier(&p.character_id)?;
+            token.character_id = Some(p.character_id.clone());
+            if let Some(name) = &p.name {
+                text(name, 1, 100)?;
+                token.name = name.clone();
+            }
+            if let Some(speed) = &p.speed {
+                speed.validate()?;
+                token.speed = speed.clone();
+            }
+            if let Some(id) = &p.portrait_id {
+                let own:bool=conn.query_row("SELECT EXISTS(SELECT 1 FROM table_map_assets a JOIN table_portrait_owners o ON o.asset_id=a.id WHERE a.table_id=?1 AND a.id=?2 AND o.account_id=?3)",params![table,id,account],|r|r.get(0))?;
+                if !own {
+                    return Err(ApiError(StatusCode::FORBIDDEN, "Own portrait required."));
+                }
+                token.portrait_id = Some(id.clone());
+            }
+            save_token(conn, table, &token)?;
+            if let Some(v) = &p.vitals {
+                let old:Option<(Option<i32>,bool,Option<String>)>=conn.query_row("SELECT ac,show_hp,status FROM table_token_vitals WHERE table_id=?1 AND token_id=?2",params![table,token.id],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?))).optional()?;
+                let ac = v.ac.or_else(|| old.as_ref().and_then(|o| o.0));
+                let show_hp = old.as_ref().map_or(v.show_hp, |o| o.1);
+                let status = old.and_then(|o| o.2);
+                crate::combat::apply(
+                    conn,
+                    table,
+                    account,
+                    role,
+                    &crate::combat::CombatAction::SetVitals {
+                        token_id: token.id,
+                        hp: v.hp,
+                        max_hp: v.max_hp,
+                        ac,
+                        show_hp,
+                        gm_note: None,
+                        status,
+                    },
+                )?;
+            }
+        }
         BoardAction::ImportVision { scene_id } => {
             gm(role)?;
             let s = scene(conn, table, scene_id)?;
@@ -885,11 +975,56 @@ fn decode_map(bytes: &[u8], mime: &str) -> Result<(u32, u32)> {
 }
 impl Database {
     pub fn put_map(&self, bearer: &str, table: &str, bytes: &[u8], mime: &str) -> Result<MapAsset> {
+        self.put_table_image(bearer, table, bytes, mime, false)
+    }
+    pub fn put_portrait(
+        &self,
+        bearer: &str,
+        table: &str,
+        bytes: &[u8],
+        mime: &str,
+    ) -> Result<MapAsset> {
+        if bytes.len() > 8 * 1024 * 1024 {
+            return Err(ApiError::invalid());
+        }
+        let (w, h) = decode_map(bytes, mime)?;
+        if w > 8192 || h > 8192 || u64::from(w) * u64::from(h) > 16_000_000 {
+            return Err(ApiError::invalid());
+        }
+        let asset = self.put_table_image(bearer, table, bytes, mime, true)?;
         let user = self.identity(bearer)?;
-        self.with(|c| gm(&access(c, table, &user.account_id)?))?;
+        self.with(|c| {
+            let role = access(c, table, &user.account_id)?;
+            if !["player", "gm"].contains(&role.as_str()) {
+                return Err(ApiError::invalid());
+            }
+            c.execute(
+                "INSERT OR IGNORE INTO table_portrait_owners VALUES(?1,?2)",
+                params![asset.id, user.account_id],
+            )?;
+            Ok(())
+        })?;
+        Ok(asset)
+    }
+    fn put_table_image(
+        &self,
+        bearer: &str,
+        table: &str,
+        bytes: &[u8],
+        mime: &str,
+        portrait: bool,
+    ) -> Result<MapAsset> {
+        let user = self.identity(bearer)?;
+        self.with(|c| {
+            let role = access(c, table, &user.account_id)?;
+            if role != "gm" && !(portrait && role == "player") {
+                gm(&role)?;
+            }
+            Ok(())
+        })?;
         let (width, height) = decode_map(bytes, mime)?;
         let checksum = format!("{:x}", Sha256::digest(bytes));
-        self.with(|conn|{let tx=conn.transaction_with_behavior(TransactionBehavior::Immediate)?;gm(&access(&tx,table,&user.account_id)?)?;
+        self.with(|conn|{let tx=conn.transaction_with_behavior(TransactionBehavior::Immediate)?;let role=access(&tx,table,&user.account_id)?;if role!="gm"&&!(portrait&&role=="player"){gm(&role)?;}
             let existing:Option<String>=tx.query_row("SELECT id FROM table_map_assets WHERE table_id=?1 AND sha256=?2",params![table,checksum],|r|r.get(0)).optional()?;
             let id=if let Some(id)=existing{id}else{
                 let(count,size):(i64,i64)=tx.query_row("SELECT count(*),coalesce(sum(length(original)),0) FROM table_map_assets WHERE table_id=?1",[table],|r|Ok((r.get(0)?,r.get(1)?)))?;
@@ -943,6 +1078,15 @@ impl Database {
 pub(crate) fn router(state: AppState) -> Router<AppState> {
     Router::new()
         .route("/api/v1/tables/{tableId}/board", get(board))
+        .route(
+            "/api/v1/tables/{tableId}/portraits",
+            post(portrait_upload)
+                .layer(DefaultBodyLimit::max(8 * 1024 * 1024))
+                .layer(axum::middleware::from_fn_with_state(
+                    state.clone(),
+                    asset_admission,
+                )),
+        )
         .route(
             "/api/v1/tables/{tableId}/board/operations",
             post(operation).layer(DefaultBodyLimit::max(256 * 1024)),
@@ -1005,6 +1149,24 @@ async fn upload(
         .await
         .map(Json)
 }
+#[utoipa::path(post,path="/api/v1/tables/{tableId}/portraits",params(("tableId"=String,Path)),request_body(content=String,content_type="application/octet-stream"),security(("bearer"=[])),responses((status=200,body=MapAsset)),tag="table-board")]
+async fn portrait_upload(
+    State(state): State<AppState>,
+    headers: HeaderMap,
+    Path(id): Path<String>,
+    bytes: Bytes,
+) -> Result<Json<MapAsset>> {
+    let bearer = token(&headers)?;
+    let mime = headers
+        .get(header::CONTENT_TYPE)
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("")
+        .to_owned();
+    state
+        .blocking(move |db| db.put_portrait(&bearer, &id, &bytes, &mime))
+        .await
+        .map(Json)
+}
 #[utoipa::path(get,path="/api/v1/tables/{tableId}/maps/{assetId}/thumbnail",params(("tableId"=String,Path),("assetId"=String,Path)),security(("bearer"=[])),responses((status=200,body=String,content_type="image/png"),(status=404,body=ErrorBody)),tag="table-board")]
 async fn thumbnail(
     State(state): State<AppState>,
@@ -1055,7 +1217,7 @@ async fn download(
 }
 #[derive(OpenApi)]
 #[openapi(
-    paths(board, operation, upload, download, thumbnail),
+    paths(board, operation, upload, download, thumbnail, portrait_upload),
     components(schemas(
         AreaTemplate,
         Point,
@@ -1081,6 +1243,7 @@ pub(crate) async fn asset_admission(
     next: axum::middleware::Next,
 ) -> Response {
     let bearer = token(request.headers());
+    let portrait = request.uri().path().ends_with("/portraits");
     let table = request
         .uri()
         .path()
@@ -1099,7 +1262,13 @@ pub(crate) async fn asset_admission(
         state
             .blocking(move |db| {
                 let user = db.identity(&bearer)?;
-                db.with(|c| gm(&access(c, &table, &user.account_id)?))
+                db.with(|c| {
+                    let role = access(c, &table, &user.account_id)?;
+                    if role != "gm" && !(portrait && role == "player") {
+                        gm(&role)?;
+                    }
+                    Ok(())
+                })
             })
             .await?;
         Ok::<_, ApiError>(permit)

@@ -96,7 +96,10 @@ export type BoardAck = {
 };
 
 export type BoardAction = {
-  "scene_id": string;
+  "projection": PlayerProjection;
+  "type": "projectToken";
+} | {
+  "sceneId": string;
   "type": "importVision";
 } | {
   "asset": LibraryAsset;
@@ -112,8 +115,8 @@ export type BoardAction = {
   "kind": string;
   "type": "removeLibrary";
 } | {
-  "encounter_id": string;
-  "scene_id": string;
+  "encounterId": string;
+  "sceneId": string;
   "type": "deployEncounter";
 } | {
   "fog": Fog;
@@ -125,7 +128,7 @@ export type BoardAction = {
   "template": AreaTemplate;
   "type": "saveTemplate";
 } | {
-  "template_id": string;
+  "templateId": string;
   "type": "removeTemplate";
 } | {
   "scene": Scene;
@@ -135,17 +138,17 @@ export type BoardAction = {
   "scene": Scene;
   "type": "importScene";
 } | {
-  "scene_id": string;
+  "sceneId": string;
   "type": "activateScene";
 } | {
   "token": BoardToken;
   "type": "saveToken";
 } | {
-  "token_id": string;
+  "tokenId": string;
   "type": "removeToken";
 } | {
   "path": Array<Point>;
-  "token_id": string;
+  "tokenId": string;
   "type": "move";
 };
 
@@ -250,44 +253,44 @@ export type ClueSource = {
 };
 
 export type CombatAction = {
-  "scene_id": string;
-  "token_ids": Array<string>;
+  "sceneId": string;
+  "tokenIds": Array<string>;
   "type": "start";
 } | {
   "type": "end";
 } | {
   "roll": boolean;
   "secret": boolean;
-  "token_id": string;
+  "tokenId": string;
   "type": "initiative";
   "value": number;
 } | {
-  "token_ids": Array<string>;
+  "tokenIds": Array<string>;
   "type": "order";
 } | {
   "type": "next";
 } | {
   "type": "delay";
 } | {
-  "token_id": string;
+  "tokenId": string;
   "type": "add";
 } | {
-  "token_id": string;
+  "tokenId": string;
   "type": "remove";
 } | {
   "ac"?: number | null;
-  "gm_note"?: string | null;
+  "gmNote"?: string | null;
   "hp": number;
-  "max_hp": number;
-  "show_hp": boolean;
+  "maxHp": number;
+  "showHp": boolean;
   "status"?: string | null;
-  "token_id": string;
+  "tokenId": string;
   "type": "setVitals";
 } | {
   "condition": Condition;
   "type": "setCondition";
 } | {
-  "condition_id": string;
+  "conditionId": string;
   "type": "removeCondition";
 } | {
   "count": number;
@@ -295,7 +298,7 @@ export type CombatAction = {
   "modifier": number;
   "secret": boolean;
   "sides": number;
-  "token_id": string;
+  "tokenId": string;
   "type": "roll";
 };
 
@@ -667,6 +670,15 @@ export type Party = {
 
 export type Payload = Page | Session | Relationship | Party | SheetSection | Image | Clue;
 
+export type PlayerProjection = {
+  "characterId": string;
+  "name"?: string | null;
+  "portraitId"?: string | null;
+  "speed"?: null | Distance;
+  "tokenId": string;
+  "vitals"?: null | ProjectionVitals;
+};
+
 export type Point = {
   "x": number;
   "y": number;
@@ -676,6 +688,13 @@ export type Portal = {
   "bounds": Array<Point>;
   "closed"?: boolean;
   "position": Point;
+};
+
+export type ProjectionVitals = {
+  "ac"?: number | null;
+  "hp": number;
+  "maxHp": number;
+  "showHp": boolean;
 };
 
 export type Question = {

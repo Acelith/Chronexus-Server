@@ -126,7 +126,7 @@
       try{const blob=await api('GET',endpoint+'/maps/'+encodeURIComponent(assetId),undefined,true);if(!current())return;
         if(generation!==imageGeneration)return;
         const url=URL.createObjectURL(blob);urls.add(url);const image=new Image();image.onload=()=>{if(current()&&generation===imageGeneration){images.set(assetId,image);draw();}};image.src=url;
-      }catch{if(current())status.textContent=t('boardFailed');}
+      }catch{if(current()&&generation===imageGeneration){images.delete(assetId);status.textContent=t('boardFailed');}}
     }
     function draw(){
       if(!current())return;convertDisplay();const s=scene();

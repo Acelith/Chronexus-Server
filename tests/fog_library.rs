@@ -317,7 +317,7 @@ async fn encounter_deployment_is_atomic_idempotent_and_keeps_monster_originals_p
     chronexus_server::backup::create(&t.f.state.config.database, &backup).unwrap();
     assert_eq!(
         chronexus_server::backup::verify(&backup).unwrap().schema,
-        14
+        chronexus_server::db::LATEST_SCHEMA
     );
     let conn =
         rusqlite::Connection::open_with_flags(backup, rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY)

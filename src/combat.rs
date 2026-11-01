@@ -45,33 +45,43 @@ pub struct CombatState {
 )]
 pub enum CombatAction {
     Start {
+        #[serde(rename = "sceneId")]
         scene_id: String,
+        #[serde(rename = "tokenIds")]
         token_ids: Vec<String>,
     },
     End,
     Initiative {
+        #[serde(rename = "tokenId")]
         token_id: String,
         value: i32,
         roll: bool,
         secret: bool,
     },
     Order {
+        #[serde(rename = "tokenIds")]
         token_ids: Vec<String>,
     },
     Next,
     Delay,
     Add {
+        #[serde(rename = "tokenId")]
         token_id: String,
     },
     Remove {
+        #[serde(rename = "tokenId")]
         token_id: String,
     },
     SetVitals {
+        #[serde(rename = "tokenId")]
         token_id: String,
         hp: i32,
+        #[serde(rename = "maxHp")]
         max_hp: i32,
         ac: Option<i32>,
+        #[serde(rename = "showHp")]
         show_hp: bool,
+        #[serde(rename = "gmNote")]
         gm_note: Option<String>,
         status: Option<String>,
     },
@@ -79,9 +89,11 @@ pub enum CombatAction {
         condition: Condition,
     },
     RemoveCondition {
+        #[serde(rename = "conditionId")]
         condition_id: String,
     },
     Roll {
+        #[serde(rename = "tokenId")]
         token_id: String,
         count: u32,
         sides: u32,

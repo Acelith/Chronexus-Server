@@ -410,3 +410,14 @@ See [Table tools](TABLE_TOOLS.md) for visibility resolution, capacities, licence
 network hosts, deadlines and the user workflows. OpenAPI/TypeScript are generated
 from the implemented types. These APIs do not change journals, character sheets,
 AI retrieval, or the original campaign synchronization contract.
+
+## Explicit desktop character projection (schema 015)
+
+`POST /tables/{tableId}/portraits` accepts validated original PNG/JPEG/WebP bytes
+(up to 8 MiB, 8192 per side, 16 million pixels). Player and GM seats may upload;
+spectators cannot. The deduplicated image is registered to the uploading account.
+`projectToken` accepts only the player's owned token in the active scene, a local
+character UUID and explicitly selected name, speed, portrait and HP/AC. It rejects
+extra fields. A portrait reference requires that account's original-byte receipt.
+No sheet notes, resources or journal data are accepted. Existing AC/disclosure/status
+survive an HP-only projection; changes never write a desktop sheet.
