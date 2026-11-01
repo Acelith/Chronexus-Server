@@ -181,7 +181,7 @@ fn own(conn: &Connection, table: &str, account: &str, id: &str) -> Result<BoardT
     access(conn, table, &t.owner_id)?;
     Ok(t)
 }
-fn dice(count: u32, sides: u32) -> Result<Vec<u32>> {
+pub(crate) fn dice(count: u32, sides: u32) -> Result<Vec<u32>> {
     if !(1..=20).contains(&count) || !(2..=1000).contains(&sides) {
         return Err(ApiError::invalid());
     }

@@ -1,3 +1,27 @@
+# Chronexus Server status — 1 November 2026: table workspace, chat dice and pings (schema 016)
+
+- GM web table is a full-width workspace: vertical tool palette (pan, move, ping,
+  ruler, GM grid/fog tools, templates), a map viewport with wheel/button zoom,
+  middle/right/Space-drag panning and fit, full screen, and a tabbed sidebar (Chat,
+  Tokens, Combat, Measure, and for the GM Scenes, Fog, Library, plus Players). The
+  same runtime is bundled by the desktop; existing editors keep their controls.
+- Table chat commands are rolled and scoped on the server: `/r` and `/roll` (sums,
+  constants, `khN`/`klN`, at most 100 dice and 12 terms), `/gr` secret rolls and
+  `/w gm` whispers stored with the GM audience and visible only to the GM and the
+  author. Migration 016 adds a nullable JSON roll column; old events are unchanged.
+  The client never supplies the audience or results; retries stay idempotent.
+- Pings are transient frames on the live channel: active scene only, inside its
+  bounds, no spectators, at most one per connection every 750 ms, never stored.
+- Fixed the table join label, which showed the campaign invitation text with
+  unfilled `{role}`/`{date}` placeholders (duplicate `inviteCode` key).
+- Windows: cargo fmt, Clippy all targets with warnings denied, full Rust suite and
+  generated contract check passed; 33 web DOM tests passed. Browser check on a
+  synthetic local server: rolls, advantage, whisper and ping round trip. Desktop
+  three-player live test now also covers pings and secret-roll filtering.
+- Skills: Rust Best Practices (bounded parser, typed errors), Impeccable (existing
+  leather/parchment visual system; SVG stroke icons instead of glyphs; detector
+  reports only the pre-existing tracker accent border).
+
 # Chronexus Server status — 1 November 2026
 
 - Desktop table support adds schema 015: portrait ownership receipts, original-byte

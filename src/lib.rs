@@ -17,6 +17,7 @@ pub mod library;
 pub mod lifecycle;
 pub mod payload;
 pub mod routes;
+mod table_chat;
 mod table_grants;
 mod table_live;
 mod tables;

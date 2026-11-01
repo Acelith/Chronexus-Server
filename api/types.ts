@@ -226,6 +226,13 @@ export type Changes = {
   "more": boolean;
 };
 
+export type ChatRoll = {
+  "expression": string;
+  "label": string;
+  "terms": Array<RollTerm>;
+  "total": number;
+};
+
 export type Citation = {
   "authorName": string;
   "itemId": string;
@@ -570,6 +577,7 @@ export type LiveEvent = {
   "createdAt": string;
   "operationId": string;
   "revision": number;
+  "roll"?: null | ChatRoll;
   "text": string;
 };
 
@@ -765,6 +773,17 @@ export type Revision = {
 
 export type RevisionQuery = {
   "baseRevision": number;
+};
+
+export type RollTerm = {
+  "count"?: number | null;
+  "keep"?: string | null;
+  "keepCount"?: number | null;
+  "kept": Array<boolean>;
+  "results": Array<number>;
+  "sides"?: number | null;
+  "sign": number;
+  "value": number;
 };
 
 export type SaveConflict = Current | ErrorBody;

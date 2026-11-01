@@ -91,3 +91,20 @@ redacted by the server; players do not receive the full map behind an overlay.
 Fog currently uses a coarse 32 × 32 visibility mask. Source delivery does not
 claim desktop integration, production hosting or three-platform acceptance.
 See [Table tools](../TABLE_TOOLS.md) for operation instructions and limits.
+
+### Table workspace layout
+
+A table opens as one workspace: tools on the left, the map in the middle and a
+tabbed sidebar on the right (Chat, Tokens, Combat, Measure; the GM also has
+Scenes, Fog, Library and Players). Zoom with the mouse wheel or the + and − buttons,
+pan with the middle or right button, Space+drag or the pan tool, and use **Fit map
+to view** or full screen. On narrow windows the sidebar moves below the map.
+
+### Chat, dice and pings
+
+The server rolls every die. Type `/r 1d20+5 Attack`, `/r 2d20kh1` (advantage),
+`/r 2d20kl1` (disadvantage) or use the quick-roll buttons. `/gr 1d6` and the
+**Only the GM sees my rolls** option send a secret roll; `/w gm text` whispers to
+the GM. Secret lines are visible only to their author and the GM. A roll changes no
+token, sheet or journal. Pick the ping tool, Alt+click, or press P on the map to
+show everyone a point on the active scene for a few seconds; pings are not saved.

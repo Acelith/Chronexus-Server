@@ -89,6 +89,7 @@ async function api(method, path, body, binary = false) {
 }
 function show(...nodes) {
   main.classList.toggle("sign-in", !me);
+  main.classList.remove("table-mode");
   main.replaceChildren(...nodes.filter(node => node !== null && node !== undefined && node !== false));
   document.title = `${main.querySelector("h1")?.textContent ?? "Chronexus Server"} | Chronexus Server`;
   main.focus();
@@ -212,7 +213,7 @@ async function tablesView() {
         me.gmEnabled ? el("form", { class: "card", onsubmit: (event) => { event.preventDefault(); act(create, status, async () => { const table = await api("POST", "/api/v1/tables", { name: name.value.trim() }); location.hash = `#/table/${table.id}`; return t("done"); }); } },
           el("h2", { text: t("createTable") }), el("label", { for: "table-name", text: t("tableName") }), name, create) : null,
         el("form", { class: "card", onsubmit: (event) => { event.preventDefault(); act(join, status, async () => { const table = await api("POST", "/api/v1/tables/join", { inviteCode: code.value.trim() }); location.hash = `#/table/${table.id}`; return t("done"); }); } },
-          el("h2", { text: t("joinTable") }), el("label", { for: "table-code", text: t("inviteCode") }), code, join)), status);
+          el("h2", { text: t("joinTable") }), el("label", { for: "table-code", text: t("tableCode") }), code, join)), status);
   } catch (error) { if (version === viewVersion) show(errorBox(error)); }
 }
 
@@ -243,10 +244,45 @@ async function tableView(id) {
     const liveStatus = el("span", { class: "live-status", role: "status", text: t("liveConnecting") });
     const online = el("span", { class: "muted" });
     const log = el("ol", { class: "live-log", "aria-live": "polite" });
-    const message = el("input", { id: "live-message", maxlength: "500", required: true, autocomplete: "off" });
+    const chatEmpty = el("p", { class: "muted", text: t("chatEmpty") });
+    const message = el("input", { id: "live-message", maxlength: "500", required: true, autocomplete: "off", "aria-describedby": "live-help" });
     const sendButton = el("button", { type: "submit", class: "primary", text: t("liveSend"), disabled: true });
+    const toGm = el("input", { type: "checkbox", id: "live-to-gm" });
+    // Quick rolls send ordinary chat commands; the server rolls and selects the audience.
+    const quick = [["d4", "1d4"], ["d6", "1d6"], ["d8", "1d8"], ["d10", "1d10"], ["d12", "1d12"], ["d20", "1d20"], ["d100", "1d100"], [t("rollAdvantage"), "2d20kh1"], [t("rollDisadvantage"), "2d20kl1"]]
+      .map(([label, dice]) => el("button", { type: "button", class: "die-button", text: label, disabled: true, onclick: () => sendText(`${toGm.checked ? "/gr" : "/r"} ${dice}`) }));
+    const setSendDisabled = (disabled) => { sendButton.disabled = disabled; for (const b of quick) b.disabled = disabled; };
     let socket = null;
-    const board = activeBoard = window.ChronexusBoard?.create({ el, t, api, tableId: id, role: table.role, account: me.accountId, seats, confirm: confirmAction, active: () => version === viewVersion });
+    const board = activeBoard = window.ChronexusBoard?.create({ el, t, api, tableId: id, role: table.role, account: me.accountId, seats, confirm: confirmAction, active: () => version === viewVersion,
+      ping: (point) => { if (socket?.readyState === WebSocket.OPEN) socket.send(JSON.stringify({ type: "ping", ...point })); } });
+    const number = (value) => new Intl.NumberFormat(window.ChronexusI18n.locale).format(value);
+    const renderEvent = (item) => {
+      const whisper = item.audience === "gm";
+      const line = el("li", { class: `chat-line${whisper ? " chat-whisper" : ""}${item.roll ? " chat-roll" : ""}` }, el("strong", { text: item.authorName }));
+      if (item.roll) {
+        const roll = item.roll;
+        const dice = roll.terms.flatMap((term, index) => [
+          index || term.sign < 0 ? el("span", { class: "roll-op", "aria-hidden": "true", text: term.sign < 0 ? "−" : "+" }) : null,
+          ...(term.sides ? term.results.map((value, n) => el("span", {
+            class: `die${term.kept[n] ? "" : " die-dropped"}${value === term.sides ? " die-max" : ""}${value === 1 ? " die-min" : ""}`,
+            title: term.kept[n] ? `d${term.sides}` : `d${term.sides} · ${t("discardedDie")}`, text: number(value),
+          })) : [el("span", { class: "roll-mod", text: number(term.value) })]),
+        ]);
+        line.append(document.createTextNode(` ${t("rollResult", { expression: roll.expression })}`));
+        if (roll.label) line.append(el("span", { class: "roll-label", text: ` · ${roll.label}` }));
+        line.append(el("div", { class: "roll-dice" }, ...dice),
+          el("div", { class: "roll-total", text: t("rollTotal", { total: number(roll.total) }) }));
+      } else line.append(document.createTextNode(`: ${whisper ? item.text.replace(/^\s*\/w\s+gm\s+/i, "") : item.text}`));
+      if (whisper) line.append(el("span", { class: "chat-tag", text: t("toGm") }));
+      return line;
+    };
+    const append = (item) => {
+      chatEmpty.hidden = true;
+      const stick = log.scrollHeight - log.scrollTop - log.clientHeight < 40;
+      log.append(renderEvent(item));
+      while (log.children.length > 300) log.firstElementChild.remove();
+      if (stick) log.scrollTop = log.scrollHeight;
+    };
     let revision = table.revision;
     let lastEvent = 0;
     let pending = null;
@@ -279,7 +315,7 @@ async function tableView(id) {
           if (message.value.trim() === pending.text) message.value = "";
           pending = null;
         };
-        socket.onopen = () => { if (current()) sendButton.disabled = true; };
+        socket.onopen = () => { if (current()) setSendDisabled(true); };
         socket.onmessage = (event) => {
           if (!current()) return;
           let data;
@@ -288,28 +324,29 @@ async function tableView(id) {
             revision = data.revision;
             if (data.board) board?.update(data.board);
             board?.connected(true);
-            if (data.reset) { seen.clear(); log.replaceChildren(); lastEvent = 0; }
+            if (data.reset) { seen.clear(); log.replaceChildren(); chatEmpty.hidden = false; lastEvent = 0; }
             online.textContent = t("liveOnline", { count: data.online });
             for (const item of data.events ?? []) {
               if (seen.has(item.operationId)) continue;
               seen.add(item.operationId);
               if (pending?.operationId === item.operationId) acknowledge();
               lastEvent = Math.max(lastEvent, item.revision);
-              log.append(el("li", {}, el("strong", { text: item.authorName }), document.createTextNode(`: ${item.text}`)));
+              append(item);
             }
             // Reconcile committed events first, then retry the exact unacknowledged
             // operation once per connection. The server checks its ID and revision.
             if (!ready && pending) connection.send(JSON.stringify(pending));
             ready = true;
             liveStatus.textContent = t("liveConnected");
-            sendButton.disabled = table.role === "spectator" || !!pending;
+            setSendDisabled(table.role === "spectator" || !!pending);
           } else if (data.type === "presence") online.textContent = t("liveOnline", { count: data.online });
-          else if (data.type === "ack" && pending) { revision = Math.max(revision, data.revision); acknowledge(); sendButton.disabled = table.role === "spectator" || !ready; }
-          else if (data.type === "error") { pending = null; sendButton.disabled = table.role === "spectator" || !ready; status.replaceChildren(el("p", { class: "error", role: "alert", text: t("liveSendFailed") })); }
+          else if (data.type === "ping") board?.showPing(data);
+          else if (data.type === "ack" && pending) { revision = Math.max(revision, data.revision); acknowledge(); setSendDisabled(table.role === "spectator" || !ready); }
+          else if (data.type === "error") { pending = null; setSendDisabled(table.role === "spectator" || !ready); status.replaceChildren(el("p", { class: "error", role: "alert", text: t("liveSendFailed") })); }
         };
         socket.onclose = () => {
           if (!current()) return;
-          sendButton.disabled = true;
+          setSendDisabled(true);
           board?.connected(false);
           liveStatus.textContent = t("liveReconnecting");
           setTimeout(connect, 2000);
@@ -317,7 +354,7 @@ async function tableView(id) {
       } catch (error) {
         if (version !== viewVersion) return;
         if (error.status === 403) {
-          board?.dispose(); log.replaceChildren();
+          board?.dispose(); log.replaceChildren(); activeTableSocket = null;
           show(el("p",{role:"alert",text:t("tableAccessEnded")}),el("a",{href:"#/tables",text:t("nav.tables")}));
           return;
         }
@@ -336,10 +373,24 @@ async function tableView(id) {
       } catch (error) { status.replaceChildren(errorBox(error)); }
       finally { button.disabled = false; }
     } });
-    show(el("a", { href: "#/tables", text: t("nav.tables") }), el("h1", { text: table.name }),
-      el("p", { class: "muted", text: roleName(table.role) }),
-      table.role === "gm" ? el("div", { class: "actions" }, invite("player", t("invitePlayer")), invite("spectator", t("inviteSpectator"))) : null,
-      status, board?.root,
+    const sendText = (text) => {
+      if (pending || socket?.readyState !== WebSocket.OPEN || table.role === "spectator" || !text.trim()) return;
+      pending = { operationId: operationId(), baseRevision: revision, text: text.trim(), audience: "public" };
+      socket.send(JSON.stringify(pending));
+      setSendDisabled(true);
+    };
+    const chat = el("section", { class: "live-panel", "aria-label": t("liveTitle") },
+      el("div", { class: "live-heading" }, el("h2", { text: t("liveTitle") }), liveStatus, online),
+      chatEmpty, log,
+      table.role === "spectator" ? null : el("div", { class: "quick-rolls", role: "group", "aria-label": t("quickRolls") }, ...quick),
+      table.role === "spectator" ? null : el("label", { class: "check" }, toGm, t("rollToGm")),
+      table.role === "spectator" ? null : el("form", { class: "live-compose", onsubmit: event => {
+        event.preventDefault();
+        if (sendButton.disabled) return;
+        sendText(message.value);
+      } }, el("label", { for: "live-message", text: t("liveMessage") }), message, sendButton),
+      table.role === "spectator" ? null : el("p", { id: "live-help", class: "muted chat-help", text: t("chatHelp") }));
+    const players = [
       el("section", { class: "table-roster" }, el("h2", { text: t("tableSeats") }),
         el("ul", { class: "plain" }, seats.map(seat => el("li", { class: "campaign-row" },
           el("span", { text: seat.displayName }), el("span", { class: "role", text: roleName(seat.role) }),
@@ -359,17 +410,17 @@ async function tableView(id) {
       table.role === "gm" ? el("section", { class: "gm-shared" }, el("h2", { text: t("gmShared") }),
         grants.length ? el("ul", { class: "plain" }, grants.map(item => el("li", {},
           el("strong", { text: item.payload?.title || kindName(item.kind) }),
-          el("span", { class: "muted", text: ` · ${item.authorName}` })))) : el("p", { class: "muted", text: t("gmSharedEmpty") })) : null,
-      el("section", { class: "live-panel", "aria-label": t("liveTitle") },
-        el("div", { class: "live-heading" }, el("h2", { text: t("liveTitle") }), liveStatus, online),
-        log,
-        table.role === "spectator" ? null : el("form", { class: "live-compose", onsubmit: event => {
-          event.preventDefault();
-          if (sendButton.disabled || pending || socket?.readyState !== WebSocket.OPEN || !message.value.trim()) return;
-          pending = { operationId: operationId(), baseRevision: revision, text: message.value.trim(), audience: "public" };
-          socket.send(JSON.stringify(pending));
-          sendButton.disabled = true;
-        } }, el("label", { for: "live-message", text: t("liveMessage") }), message, sendButton)));
+          el("span", { class: "muted", text: ` · ${item.authorName}` })))) : el("p", { class: "muted", text: t("gmSharedEmpty") })) : null
+    ];
+    if (board) {
+      board.panel("chat", true).append(chat);
+      board.panel("players").append(...players.filter(Boolean));
+    }
+    show(el("div", { class: "vtt-header" }, el("a", { href: "#/tables", text: t("nav.tables") }), el("h1", { text: table.name }),
+        el("span", { class: "role", text: roleName(table.role) }),
+        table.role === "gm" ? el("div", { class: "actions" }, invite("player", t("invitePlayer")), invite("spectator", t("inviteSpectator"))) : null),
+      status, ...(board ? [board.root] : [chat, ...players]));
+    main.classList.add("table-mode");
     connect();
   } catch (error) { if (version === viewVersion) show(errorBox(error)); }
 }

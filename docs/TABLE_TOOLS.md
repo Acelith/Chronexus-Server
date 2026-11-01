@@ -1,5 +1,9 @@
 # Fog, monsters and images (M46–M47)
 
+The GM tools below now live in the table sidebar tabs **Fog** and **Library**;
+the scene editor is in **Scenes**. Chat dice and pings are described in the
+[web interface](wiki/Web-Interface.md#chat-dice-and-pings) page.
+
 These tools are implemented in the server/web source, not in published 0.1.1 or
 the desktop client. Tables and journals remain separate. Server backups include
 the table library, fog settings and original images; player `.nodex` backups do not.

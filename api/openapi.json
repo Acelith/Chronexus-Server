@@ -1057,6 +1057,33 @@
         ],
         "type": "object"
       },
+      "ChatRoll": {
+        "properties": {
+          "expression": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "terms": {
+            "items": {
+              "$ref": "#/components/schemas/RollTerm"
+            },
+            "type": "array"
+          },
+          "total": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "expression",
+          "label",
+          "terms",
+          "total"
+        ],
+        "type": "object"
+      },
       "Citation": {
         "properties": {
           "authorName": {
@@ -2481,6 +2508,17 @@
             "format": "int64",
             "type": "integer"
           },
+          "roll": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ChatRoll",
+                "description": "Present only for `/r` and `/gr`; rolled by the server."
+              }
+            ]
+          },
           "text": {
             "type": "string"
           }
@@ -3272,6 +3310,72 @@
         },
         "required": [
           "baseRevision"
+        ],
+        "type": "object"
+      },
+      "RollTerm": {
+        "properties": {
+          "count": {
+            "description": "Dice terms only; a constant term has no count, sides or results.",
+            "format": "int32",
+            "minimum": 0,
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "keep": {
+            "description": "`kh` (keep highest) or `kl` (keep lowest) with `keepCount`.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "keepCount": {
+            "format": "int32",
+            "minimum": 0,
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "kept": {
+            "items": {
+              "type": "boolean"
+            },
+            "type": "array"
+          },
+          "results": {
+            "items": {
+              "format": "int32",
+              "minimum": 0,
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "sides": {
+            "format": "int32",
+            "minimum": 0,
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "sign": {
+            "description": "+1 or -1.",
+            "format": "int32",
+            "type": "integer"
+          },
+          "value": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "sign",
+          "results",
+          "kept",
+          "value"
         ],
         "type": "object"
       },

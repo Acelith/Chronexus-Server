@@ -30,12 +30,15 @@ use uuid::Uuid;
 
 pub(crate) struct Hub {
     sender: broadcast::Sender<String>,
+    /// Transient map pings: (table, frame). Never stored.
+    pings: broadcast::Sender<(String, serde_json::Value)>,
     seats: Mutex<HashMap<(String, String), usize>>,
 }
 impl Hub {
     pub fn new() -> Self {
         Self {
             sender: broadcast::channel(128).0,
+            pings: broadcast::channel(64).0,
             seats: Mutex::new(HashMap::new()),
         }
     }
@@ -113,7 +116,18 @@ pub struct LiveEvent {
     pub author_name: String,
     pub audience: String,
     pub text: String,
+    /// Present only for `/r` and `/gr`; rolled by the server.
+    pub roll: Option<crate::table_chat::ChatRoll>,
     pub created_at: String,
+}
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct Ping {
+    #[serde(rename = "type")]
+    kind: String,
+    scene_id: String,
+    x: f64,
+    y: f64,
 }
 struct Identity {
     account: String,
@@ -166,10 +180,69 @@ impl Database {
             )?)
         })
     }
-    fn live_events(&self, table: &str, role: &str, since: i64) -> Result<Vec<LiveEvent>> {
+    fn live_events(
+        &self,
+        table: &str,
+        role: &str,
+        account: &str,
+        since: i64,
+    ) -> Result<Vec<LiveEvent>> {
+        // GM-audience lines (whispers, secret rolls) reach the GM and their own author only.
         self.with(|conn| {
-            let mut q=conn.prepare("SELECT e.revision,e.operation_id,e.author_id,a.display_name,e.audience,e.text,e.created_at FROM table_live_events e JOIN accounts a ON a.id=e.author_id WHERE e.table_id=?1 AND e.revision>?2 AND (e.audience='public' OR ?3='gm') ORDER BY e.revision LIMIT 1001")?;
-            Ok(q.query_map(params![table,since,role],|r|Ok(LiveEvent{revision:r.get(0)?,operation_id:r.get(1)?,author_id:r.get(2)?,author_name:r.get(3)?,audience:r.get(4)?,text:r.get(5)?,created_at:crate::campaigns::timestamp(r.get(6)?)}))?.collect::<std::result::Result<Vec<_>,_>>()?)
+            let mut q=conn.prepare("SELECT e.revision,e.operation_id,e.author_id,a.display_name,e.audience,e.text,e.roll,e.created_at FROM table_live_events e JOIN accounts a ON a.id=e.author_id WHERE e.table_id=?1 AND e.revision>?2 AND (e.audience='public' OR ?3='gm' OR e.author_id=?4) ORDER BY e.revision LIMIT 1001")?;
+            Ok(q.query_map(params![table,since,role,account],|r|{
+                let roll:Option<String>=r.get(6)?;
+                Ok(LiveEvent{revision:r.get(0)?,operation_id:r.get(1)?,author_id:r.get(2)?,author_name:r.get(3)?,audience:r.get(4)?,text:r.get(5)?,roll:roll.and_then(|v|serde_json::from_str(&v).ok()),created_at:crate::campaigns::timestamp(r.get(7)?)})
+            })?.collect::<std::result::Result<Vec<_>,_>>()?)
+        })
+    }
+    /// Validates a ping on the active scene and returns the author's display name.
+    fn ping_author(&self, table: &str, user: &Identity, ping: &Ping) -> Result<String> {
+        identifier(&ping.scene_id)?;
+        if ping.kind != "ping"
+            || user.role == "spectator"
+            || !ping.x.is_finite()
+            || !ping.y.is_finite()
+        {
+            return Err(ApiError::invalid());
+        }
+        if !self.live_authorized(table, user)? {
+            return Err(ApiError::unauthorized());
+        }
+        self.with(|conn| {
+            let active: Option<String> = conn
+                .query_row(
+                    "SELECT active_scene FROM table_boards WHERE table_id=?1",
+                    [table],
+                    |r| r.get(0),
+                )
+                .optional()?
+                .flatten();
+            if active.as_deref() != Some(ping.scene_id.as_str()) {
+                return Err(ApiError(
+                    StatusCode::CONFLICT,
+                    "Pings are limited to the active scene.",
+                ));
+            }
+            let data: String = conn.query_row(
+                "SELECT data FROM table_scenes WHERE id=?1 AND table_id=?2",
+                params![ping.scene_id, table],
+                |r| r.get(0),
+            )?;
+            let scene: crate::vtt::Scene =
+                serde_json::from_str(&data).map_err(|_| ApiError::internal())?;
+            if ping.x < 0.0
+                || ping.y < 0.0
+                || ping.x > f64::from(scene.width)
+                || ping.y > f64::from(scene.height)
+            {
+                return Err(ApiError::invalid());
+            }
+            Ok(conn.query_row(
+                "SELECT display_name FROM accounts WHERE id=?1",
+                [&user.account],
+                |r| r.get(0),
+            )?)
         })
     }
     fn write_live(&self, table: &str, user: &Identity, op: &Operation) -> Result<i64> {
@@ -183,20 +256,31 @@ impl Database {
             return Err(ApiError::invalid());
         }
         text(&op.text, 1, 500)?;
+        // The server, not the client, decides who may read a line and rolls its dice.
+        let (audience, roll) = match crate::table_chat::command(&op.text) {
+            crate::table_chat::Command::Say => ("public", None),
+            crate::table_chat::Command::Whisper => ("gm", None),
+            crate::table_chat::Command::Roll { expression, secret } => (
+                if secret { "gm" } else { "public" },
+                Some(crate::table_chat::roll(expression, crate::combat::dice)?),
+            ),
+        };
         self.with(|conn| {
             let tx=conn.transaction_with_behavior(TransactionBehavior::Immediate)?;
             let authorized:bool=tx.query_row("SELECT EXISTS(SELECT 1 FROM table_seats seat JOIN accounts a ON a.id=seat.account_id JOIN sessions s ON s.account_id=a.id WHERE seat.table_id=?1 AND seat.account_id=?2 AND seat.role=?3 AND s.id=?4 AND s.revoked_at IS NULL AND s.expires_at>?5 AND s.absolute_expires_at>?5 AND a.disabled=0)",params![table,user.account,user.role,user.session,now()],|r|r.get(0))?;
             if !authorized {return Err(ApiError::unauthorized());}
+            let expected=audience;
             let existing:Option<(i64,String,String,String,i64)>=tx.query_row("SELECT revision,author_id,audience,text,base_revision FROM table_live_events WHERE table_id=?1 AND operation_id=?2",params![table,op.operation_id],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?,r.get(3)?,r.get(4)?))).optional()?;
             if let Some((revision,author,audience,text,base))=existing {
-                if author==user.account && audience==op.audience && text==op.text && base==op.base_revision {return Ok(revision);}
+                if author==user.account && audience==expected && text==op.text && base==op.base_revision {return Ok(revision);}
                 return Err(ApiError(StatusCode::CONFLICT,"Operation ID already used for different content."));
             }
             let current:i64=tx.query_row("SELECT revision FROM game_tables WHERE id=?1",[table],|r|r.get(0))?;
             if current!=op.base_revision { return Err(ApiError(StatusCode::CONFLICT,"Table revision changed; reload before sending.")); }
             let revision=current+1;
             tx.execute("UPDATE game_tables SET revision=?1 WHERE id=?2",params![revision,table])?;
-            tx.execute("INSERT INTO table_live_events(table_id,revision,operation_id,base_revision,author_id,audience,text,created_at) VALUES(?1,?2,?3,?4,?5,?6,?7,?8)",params![table,revision,op.operation_id,op.base_revision,user.account,op.audience,op.text,now()])?;
+            let roll=roll.as_ref().map(serde_json::to_string).transpose().map_err(|_|ApiError::internal())?;
+            tx.execute("INSERT INTO table_live_events(table_id,revision,operation_id,base_revision,author_id,audience,text,created_at,roll) VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9)",params![table,revision,op.operation_id,op.base_revision,user.account,audience,op.text,now(),roll])?;
             tx.execute("DELETE FROM table_live_events WHERE table_id=?1 AND revision<?2",params![table,revision-1000])?;
             tx.commit()?;Ok(revision)
         })
@@ -275,7 +359,7 @@ async fn push(
                 )?)
             })?;
             let reset = oldest.is_some_and(|old| since < old - 1);
-            let events = db.live_events(&id, &role, if reset { 0 } else { since })?;
+            let events = db.live_events(&id, &role, &account, if reset { 0 } else { since })?;
             Ok((revision, events, reset, board))
         })
         .await;
@@ -291,6 +375,8 @@ async fn handle(
 ) {
     let mut cursor = since.unwrap_or(0).max(0);
     let mut subscription = state.table_live.sender.subscribe();
+    let mut pings = state.table_live.pings.subscribe();
+    let mut last_ping = tokio::time::Instant::now() - Duration::from_secs(2);
     let Some(initial) = push(&state, &table, &user, &mut socket, cursor).await else {
         return;
     };
@@ -313,8 +399,24 @@ async fn handle(
                 }
                 match signal { Ok(id) if id==table=>{let Some(revision)=push(&state,&table,&user,&mut socket,cursor).await else {break};cursor=revision;},Err(broadcast::error::RecvError::Closed)=>break,Err(broadcast::error::RecvError::Lagged(_))=>{cursor=0;let Some(revision)=push(&state,&table,&user,&mut socket,cursor).await else {break};cursor=revision;},_=>{} }
             }
+            ping=pings.recv()=>{
+                if let Ok((id,frame))=ping && id==table && !send(&mut socket,frame).await {break;}
+            }
             message=socket.recv()=>{
                 let Some(Ok(Message::Text(raw)))=message else {break};
+                if let Ok(ping)=serde_json::from_str::<Ping>(raw.as_str()) {
+                    // At most one ping per connection every 750 ms; extra pings are dropped.
+                    if last_ping.elapsed()<Duration::from_millis(750) {continue;}
+                    last_ping=tokio::time::Instant::now();
+                    let id=table.clone();
+                    let identity=Identity{account:user.account.clone(),session:user.session.clone(),role:user.role.clone()};
+                    let (scene,x,y)=(ping.scene_id.clone(),ping.x,ping.y);
+                    match state.blocking(move|db|db.ping_author(&id,&identity,&ping)).await {
+                        Ok(name)=>{let _=state.table_live.pings.send((table.clone(),serde_json::json!({"type":"ping","sceneId":scene,"x":x,"y":y,"authorId":user.account,"authorName":name})));}
+                        Err(error)=>{if !send(&mut socket,serde_json::json!({"type":"pingError","message":error.1})).await{break;}}
+                    }
+                    continue;
+                }
                 if let Ok(op)=serde_json::from_str::<crate::vtt::BoardOperation>(raw.as_str()) {
                     let id=table.clone();let account=user.account.clone();let session=user.session.clone();let role=user.role.clone();
                     let result=state.blocking(move|db|{if !db.live_authorized(&id,&Identity{account:account.clone(),session,role})? {return Err(ApiError::unauthorized());}db.board_write(&id,&account,&op)}).await;
@@ -330,7 +432,16 @@ async fn handle(
     }
 }
 #[derive(OpenApi)]
-#[openapi(paths(ticket), components(schemas(LiveTicket, LiveEvent, ErrorBody)))]
+#[openapi(
+    paths(ticket),
+    components(schemas(
+        LiveTicket,
+        LiveEvent,
+        crate::table_chat::ChatRoll,
+        crate::table_chat::RollTerm,
+        ErrorBody
+    ))
+)]
 pub(crate) struct LiveContract;
 
 #[cfg(test)]
@@ -417,7 +528,12 @@ mod tests {
             db.write_live(&table.id, &identity, &changed).unwrap_err().0,
             StatusCode::CONFLICT
         );
-        assert_eq!(db.live_events(&table.id, "player", 2).unwrap().len(), 1);
+        assert_eq!(
+            db.live_events(&table.id, "player", &identity.account, 2)
+                .unwrap()
+                .len(),
+            1
+        );
         let secret = Operation {
             operation_id: Uuid::now_v7().to_string(),
             base_revision: 3,
@@ -473,6 +589,105 @@ mod tests {
                 .0,
             StatusCode::BAD_REQUEST
         );
+        // Chat commands: the server rolls and narrows the audience; nobody else sees whispers.
+        let say = |text: &str, who: &Identity| {
+            let op = Operation {
+                operation_id: Uuid::now_v7().to_string(),
+                base_revision: db.live_revision(&table.id).unwrap(),
+                text: text.into(),
+                audience: "public".into(),
+            };
+            let revision = db.write_live(&table.id, who, &op).unwrap();
+            assert_eq!(db.write_live(&table.id, who, &op).unwrap(), revision);
+            revision
+        };
+        let gm_ticket = db.live_ticket(&gm.token, &table.id).unwrap();
+        let gm_identity = db.consume_ticket(&table.id, &gm_ticket.ticket).unwrap();
+        let before = db.live_revision(&table.id).unwrap();
+        say("/r 2d20kh1+5 Attack", &identity);
+        say("/gr 1d6", &identity);
+        say("/w gm I pocket the gem", &identity);
+        let player_view = db
+            .live_events(&table.id, "player", &identity.account, before)
+            .unwrap();
+        let roll = player_view[0].roll.as_ref().unwrap();
+        assert_eq!(roll.label, "Attack");
+        assert!((6..=25).contains(&roll.total));
+        assert_eq!(roll.terms[0].kept.iter().filter(|k| **k).count(), 1);
+        assert_eq!(player_view[1].audience, "gm");
+        assert_eq!(player_view[2].audience, "gm");
+        assert!(player_view[2].roll.is_none());
+        assert_eq!(
+            db.live_events(&table.id, "gm", &gm_identity.account, before)
+                .unwrap()
+                .len(),
+            3
+        );
+        let spectator_view = db
+            .live_events(&table.id, "spectator", &watcher.account, before)
+            .unwrap();
+        assert_eq!(spectator_view.len(), 1);
+        assert!(spectator_view[0].roll.is_some());
+        let invalid = Operation {
+            operation_id: Uuid::now_v7().to_string(),
+            base_revision: db.live_revision(&table.id).unwrap(),
+            text: "/r 500d6".into(),
+            audience: "public".into(),
+        };
+        assert_eq!(
+            db.write_live(&table.id, &identity, &invalid).unwrap_err().0,
+            StatusCode::BAD_REQUEST
+        );
+        // Pings need an active scene inside its bounds, and never come from spectators.
+        let scene = Uuid::new_v4().to_string();
+        let ping = |x: f64| Ping {
+            kind: "ping".into(),
+            scene_id: scene.clone(),
+            x,
+            y: 10.0,
+        };
+        assert_eq!(
+            db.ping_author(&table.id, &identity, &ping(10.0))
+                .unwrap_err()
+                .0,
+            StatusCode::CONFLICT
+        );
+        db.with(|conn| {
+            conn.execute(
+                "INSERT INTO table_scenes(id,table_id,data) VALUES(?1,?2,?3)",
+                params![
+                    scene,
+                    table.id,
+                    serde_json::json!({"id":scene,"name":"S","width":100,"height":100,"mapId":null,"grid":{"kind":"square","pixels":50,"offset":{"x":0,"y":0},"color":"#ffffff","opacity":0.5,"distance":{"value":5,"unit":"ft"},"diagonal":"equal","conversion":"table"},"freeMove":true,"difficult":[]}).to_string()
+                ],
+            )?;
+            Ok(())
+        })
+        .unwrap();
+        assert_eq!(
+            db.ping_author(&table.id, &identity, &ping(10.0))
+                .unwrap_err()
+                .0,
+            StatusCode::CONFLICT
+        );
+        db.with(|conn| {
+            conn.execute(
+                "INSERT INTO table_boards(table_id,active_scene) VALUES(?1,?2)",
+                params![table.id, scene],
+            )?;
+            Ok(())
+        })
+        .unwrap();
+        assert_eq!(
+            db.ping_author(&table.id, &identity, &ping(10.0)).unwrap(),
+            "Player"
+        );
+        assert!(db.ping_author(&table.id, &identity, &ping(500.0)).is_err());
+        assert!(
+            db.ping_author(&table.id, &identity, &ping(f64::NAN))
+                .is_err()
+        );
+        assert!(db.ping_author(&table.id, &watcher, &ping(10.0)).is_err());
         db.remove_table_seat(&gm.token, &table.id, &player.account_id)
             .unwrap();
         assert!(!db.live_authorized(&table.id, &identity).unwrap());
