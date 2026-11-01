@@ -29,6 +29,8 @@ Table work released in 0.2.0:
 | M46 | Persistent manual fog, bounded per-player vision, walls/doors/lights and redacted downloads implemented |
 | M47 | Attributed SRD/custom monster copies, encounter presets and image library with computer/Commons import implemented |
 
-Desktop table integration and cross-platform end-to-end acceptance remain pending.
+Chronexus 0.13.0 brings the same table workspace to the desktop player view (released
+1 November 2026). Physical multi-device, native macOS/Linux and LAN latency acceptance
+remain pending.
 
 Alongside M25.8: application **M41**, this wiki.
