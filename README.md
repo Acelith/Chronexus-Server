@@ -18,7 +18,7 @@ can see, and decide whether AI runs on your computer or your own server.
 </div>
 
 > [!NOTE]
-> **[Release 0.1.1](https://github.com/Acelith/Chronexus-Server/releases/tag/v0.1.1)** is published on GitHub with Linux amd64 and arm64 binaries.
+> **[Release 0.2.0](https://github.com/Acelith/Chronexus-Server/releases/tag/v0.2.0)** adds Chronexus Table, the virtual tabletop for GMs and players. Container images: `ghcr.io/acelith/chronexus-server:0.2.0`.
 > Build the Docker image locally with `docker compose --profile https up -d --build`; GHCR publication is pending. Accounts, membership, selective sharing, continuous
 > synchronization, deletion and recovery (M25.1–M25.8), the web interface in ten languages
 > (M25.11) and optional server AI (M25.10, no model qualified yet) are implemented. See the [wiki](https://github.com/Acelith/Chronexus-Server/blob/main/docs/wiki/Home.md).

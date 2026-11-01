@@ -18,7 +18,7 @@ The server is application milestone **M25**; its steps are numbered M25.0–M25.
 | M25.10 | Explicit local or self-hosted server AI | Implemented; no model qualified (CPU run 29/10/2026) |
 | M25.11 | Web campaign and server management | Implemented, ten languages |
 
-Table work in the current source (not included in historical release 0.1.1):
+Table work released in 0.2.0:
 
 | ID | Server/web state |
 | --- | --- |

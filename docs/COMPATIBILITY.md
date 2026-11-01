@@ -10,6 +10,7 @@ without the capabilities it needs (`private-content`, `idempotent-mutations`,
 | --- | --- | --- | --- | --- | --- |
 | 0.1.0 | v1 | 006 | accounts, sessions, campaigns, sharing, private-content, attachments, idempotent-content-saves, idempotent-mutations, incremental-sync, change-notifications, deletion | 0.9.0 – 0.10.1 | First release (Windows x64 binary) |
 | 0.1.1 | v1 | 006 | same as 0.1.0 | 0.9.0 – 0.10.1 | Container images (linux/amd64, linux/arm64), backup/compose fixes; no API change |
+| 0.2.0 | v1 | 016 | same as 0.1.1 plus table endpoints | 0.9.0+ (tables: 0.13.0+) | Chronexus Table (M42–M47), chat dice and pings; additive migrations |
 
 Feature notes:
 
