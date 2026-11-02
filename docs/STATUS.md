@@ -1,3 +1,15 @@
+# Chronexus Server status — 2 November 2026: release 0.3.0 published
+
+- [Release 0.3.0](https://github.com/Acelith/Chronexus-Server/releases/tag/v0.3.0) (tag on
+  `d3fb24e`): GHCR images `0.3.0`/`latest` built by GitHub Actions (linux/amd64, linux/arm64,
+  revision label `d3fb24e`); Linux binaries extracted unchanged from those images, attached
+  with an LF `SHA256SUMS.txt`. Anonymous downloads match the checksums and the extracted files.
+- `publish-release.py` reported an HTTP error in its final anonymous check right after
+  publishing; the release was already public and complete, and the same check repeated
+  by hand passed. Likely download CDN lag right after publication.
+- Desktop companion: Chronexus 0.14.0 (GM map, token and catalog tools).
+- Skills: none loaded for the release.
+
 # Chronexus Server status — 2 November 2026: one-step maps, click placement and token icons
 
 - Uploading or dropping a map image creates a scene at the image size (or replaces the
