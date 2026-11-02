@@ -19,8 +19,7 @@
   34 web DOM tests passed. Browser check on a synthetic loopback server: dropped map →
   scene, icon search/import, two stamped tokens rendered, no console errors. Desktop
   live suite 6/6 passed against this source.
-- Skills: Rust Best Practices (narrow helpers, typed errors), React Testing and
-  Accessibility guidance applied to keyboard placement (Enter/Esc) in the DOM runtime.
+- Skills: none loaded for this change; existing repository test patterns were followed.
 
 # Chronexus Server status — 1 November 2026: table workspace, chat dice and pings (schema 016)
 
