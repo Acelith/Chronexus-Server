@@ -18,7 +18,7 @@ can see, and decide whether AI runs on your computer or your own server.
 </div>
 
 > [!NOTE]
-> **[Release 0.2.0](https://github.com/Acelith/Chronexus-Server/releases/tag/v0.2.0)** adds Chronexus Table, the virtual tabletop for GMs and players. Container images: `ghcr.io/acelith/chronexus-server:0.2.0`.
+> **[Release 0.3.0](https://github.com/Acelith/Chronexus-Server/releases/tag/v0.3.0)** lets the GM drop maps, place NPC tokens by click and pick token icons from game-icons.net; Chronexus Table arrived in 0.2.0. Container images: `ghcr.io/acelith/chronexus-server:0.3.0`.
 > Build the Docker image locally with `docker compose --profile https up -d --build`; GHCR publication is pending. Accounts, membership, selective sharing, continuous
 > synchronization, deletion and recovery (M25.1–M25.8), the web interface in ten languages
 > (M25.11) and optional server AI (M25.10, no model qualified yet) are implemented. See the [wiki](https://github.com/Acelith/Chronexus-Server/blob/main/docs/wiki/Home.md).
@@ -69,9 +69,10 @@ The delivery goal:
 
 The current source also includes **Chronexus Table**: GM accounts/invitations and
 live tables (M42/M43), map/grid/token editing with ft/m tools (M44), and explicit
-initiative, turns, conditions and owner-only HP with filtered logs (M45). These
-are server/web source changes after release 0.1.1. Desktop table integration and
-cross-platform acceptance remain pending; see [current evidence](docs/STATUS.md).
+initiative, turns, conditions and owner-only HP with filtered logs (M45). They
+were released in 0.2.0; the desktop app joins tables from 0.13.0 and offers the GM map,
+token and catalog tools from 0.14.0. Cross-platform acceptance remains pending; see
+[current evidence](docs/STATUS.md).
 GM access to the journal still requires each author's explicit item grant.
 
 ## Deployment and configuration

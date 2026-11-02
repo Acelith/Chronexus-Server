@@ -29,7 +29,7 @@ docker compose exec -T server chronexus-server invite
 *Production deployment*.
 
 Build from the checked-out GitHub source with `--build`, or set `CHRONEXUS_IMAGE` to a
-published image you choose and verify: `ghcr.io/acelith/chronexus-server:0.2.0` (linux/amd64
+published image you choose and verify: `ghcr.io/acelith/chronexus-server:0.3.0` (linux/amd64
 and linux/arm64, built by GitHub Actions; `latest` follows the newest version tag and `main`
 the default branch). Ports, network and image are configured through `.env`.
 
@@ -303,7 +303,7 @@ load testing beyond the built-in limits, and real TLS/DNS.
 ## Development and checks
 
 See [DEVELOPMENT.md](DEVELOPMENT.md), [API.md](API.md) and [STATUS.md](STATUS.md).
-GitHub release 0.2.0 contains Linux amd64/arm64 binaries extracted unchanged from the CI
+GitHub releases from 0.2.0 contain Linux amd64/arm64 binaries extracted unchanged from the CI
 image, plus `SHA256SUMS.txt`. That 0.2.0 checksum file has Windows line endings; on Linux check
 it with `tr -d '\r' < SHA256SUMS.txt | sha256sum -c`. Later releases write plain LF.
 
