@@ -1,3 +1,27 @@
+# Chronexus Server status — 2 November 2026: one-step maps, click placement and token icons
+
+- Uploading or dropping a map image creates a scene at the image size (or replaces the
+  map of the scene being edited); **Use as map** does the same for a library image.
+  Scenes are never activated implicitly.
+- New `placeMonster` board command places one GM-owned token from a saved monster with
+  private HP/AC (shared helper with encounter deployment). Library monsters and images
+  can be armed and stamped on clicked cells until Esc; Enter places at the map centre.
+- Public catalog provider `icons`: game-icons.net index from `api.github.com` (one fixed
+  path, cached in memory for 6 h, names filtered locally) and single SVGs from
+  `raw.githubusercontent.com` (256 KiB, inert vectors only). The browser turns the glyph
+  into a 256 px round PNG token uploaded through normal image validation, with author,
+  licence (CC BY 3.0 or CC0) and modification note. GM library images now report their
+  original size; client-supplied sizes are never stored. No migration (schema 016).
+- Reviewed and not integrated: dnd5eapi.co monster images (no artwork licence), Openverse
+  (anonymous search timed out), commercial token packs (no API or redistribution licence).
+- Windows: cargo fmt, Clippy all targets with warnings denied, full Rust suite, release
+  build and contract check passed; ignored live catalog test passed against GitHub;
+  34 web DOM tests passed. Browser check on a synthetic loopback server: dropped map →
+  scene, icon search/import, two stamped tokens rendered, no console errors. Desktop
+  live suite 6/6 passed against this source.
+- Skills: Rust Best Practices (narrow helpers, typed errors), React Testing and
+  Accessibility guidance applied to keyboard placement (Enter/Esc) in the DOM runtime.
+
 # Chronexus Server status — 1 November 2026: table workspace, chat dice and pings (schema 016)
 
 - GM web table is a full-width workspace: vertical tool palette (pan, move, ping,

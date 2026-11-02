@@ -119,6 +119,10 @@ export type BoardAction = {
   "sceneId": string;
   "type": "deployEncounter";
 } | {
+  "sceneId": string;
+  "spawn": Spawn;
+  "type": "placeMonster";
+} | {
   "fog": Fog;
   "type": "saveFog";
 } | {
@@ -554,9 +558,11 @@ export type KindUsage = {
 };
 
 export type LibraryAsset = {
+  "height"?: number | null;
   "id": string;
   "name": string;
   "source"?: null | Attribution;
+  "width"?: number | null;
 };
 
 export type Light = {
@@ -753,6 +759,7 @@ export type Reply = {
   "entries": Array<Entry>;
   "monster"?: null | Monster;
   "source"?: null | Attribution;
+  "svg"?: string | null;
 };
 
 export type Request = {

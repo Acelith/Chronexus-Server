@@ -23,6 +23,11 @@ pub struct LibraryAsset {
     pub id: String,
     pub name: String,
     pub source: Option<Attribution>,
+    /// Original pixel size, filled from the stored image for the GM view; never saved.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub width: Option<u32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub height: Option<u32>,
 }
 #[derive(Clone, Deserialize, Serialize, ToSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -65,6 +70,19 @@ pub(crate) fn list<T: serde::de::DeserializeOwned>(
     rows.iter()
         .map(|v| serde_json::from_str(v).map_err(|_| ApiError::internal()))
         .collect()
+}
+/// Library images with the original size, so "use as map" needs no full-size download.
+pub(crate) fn assets(conn: &Connection, table: &str) -> Result<Vec<LibraryAsset>> {
+    let mut assets: Vec<LibraryAsset> = list(conn, table, "asset")?;
+    let mut size =
+        conn.prepare("SELECT width,height FROM table_map_assets WHERE table_id=?1 AND id=?2")?;
+    for a in &mut assets {
+        let found: Option<(u32, u32)> = size
+            .query_row(params![table, a.id], |r| Ok((r.get(0)?, r.get(1)?)))
+            .optional()?;
+        (a.width, a.height) = found.unzip();
+    }
+    Ok(assets)
 }
 fn get<T: serde::de::DeserializeOwned>(
     conn: &Connection,
@@ -169,7 +187,12 @@ pub(crate) fn save_asset(conn: &Connection, table: &str, a: &LibraryAsset) -> Re
     {
         return Err(ApiError::invalid());
     }
-    put(conn, table, "asset", &a.id, a)
+    let stored = LibraryAsset {
+        width: None,
+        height: None,
+        ..a.clone()
+    };
+    put(conn, table, "asset", &a.id, &stored)
 }
 pub(crate) fn save_encounter(conn: &Connection, table: &str, e: &Encounter) -> Result<()> {
     crate::campaigns::text(&e.name, 1, 100)?;
@@ -207,47 +230,57 @@ pub(crate) fn deploy(
     id: &str,
 ) -> Result<()> {
     let e: Encounter = get(conn, table, "encounter", id)?;
-    for member in e.members {
-        let m: Monster = get(conn, table, "monster", &member.monster_id)?;
-        let token = BoardToken {
-            id: Uuid::new_v4().to_string(),
-            scene_id: scene.into(),
-            owner_id: account.into(),
-            name: m.name,
-            position: member.position,
-            size: m.size,
-            speed: m.speed,
-            hidden: member.hidden,
-            portrait_id: m.portrait_id,
-            character_id: None,
-            spent: 0.0,
-            diagonals: 0,
-            artwork: false,
-        };
-        crate::vtt::apply(
-            conn,
-            table,
-            account,
-            "gm",
-            &BoardAction::SaveToken {
-                token: token.clone(),
-            },
-        )?;
-        crate::combat::apply(
-            conn,
-            table,
-            account,
-            "gm",
-            &CombatAction::SetVitals {
-                token_id: token.id,
-                hp: m.hp,
-                max_hp: m.hp,
-                ac: Some(m.ac),
-                show_hp: false,
-                gm_note: Some(m.stat_block),
-                status: None,
-            },
-        )?;
+    for member in &e.members {
+        place(conn, table, account, scene, member)?;
     }
     Ok(())
+}
+/// Places one GM-owned token from a saved monster, with its own private HP and AC.
+pub(crate) fn place(
+    conn: &Connection,
+    table: &str,
+    account: &str,
+    scene: &str,
+    member: &Spawn,
+) -> Result<()> {
+    let m: Monster = get(conn, table, "monster", &member.monster_id)?;
+    let token = BoardToken {
+        id: Uuid::new_v4().to_string(),
+        scene_id: scene.into(),
+        owner_id: account.into(),
+        name: m.name,
+        position: member.position,
+        size: m.size,
+        speed: m.speed,
+        hidden: member.hidden,
+        portrait_id: m.portrait_id,
+        character_id: None,
+        spent: 0.0,
+        diagonals: 0,
+        artwork: false,
+    };
+    crate::vtt::apply(
+        conn,
+        table,
+        account,
+        "gm",
+        &BoardAction::SaveToken {
+            token: token.clone(),
+        },
+    )?;
+    crate::combat::apply(
+        conn,
+        table,
+        account,
+        "gm",
+        &CombatAction::SetVitals {
+            token_id: token.id,
+            hp: m.hp,
+            max_hp: m.hp,
+            ac: Some(m.ac),
+            show_hp: false,
+            gm_note: Some(m.stat_block),
+            status: None,
+        },
+    )
 }

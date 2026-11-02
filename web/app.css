@@ -192,7 +192,8 @@ main.table-mode { max-width: none; padding: 12px 16px 16px; }
 .vtt-viewport { position: relative; flex: 1; min-height: 0; overflow: hidden; direction: ltr; cursor: default; touch-action: none; }
 .vtt-viewport[data-tool="pan"], .vtt-viewport.panning { cursor: grab; }
 .vtt-viewport.panning { cursor: grabbing; }
-.vtt-viewport[data-tool="ping"] { cursor: crosshair; }
+.vtt-viewport[data-tool="ping"], .vtt-viewport[data-placing] { cursor: crosshair; }
+.vtt-viewport.dropping { outline: 3px dashed #e9c98b; outline-offset: -6px; }
 .vtt-stage { position: absolute; top: 0; left: 0; transform-origin: 0 0; will-change: transform; }
 .vtt .battle-map { width: auto; height: auto; max-width: none; border: 0; box-shadow: 0 6px 30px rgba(0, 0, 0, 0.55); }
 .vtt .battle-map:focus-visible { outline: 3px solid #e9c98b; outline-offset: 0; }

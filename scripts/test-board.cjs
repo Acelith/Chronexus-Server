@@ -11,7 +11,7 @@ function fixture(locale='en',role='gm'){
   const el=(tag,attrs={},...children)=>{const e=w.document.createElement(tag);for(const[k,v]of Object.entries(attrs)){if(v===undefined||v===null||v===false)continue;if(k==='text')e.textContent=v;else if(k.startsWith('on'))e.addEventListener(k.slice(2),v);else e.setAttribute(k,v===true?'':v);}for(const c of children.flat())if(c!==undefined&&c!==null&&c!==false)e.append(c instanceof w.Node?c:w.document.createTextNode(String(c)));return e;};
   const s={id:'s',name:'Untranslated scene',width:1000,height:700,mapId:null,grid:{kind:'square',pixels:50,offset:{x:0,y:0},color:'#cab582',opacity:.4,distance:{value:5,unit:'ft'},diagonal:'equal',conversion:'table'},freeMove:true,difficult:[]};
   const state={revision:5,activeScene:'s',scenes:[s],templates:[],tokens:[{id:'p',name:'Hero <script>',sceneId:'s',ownerId:'self',position:{x:1,y:1},speed:{value:30,unit:'ft'},size:1,spent:0,diagonals:0,hidden:false}]},requests=[];
-  const board=w.ChronexusBoard.create({el,t:w.ChronexusI18n.t,api:async(method,path,body)=>{requests.push({method,path,body});return method==='GET'?state:{revision:6};},tableId:'table',role,account:'self',seats:[{accountId:'self',role:'player',displayName:'Player'}],confirm:async()=>true,active:()=>true});
+  const board=w.ChronexusBoard.create({el,t:w.ChronexusI18n.t,api:async(method,path,body)=>{requests.push({method,path,body});return method==='GET'?state:path.endsWith('/maps')?{id:'uploaded',width:800,height:600}:{revision:6};},tableId:'table',role,account:'self',seats:[{accountId:'self',role:'player',displayName:'Player'}],confirm:async()=>true,active:()=>true});
   w.document.body.append(board.root);board.update(state);board.connected(true);return{dom,w,board,state,requests};
 }
 const settle=()=>new Promise(resolve=>setTimeout(resolve,20));
@@ -90,4 +90,24 @@ for(const locale of ['en','it','ar']){
 }
 test('spectators get the tracker and log without mutation controls',()=>{
   const f=fixture('en','spectator');try{assert.equal(f.w.document.querySelector('.combat-tracker form'),null);assert.equal(f.w.document.querySelector('.combat-actions button'),null);assert.equal(f.w.document.querySelector('.board-editor form'),null);}finally{f.dom.window.close();}
+});
+test('GM stamps saved monsters on clicked cells until Esc, and a map upload becomes a scene',async()=>{
+  const f=fixture();try{
+    const state=structuredClone(f.state);state.revision=6;state.monsters=[{id:'m',name:'Synthetic goblin',hp:7,ac:15,speed:{value:30,unit:'ft'},size:1,statBlock:'',portraitId:null,source:null}];state.assets=[];f.board.update(state);
+    const find=key=>[...f.w.document.querySelectorAll('button')].find(v=>v.textContent===f.w.ChronexusI18n.t(key));
+    find('placeOnMap').click();const canvas=f.w.document.querySelector('canvas');canvas.getBoundingClientRect=()=>({left:0,top:0,width:1000,height:700});
+    assert.match(f.w.document.querySelector('.vtt-status').textContent,/Synthetic goblin/);
+    for(const x of [175,275]){canvas.dispatchEvent(new f.w.MouseEvent('pointerdown',{clientX:x,clientY:125,button:0}));await settle();}
+    const placed=f.requests.filter(r=>r.body?.command?.type==='placeMonster').map(r=>r.body.command);
+    assert.equal(placed.length,2);assert.deepEqual(placed.map(c=>c.spawn.position.x),[4,6]);assert.equal(placed[0].spawn.monsterId,'m');assert.equal(placed[0].spawn.hidden,false);
+    canvas.dispatchEvent(new f.w.KeyboardEvent('keydown',{key:'Escape',cancelable:true}));
+    canvas.dispatchEvent(new f.w.MouseEvent('pointerdown',{clientX:375,clientY:125,button:0}));await settle();
+    assert.equal(f.requests.filter(r=>r.body?.command?.type==='placeMonster').length,2,'Esc disarms placement');
+    const label=[...f.w.document.querySelectorAll('label')].find(v=>v.textContent===f.w.ChronexusI18n.t('uploadMap')),input=f.w.document.getElementById(label.htmlFor);Object.defineProperty(input,'files',{value:[new f.w.File(['x'],'Crypt map.png',{type:'image/png'})]});
+    find('uploadMap').click();await settle();await settle();
+    const scene=f.requests.find(r=>r.body?.command?.type==='saveScene').body.command.scene;
+    assert.equal(scene.mapId,'uploaded');assert.equal(scene.width,800);assert.equal(scene.height,600);assert.equal(scene.name,'Crypt map');
+    assert.equal(f.requests.some(r=>r.body?.command?.type==='activateScene'),false,'a new scene is never shown to players implicitly');
+    const catalog=[...f.w.document.querySelectorAll('select')].find(v=>[...v.options].some(o=>o.value==='icons'));assert.equal(catalog.value,'icons');
+  }finally{f.dom.window.close();}
 });

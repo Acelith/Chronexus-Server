@@ -56,6 +56,10 @@ async fn catalog_is_gm_only_and_rejects_invalid_requests_without_external_calls(
         json!({"kind":"monsters","query":"","entry":"../../private"}),
         json!({"kind":"assets","query":"","entry":"https://127.0.0.1/private"}),
         json!({"kind":"assets","query":"x".repeat(101),"entry":null}),
+        json!({"kind":"icons","query":"   ","entry":null}),
+        json!({"kind":"icons","query":"","entry":"lorc/../../secret"}),
+        json!({"kind":"icons","query":"","entry":"https://example.org/x.svg"}),
+        json!({"kind":"icons","query":"","entry":"badges/award"}),
     ] {
         assert_eq!(
             t.f.call("POST", &path, body, t.gm["token"].as_str())
@@ -260,6 +264,66 @@ async fn players_cannot_change_fog_library_or_move_through_unrevealed_areas() {
         StatusCode::FORBIDDEN
     );
     assert_eq!(t.command(&t.gm,json!({"type":"saveFog","fog":{"sceneId":s["id"],"enabled":true,"strokes":[{"reveal":true,"points":[]}]}})).await.0,StatusCode::BAD_REQUEST);
+}
+#[tokio::test]
+async fn library_images_report_their_original_size_to_the_gm_only() {
+    let t = TableFixture::new().await;
+    let gm_token = t.gm["token"].as_str().unwrap();
+    let asset =
+        t.f.state
+            .database
+            .put_map(gm_token, &t.id, &common::table::png(), "image/png")
+            .unwrap();
+    // A client-supplied size is ignored: the stored image decides.
+    let entry = json!({"id":asset.id,"name":"Synthetic map","source":null,"width":9999,"height":1});
+    assert_eq!(
+        t.command(&t.gm, json!({"type":"saveAsset","asset":entry}))
+            .await
+            .0,
+        StatusCode::OK
+    );
+    let (_, gm) = t.view(&t.gm).await;
+    assert_eq!(gm["assets"][0]["width"], 100);
+    assert_eq!(gm["assets"][0]["height"], 100);
+    let (_, player) = t.view(&t.player).await;
+    assert!(player.get("assets").is_none());
+}
+#[tokio::test]
+async fn single_monster_placement_is_gm_only_idempotent_and_keeps_vitals_private() {
+    let t = TableFixture::new().await;
+    let s = t.scene().await;
+    t.activate(&s).await;
+    let mid = Uuid::new_v4().to_string();
+    let m = json!({"id":mid,"name":"Synthetic lurker","hp":9,"ac":13,"speed":{"value":30,"unit":"ft"},"size":1,"statBlock":"Synthetic secret trait","portraitId":null,"source":null});
+    assert_eq!(
+        t.command(&t.gm, json!({"type":"saveMonster","monster":m}))
+            .await
+            .0,
+        StatusCode::OK
+    );
+    let place = |hidden: bool, x: f64| json!({"type":"placeMonster","sceneId":s["id"],"spawn":{"monsterId":mid,"position":{"x":x,"y":1},"hidden":hidden}});
+    assert_eq!(
+        t.command(&t.player, place(false, 1.0)).await.0,
+        StatusCode::FORBIDDEN
+    );
+    let missing = json!({"type":"placeMonster","sceneId":s["id"],"spawn":{"monsterId":Uuid::new_v4().to_string(),"position":{"x":1,"y":1},"hidden":false}});
+    assert_eq!(t.command(&t.gm, missing).await.0, StatusCode::BAD_REQUEST);
+    let op = json!({"operationId":Uuid::now_v7().to_string(),"baseRevision":t.view(&t.gm).await.1["revision"],"command":place(false, 1.0)});
+    assert_eq!(t.operation(&t.gm, op.clone()).await.0, StatusCode::OK);
+    assert_eq!(t.operation(&t.gm, op).await.0, StatusCode::OK);
+    assert_eq!(t.command(&t.gm, place(true, 2.0)).await.0, StatusCode::OK);
+    let (_, gm) = t.view(&t.gm).await;
+    assert_eq!(gm["tokens"].as_array().unwrap().len(), 2);
+    assert_eq!(gm["vitals"][0]["ac"], 13);
+    let (_, player) = t.view(&t.player).await;
+    let tokens = player["tokens"].as_array().unwrap();
+    assert_eq!(tokens.len(), 1);
+    assert_eq!(tokens[0]["name"], "Synthetic lurker");
+    assert!(
+        !serde_json::to_string(&player)
+            .unwrap()
+            .contains("Synthetic secret trait")
+    );
 }
 #[tokio::test]
 async fn encounter_deployment_is_atomic_idempotent_and_keeps_monster_originals_private() {

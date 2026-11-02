@@ -35,6 +35,8 @@ struct Reply {
     monster: Option<Monster>,
     asset: Option<MapAsset>,
     source: Option<Attribution>,
+    /// Inert game-icons.net vector for the client to rasterize into a token image.
+    svg: Option<String>,
 }
 fn failure() -> ApiError {
     ApiError(
@@ -123,6 +125,8 @@ async fn fetch(url: url::Url, limit: usize) -> Result<Vec<u8>> {
         Some("www.dnd5eapi.co") => url.path().starts_with("/api/2014/monsters"),
         Some("commons.wikimedia.org") => url.path() == "/w/api.php",
         Some("upload.wikimedia.org") => url.path().starts_with("/wikipedia/commons/"),
+        Some("api.github.com") => url.path() == ICON_INDEX_PATH,
+        Some("raw.githubusercontent.com") => url.path().starts_with(ICON_RAW_PREFIX),
         _ => false,
     };
     if !allowed {
@@ -223,12 +227,133 @@ fn commons_entry(page: &Value) -> Option<(Entry, String)> {
         mime.into(),
     ))
 }
+const ICON_INDEX_PATH: &str = "/repos/game-icons/icons/git/trees/master";
+const ICON_RAW_PREFIX: &str = "/game-icons/icons/master/";
+/// Contributor folders the game-icons.net licence file marks as CC0; the rest are CC BY 3.0.
+const ICON_CC0: [&str; 2] = ["viscious-speed", "zeromancer"];
+/// The explicitly fetched icon index, kept in memory so repeated searches stay local.
+static ICON_INDEX: std::sync::Mutex<Option<(std::time::Instant, std::sync::Arc<Vec<String>>)>> =
+    std::sync::Mutex::new(None);
+fn icon_id(id: &str) -> bool {
+    let mut parts = id.split('/');
+    let ok = |p: Option<&str>| {
+        p.is_some_and(|p| {
+            !p.is_empty()
+                && p.len() <= 80
+                && p.bytes()
+                    .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-')
+        })
+    };
+    // Badges are site decorations, not credited contributor artwork.
+    ok(parts.next()) && ok(parts.next()) && parts.next().is_none() && !id.starts_with("badges/")
+}
+fn icon_paths(data: &Value) -> Vec<String> {
+    data["tree"]
+        .as_array()
+        .map(|tree| {
+            tree.iter()
+                .filter_map(|v| v["path"].as_str()?.strip_suffix(".svg"))
+                .filter(|id| icon_id(id))
+                .take(10_000)
+                .map(str::to_owned)
+                .collect()
+        })
+        .unwrap_or_default()
+}
+fn icon_entry(id: &str) -> Entry {
+    let (author, file) = id.split_once('/').unwrap_or_default();
+    let license = if ICON_CC0.contains(&author) {
+        "CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)"
+    } else {
+        "CC BY 3.0 (https://creativecommons.org/licenses/by/3.0/)"
+    };
+    Entry {
+        id: id.into(),
+        name: file.replace('-', " "),
+        source: Some(Attribution {
+            url: format!("https://game-icons.net/1x1/{id}.html"),
+            author: format!("{author} — game-icons.net"),
+            license: license.into(),
+            edition: "game-icons.net; recoloured and cropped into a round token".into(),
+            original: format!("https://raw.githubusercontent.com{ICON_RAW_PREFIX}{id}.svg"),
+        }),
+    }
+}
+/// Accepts only the plain path-based vectors game-icons.net publishes: anything that could
+/// load external content or carry script is refused even though the client draws it as an image.
+fn inert_svg(bytes: &[u8]) -> Option<String> {
+    let text = std::str::from_utf8(bytes).ok()?.trim();
+    let lower = text.to_ascii_lowercase();
+    let external = [
+        "<script",
+        "href",
+        "<image",
+        "<foreignobject",
+        "url(",
+        "<style",
+    ]
+    .iter()
+    .any(|bad| lower.contains(bad));
+    let handler = lower.split_whitespace().any(|word| word.starts_with("on"));
+    (text.starts_with("<svg") && text.ends_with("</svg>") && !external && !handler)
+        .then(|| text.to_owned())
+}
+async fn icons(r: &Request, reply: &mut Reply) -> Result<()> {
+    if let Some(id) = &r.entry {
+        if !icon_id(id) {
+            return Err(ApiError::invalid());
+        }
+        let entry = icon_entry(id);
+        let source = entry.source.ok_or_else(failure)?;
+        reply.svg =
+            Some(inert_svg(&fetch(url(&source.original)?, 256 * 1024).await?).ok_or_else(failure)?);
+        reply.source = Some(source);
+        return Ok(());
+    }
+    let query = r.query.trim().to_lowercase();
+    if query.is_empty() {
+        return Err(ApiError::invalid());
+    }
+    let cached = ICON_INDEX
+        .lock()
+        .map_err(|_| ApiError::internal())?
+        .as_ref()
+        .filter(|(at, _)| at.elapsed() < std::time::Duration::from_secs(6 * 3600))
+        .map(|(_, paths)| paths.clone());
+    let paths = match cached {
+        Some(paths) => paths,
+        None => {
+            let index = url(&format!(
+                "https://api.github.com{ICON_INDEX_PATH}?recursive=1"
+            ))?;
+            let paths = std::sync::Arc::new(icon_paths(&json(index).await?));
+            if paths.is_empty() {
+                return Err(failure());
+            }
+            *ICON_INDEX.lock().map_err(|_| ApiError::internal())? =
+                Some((std::time::Instant::now(), paths.clone()));
+            paths
+        }
+    };
+    let words: Vec<&str> = query.split_whitespace().collect();
+    reply.entries = paths
+        .iter()
+        .filter(|id| {
+            let name = id.split_once('/').map_or("", |(_, n)| n);
+            words.iter().all(|w| name.contains(w))
+        })
+        .take(60)
+        .map(|id| icon_entry(id))
+        .collect();
+    Ok(())
+}
 async fn lookup(state: &AppState, bearer: &str, table: &str, r: Request) -> Result<Reply> {
     let mut reply = Reply {
         entries: vec![],
         monster: None,
         asset: None,
         source: None,
+        svg: None,
     };
     if r.query.chars().count() > 100 {
         return Err(ApiError::invalid());
@@ -325,6 +450,8 @@ async fn lookup(state: &AppState, bearer: &str, table: &str, r: Request) -> Resu
                 }
             }
         }
+    } else if r.kind == "icons" {
+        icons(&r, &mut reply).await?;
     } else {
         return Err(ApiError::invalid());
     }
@@ -397,6 +524,74 @@ mod tests {
             json!("https://upload.wikimedia.org/wikipedia/commons/a/ab/Synthetic.svg");
         page["imageinfo"][0]["mime"] = json!("image/svg+xml");
         assert!(commons_entry(&page).is_none());
+    }
+    #[test]
+    fn icon_index_keeps_contributor_vectors_with_their_licence() {
+        let tree = json!({"tree":[
+            {"path":"lorc/dragon-head.svg"},{"path":"zeromancer/goblin.svg"},
+            {"path":"badges/award.svg"},{"path":"lorc"},{"path":"license.txt"},
+            {"path":"../etc/passwd.svg"},{"path":"lorc/sub/deep.svg"},{"path":"Lorc/Upper.svg"}]});
+        assert_eq!(icon_paths(&tree), ["lorc/dragon-head", "zeromancer/goblin"]);
+        let entry = icon_entry("lorc/dragon-head");
+        assert_eq!(entry.name, "dragon head");
+        let source = entry.source.unwrap();
+        assert!(source.license.starts_with("CC BY 3.0"));
+        assert_eq!(
+            source.original,
+            "https://raw.githubusercontent.com/game-icons/icons/master/lorc/dragon-head.svg"
+        );
+        assert!(
+            icon_entry("zeromancer/goblin")
+                .source
+                .unwrap()
+                .license
+                .starts_with("CC0")
+        );
+        assert!(!icon_id("lorc/../x") && !icon_id("lorc") && !icon_id("badges/award"));
+    }
+    /// Real network check: `cargo test --lib -- --ignored icon_catalog_live`.
+    #[tokio::test]
+    #[ignore = "contacts api.github.com and raw.githubusercontent.com"]
+    async fn icon_catalog_live() {
+        let request = |query: &str, entry: Option<&str>| Request {
+            kind: "icons".into(),
+            query: query.into(),
+            entry: entry.map(Into::into),
+        };
+        let empty = || Reply {
+            entries: vec![],
+            monster: None,
+            asset: None,
+            source: None,
+            svg: None,
+        };
+        let mut found = empty();
+        icons(&request("goblin", None), &mut found).await.unwrap();
+        let goblin = found
+            .entries
+            .iter()
+            .find(|e| e.id == "delapouite/goblin-head")
+            .expect("goblin head icon");
+        let mut vector = empty();
+        icons(&request("", Some(&goblin.id)), &mut vector)
+            .await
+            .unwrap();
+        assert!(vector.svg.unwrap().starts_with("<svg"));
+        assert!(vector.source.unwrap().license.starts_with("CC BY 3.0"));
+    }
+    #[test]
+    fn icon_vectors_must_be_inert() {
+        let plain = r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M0 0h512v512H0z"/></svg>"#;
+        assert!(inert_svg(plain.as_bytes()).is_some());
+        for bad in [
+            r#"<svg><script>alert(1)</script></svg>"#,
+            r#"<svg><image href="https://example.org/x.png"/></svg>"#,
+            r#"<svg onload="x()"><path d="M0 0"/></svg>"#,
+            r#"<svg><path style="fill:url(#a)"/></svg>"#,
+            r#"<html><svg></svg></html>"#,
+        ] {
+            assert!(inert_svg(bad.as_bytes()).is_none(), "{bad}");
+        }
     }
     #[test]
     fn stat_copy_retains_supplied_rules_without_computing_modifiers() {

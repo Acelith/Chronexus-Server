@@ -124,6 +124,11 @@ pub enum BoardAction {
         #[serde(rename = "encounterId")]
         encounter_id: String,
     },
+    PlaceMonster {
+        #[serde(rename = "sceneId")]
+        scene_id: String,
+        spawn: crate::library::Spawn,
+    },
     SaveFog {
         fog: crate::fog::Fog,
     },
@@ -571,6 +576,11 @@ pub(crate) fn apply(
             scene(conn, table, scene_id)?;
             crate::library::deploy(conn, table, account, scene_id, encounter_id)?;
         }
+        BoardAction::PlaceMonster { scene_id, spawn } => {
+            gm(role)?;
+            scene(conn, table, scene_id)?;
+            crate::library::place(conn, table, account, scene_id, spawn)?;
+        }
         BoardAction::SaveFog { fog } => {
             gm(role)?;
             let s = scene(conn, table, &fog.scene_id)?;
@@ -908,7 +918,7 @@ pub(crate) fn view(conn: &Connection, table: &str, account: &str) -> Result<Boar
     }
     Ok(BoardView {
         assets: if role == "gm" {
-            Some(crate::library::list(conn, table, "asset")?)
+            Some(crate::library::assets(conn, table)?)
         } else {
             None
         },

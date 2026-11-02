@@ -520,6 +520,28 @@
           },
           {
             "properties": {
+              "sceneId": {
+                "type": "string"
+              },
+              "spawn": {
+                "$ref": "#/components/schemas/Spawn"
+              },
+              "type": {
+                "enum": [
+                  "placeMonster"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "sceneId",
+              "spawn",
+              "type"
+            ],
+            "type": "object"
+          },
+          {
+            "properties": {
               "fog": {
                 "$ref": "#/components/schemas/Fog"
               },
@@ -2428,6 +2450,14 @@
       "LibraryAsset": {
         "additionalProperties": false,
         "properties": {
+          "height": {
+            "format": "int32",
+            "minimum": 0,
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
           "id": {
             "type": "string"
           },
@@ -2442,6 +2472,15 @@
               {
                 "$ref": "#/components/schemas/Attribution"
               }
+            ]
+          },
+          "width": {
+            "description": "Original pixel size, filled from the stored image for the GM view; never saved.",
+            "format": "int32",
+            "minimum": 0,
+            "type": [
+              "integer",
+              "null"
             ]
           }
         },
@@ -3238,6 +3277,13 @@
               {
                 "$ref": "#/components/schemas/Attribution"
               }
+            ]
+          },
+          "svg": {
+            "description": "Inert game-icons.net vector for the client to rasterize into a token image.",
+            "type": [
+              "string",
+              "null"
             ]
           }
         },
